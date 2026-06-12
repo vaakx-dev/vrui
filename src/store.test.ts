@@ -16,6 +16,10 @@ describe("store", () => {
     expect(state.count.get()).toBe(1);
     expect(state.name.get()).toBe("Ada");
 
+    if (false) {
+      // @ts-expect-error store fields expose readonly signals; proxy writes need an explicit runtime cast.
+      state.count = 2;
+    }
     (state as unknown as { count: number }).count = 2;
 
     expect(state.count.get()).toBe(2);
@@ -61,7 +65,7 @@ describe("resource", () => {
     expect(state.loading.get()).toBe(false);
 
     state.dispose();
-    expect(signals[1].aborted).toBe(true);
+    expect(signals[1].aborted).toBe(false);
   });
 
   it("records fetch errors", async () => {
@@ -70,6 +74,60 @@ describe("resource", () => {
 
     await flush();
 
+    expect(state.error.get()).toBe(error);
+    expect(state.loading.get()).toBe(false);
+
+    state.dispose();
+  });
+
+  it("records synchronous fetch errors without throwing or staying loading", async () => {
+    const error = new Error("sync boom");
+    const fetcher = vi.fn(() => {
+      throw error;
+    });
+    const state = resource(fetcher, { lazy: true });
+
+    expect(() => state.refetch()).not.toThrow();
+    await flush();
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(state.data.get()).toBeUndefined();
+    expect(state.error.get()).toBe(error);
+    expect(state.loading.get()).toBe(false);
+
+    state.dispose();
+  });
+
+  it("keeps a synchronous error current when an aborted stale request later resolves", async () => {
+    let resolveStale!: (value: string) => void;
+    const signals: AbortSignal[] = [];
+    const error = new Error("latest failed");
+    const fetcher = vi
+      .fn()
+      .mockImplementationOnce((signal?: AbortSignal) => {
+        signals.push(signal!);
+        return new Promise<string>((resolve) => {
+          resolveStale = resolve;
+        });
+      })
+      .mockImplementationOnce((signal?: AbortSignal) => {
+        signals.push(signal!);
+        throw error;
+      });
+    const state = resource(fetcher, { lazy: true });
+
+    state.refetch();
+    expect(state.loading.get()).toBe(true);
+
+    expect(() => state.refetch()).not.toThrow();
+    expect(signals[0].aborted).toBe(true);
+    expect(state.error.get()).toBe(error);
+    expect(state.loading.get()).toBe(false);
+
+    resolveStale("stale");
+    await flush();
+
+    expect(state.data.get()).toBeUndefined();
     expect(state.error.get()).toBe(error);
     expect(state.loading.get()).toBe(false);
 

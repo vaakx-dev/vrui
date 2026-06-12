@@ -7,7 +7,9 @@ import { register_in_scope } from "./scope";
 
 /* ---------- store ---------- */
 
-export function store<T extends object>(initial: T): { [K in keyof T]: Sig<T[K]> } {
+export type Store<T extends object> = { readonly [K in keyof T]: Sig<T[K]> };
+
+export function store<T extends object>(initial: T): Store<T> {
   const signals = new Map<string | symbol, Sig<unknown>>();
 
   return new Proxy(initial, {
@@ -26,7 +28,7 @@ export function store<T extends object>(initial: T): { [K in keyof T]: Sig<T[K]>
       }
       return true;
     },
-  }) as { [K in keyof T]: Sig<T[K]> };
+  }) as Store<T>;
 }
 
 /* ---------- resource ---------- */
@@ -40,7 +42,7 @@ export type Resource<T> = {
 };
 
 export function resource<T>(
-  fetcher: (signal?: AbortSignal) => Promise<T>,
+  fetcher: (signal?: AbortSignal) => Promise<T> | T,
   options?: { lazy?: boolean }
 ): Resource<T> {
   const data = sig<T | undefined>(undefined);
@@ -53,15 +55,32 @@ export function resource<T>(
   function load() {
     if (disposed) return;
     if (controller) controller.abort();
-    controller = new AbortController();
+    const current = new AbortController();
+    controller = current;
     const my = ++token;
     data.set(undefined);
     error.set(undefined);
     loading.set(true);
-    fetcher(controller.signal)
+
+    let promise: Promise<T>;
+    try {
+      promise = Promise.resolve(fetcher(current.signal));
+    } catch (e) {
+      if (my === token && !disposed) {
+        error.set(e);
+        loading.set(false);
+        if (controller === current) controller = null;
+      }
+      return;
+    }
+
+    promise
       .then((v) => { if (my === token && !disposed) data.set(v); })
       .catch((e) => { if (my === token && !disposed) error.set(e); })
-      .finally(() => { if (my === token && !disposed) loading.set(false); });
+      .finally(() => {
+        if (controller === current) controller = null;
+        if (my === token && !disposed) loading.set(false);
+      });
   }
 
   function dispose() {

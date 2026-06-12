@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { batch, derive, effect, is_reactive, resolve, sig } from "./core";
-import { enter_scope, exit_scope } from "./scope";
+import { enter_scope, exit_scope, has_scope } from "./scope";
 
 describe("core helpers", () => {
   it("resolves plain, signal, derive, and function values", () => {
@@ -47,6 +47,37 @@ describe("core helpers", () => {
 
     count.set(4);
     expect(seen).toEqual([0, 1, 3]);
+  });
+
+  it("disposes nested scope work from a failed effect rerun", () => {
+    const gate = sig(false);
+    const source = sig(0);
+    let innerRuns = 0;
+    let innerCleanups = 0;
+
+    const stop = effect(() => {
+      if (!gate.get()) return;
+
+      effect(() => {
+        source.get();
+        innerRuns++;
+        return () => {
+          innerCleanups++;
+        };
+      });
+
+      throw new Error("boom");
+    });
+
+    expect(() => gate.set(true)).toThrow("boom");
+    expect(innerRuns).toBe(1);
+    expect(innerCleanups).toBe(1);
+    expect(has_scope()).toBe(false);
+
+    source.set(1);
+    expect(innerRuns).toBe(1);
+
+    stop();
   });
 
   it("derives values and exposes read-only behavior", () => {

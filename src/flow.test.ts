@@ -3,6 +3,7 @@ import { sig, effect } from "./core";
 import { div, on_mount, span } from "./dom";
 import { dynamic_child, keep, list, show } from "./flow";
 import { portal } from "./portal";
+import { has_scope } from "./scope";
 import { svg, rect } from "./svg";
 
 /* dynamic_child -- one reactive child */
@@ -107,6 +108,54 @@ describe("list keyed reconciliation", () => {
     data.set([{ id: "a" }]);
     expect(disposes).toBeGreaterThanOrEqual(1);
   });
+
+  it("cleans row scope and balances scopes when a row factory throws", () => {
+    const data = sig([{ id: "a" }]);
+    const source = sig(0);
+    let runs = 0;
+    let cleanups = 0;
+
+    expect(() => list(data, (it) => it.id, () => {
+      effect(() => {
+        source.get();
+        runs++;
+        return () => {
+          cleanups++;
+        };
+      });
+      throw new Error("row failed");
+    })).toThrow("row failed");
+
+    expect(runs).toBe(1);
+    expect(cleanups).toBe(1);
+    expect(has_scope()).toBe(false);
+
+    source.set(1);
+    expect(runs).toBe(1);
+  });
+
+  it("batches reused row item and index updates", () => {
+    const data = sig([
+      { id: "a", label: "old-a" },
+      { id: "b", label: "old-b" },
+    ]);
+    const seen: string[] = [];
+
+    list(data, (it) => it.id, (item, idx) => {
+      effect(() => {
+        seen.push(`${item.get().label}:${idx.get()}`);
+      });
+      return document.createElement("div");
+    });
+
+    seen.length = 0;
+    data.set([
+      { id: "b", label: "new-b" },
+      { id: "a", label: "new-a" },
+    ]);
+
+    expect(seen).toEqual(["new-b:0", "new-a:1"]);
+  });
 });
 
 /* show -- node is mounted only while visible */
@@ -154,6 +203,31 @@ describe("show", () => {
     expect(builds).toBe(2);
     expect(wrapper.textContent).toBe("shown");
   });
+
+  it("cleans child scope and balances scopes when the factory throws", () => {
+    const visible = sig(true);
+    const source = sig(0);
+    let runs = 0;
+    let cleanups = 0;
+
+    expect(() => show(visible, () => {
+      effect(() => {
+        source.get();
+        runs++;
+        return () => {
+          cleanups++;
+        };
+      });
+      throw new Error("show failed");
+    })).toThrow("show failed");
+
+    expect(runs).toBe(1);
+    expect(cleanups).toBe(1);
+    expect(has_scope()).toBe(false);
+
+    source.set(1);
+    expect(runs).toBe(1);
+  });
 });
 
 /* keep -- node stays mounted, display toggles */
@@ -183,6 +257,31 @@ describe("keep", () => {
     visible.set(true);
     expect(builds).toBe(1);
     expect((wrapper.children[0] as HTMLElement).style.display).toBe("");
+  });
+
+  it("cleans child scope and balances scopes when the factory throws", () => {
+    const visible = sig(true);
+    const source = sig(0);
+    let runs = 0;
+    let cleanups = 0;
+
+    expect(() => keep(visible, () => {
+      effect(() => {
+        source.get();
+        runs++;
+        return () => {
+          cleanups++;
+        };
+      });
+      throw new Error("keep failed");
+    })).toThrow("keep failed");
+
+    expect(runs).toBe(1);
+    expect(cleanups).toBe(1);
+    expect(has_scope()).toBe(false);
+
+    source.set(1);
+    expect(runs).toBe(1);
   });
 });
 

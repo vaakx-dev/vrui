@@ -10,7 +10,7 @@ Use it when you want lightweight UI code without a virtual DOM or component runt
 
 ## Install, use, and imports
 
-This package is exported from `./src/index.ts` for local Vite and Tauri development.
+This package exports built ESM from `./dist/index.js` with TypeScript declarations from `./dist/index.d.ts` for browser-bundled apps.
 
 ```ts
 import {
@@ -91,7 +91,7 @@ const form = div(
 );
 ```
 
-Boundary helpers include `by_id(id)` for required elements and `mount(target, ...children)` for app roots. String targets are element ids and throw if missing.
+Boundary helpers include `by_id(id)` for required elements and `mount(target, ...children)` for app roots. `by_id(id)` throws if the element is missing. `mount("id", ...children)` accepts an element id string; if the element does not exist yet, mounting is deferred until the element appears in the document, and the returned disposer cancels the pending mount or unmounts the mounted children.
 
 ```ts
 import { by_id, div, mount } from "@vaakx-dev/vrui";
@@ -102,6 +102,12 @@ mount("sidebar", div("Tools"));
 ```
 
 Lifecycle props and helpers include `ref`, `on_mount`, `on_disconnect`, `listen`, `on_window`, `on_document`, and `on_target`.
+
+## Runtime and input caveats
+
+VRUI is browser DOM code. It expects globals such as `document`, `window`, `Node`, and `MutationObserver`; SSR, workers, and non-browser runtimes need a DOM shim or a separate client-only entry point.
+
+Text children and the `text` prop are assigned through text nodes or `textContent`, so they do not parse HTML. Props are otherwise applied directly to DOM properties, attributes, styles, or event listeners. Do not pass untrusted prop objects, prop names, event handlers, URLs, style strings, or HTML-bearing properties such as `innerHTML` unless your application has validated or sanitized them first.
 
 ## Flow helpers
 
@@ -225,6 +231,7 @@ const controls = button({ class: "icon-button" }, chevron, settings, save);
 ## Development commands
 
 ```sh
+npm run build
 npm test
 npm run typecheck
 ```

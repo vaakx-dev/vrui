@@ -52,6 +52,14 @@ export class Effect {
     if (this.disposed || this.running) return;
     this.running = true;
     const old_deps = new Set(this.deps);
+    const restore_old_deps = () => {
+      for (const d of this.deps) d.unsub(this);
+      this.deps.clear();
+      for (const d of old_deps) {
+        this.deps.add(d);
+        d.sub(this);
+      }
+    };
     try {
       for (const d of this.deps) d.unsub(this);
       this.deps.clear();
@@ -64,19 +72,25 @@ export class Effect {
       const prev = active_effect;
       active_effect = this;
       enter_scope();
+      let completed = false;
       try {
         this.cleanup = this.fn();
+        completed = true;
       } catch (err) {
-        for (const d of this.deps) d.unsub(this);
-        this.deps.clear();
-        for (const d of old_deps) {
-          this.deps.add(d);
-          d.sub(this);
+        const failed_scope = exit_scope();
+        active_effect = prev;
+        try {
+          for (const d of failed_scope) d();
+        } finally {
+          restore_old_deps();
         }
         throw err;
       } finally {
-        this.scope_disposers = exit_scope();
-        active_effect = prev;
+        try {
+          if (completed) this.scope_disposers = exit_scope();
+        } finally {
+          active_effect = prev;
+        }
       }
     } finally {
       this.running = false;

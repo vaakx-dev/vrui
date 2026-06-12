@@ -9,7 +9,9 @@ export function enter_scope(): void {
 }
 
 export function exit_scope(): (() => void)[] {
-  return scope_stack.pop()!;
+  const scope = scope_stack.pop();
+  if (!scope) throw new Error("vrui: exit_scope called without matching enter_scope");
+  return scope;
 }
 
 export function register_in_scope(dispose: () => void): void {

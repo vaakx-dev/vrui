@@ -28,4 +28,8 @@ describe("scope stack", () => {
     for (const dispose of outer) dispose();
     expect(calls).toEqual(["inner", "outer"]);
   });
+
+  it("throws clearly when exiting without a matching enter", () => {
+    expect(() => exit_scope()).toThrow("vrui: exit_scope called without matching enter_scope");
+  });
 });

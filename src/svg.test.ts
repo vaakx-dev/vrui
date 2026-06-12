@@ -49,6 +49,42 @@ describe("svg factories", () => {
     expect(node.getAttribute("class")).toBe("active");
   });
 
+  it("updates nested reactive class parts", () => {
+    const active = sig(true);
+    const node = circle({ class: ["dot", { active, hidden: false }] });
+
+    expect(node.getAttribute("class")).toBe("dot active");
+
+    active.set(false);
+    expect(node.getAttribute("class")).toBe("dot");
+  });
+
+  it("removes nullish attributes and normalizes common camelCase names", () => {
+    const radius = sig<number | null>(4);
+    const label = sig<string | undefined>("marker");
+    const node = circle({
+      r: radius,
+      "aria-label": label,
+      role: "img",
+      strokeWidth: 2,
+    });
+    const empty = rect({ x: null, y: undefined });
+
+    expect(node.getAttribute("r")).toBe("4");
+    expect(node.getAttribute("aria-label")).toBe("marker");
+    expect(node.getAttribute("role")).toBe("img");
+    expect(node.getAttribute("stroke-width")).toBe("2");
+    expect(node.hasAttribute("strokeWidth")).toBe(false);
+    expect(empty.hasAttribute("x")).toBe(false);
+    expect(empty.hasAttribute("y")).toBe(false);
+
+    radius.set(null);
+    label.set(undefined);
+
+    expect(node.hasAttribute("r")).toBe(false);
+    expect(node.hasAttribute("aria-label")).toBe(false);
+  });
+
   it("allows omitted props and reactive text children", () => {
     const label = sig("hello");
     const node = svg_el("g", text_el(null, label));

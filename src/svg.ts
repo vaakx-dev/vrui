@@ -25,6 +25,74 @@ import {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
+const SVG_ATTR_ALIASES: Record<string, string> = {
+  alignmentBaseline: "alignment-baseline",
+  baselineShift: "baseline-shift",
+  className: "class",
+  clipPath: "clip-path",
+  clipRule: "clip-rule",
+  colorInterpolation: "color-interpolation",
+  colorInterpolationFilters: "color-interpolation-filters",
+  colorRendering: "color-rendering",
+  dominantBaseline: "dominant-baseline",
+  fillOpacity: "fill-opacity",
+  fillRule: "fill-rule",
+  floodColor: "flood-color",
+  floodOpacity: "flood-opacity",
+  fontFamily: "font-family",
+  fontSize: "font-size",
+  fontSizeAdjust: "font-size-adjust",
+  fontStretch: "font-stretch",
+  fontStyle: "font-style",
+  fontVariant: "font-variant",
+  fontWeight: "font-weight",
+  imageRendering: "image-rendering",
+  letterSpacing: "letter-spacing",
+  lightingColor: "lighting-color",
+  markerEnd: "marker-end",
+  markerMid: "marker-mid",
+  markerStart: "marker-start",
+  shapeRendering: "shape-rendering",
+  stopColor: "stop-color",
+  stopOpacity: "stop-opacity",
+  strokeDasharray: "stroke-dasharray",
+  strokeDashoffset: "stroke-dashoffset",
+  strokeLinecap: "stroke-linecap",
+  strokeLinejoin: "stroke-linejoin",
+  strokeMiterlimit: "stroke-miterlimit",
+  strokeOpacity: "stroke-opacity",
+  strokeWidth: "stroke-width",
+  textAnchor: "text-anchor",
+  textDecoration: "text-decoration",
+  textRendering: "text-rendering",
+  transformOrigin: "transform-origin",
+  vectorEffect: "vector-effect",
+  wordSpacing: "word-spacing",
+  writingMode: "writing-mode",
+};
+
+function is_node(v: unknown): v is Node {
+  return typeof Node !== "undefined" && v instanceof Node;
+}
+
+function has_reactive_part(value: unknown): boolean {
+  if (is_reactive(value)) return true;
+  if (Array.isArray(value)) return value.some(has_reactive_part);
+  if (value && typeof value === "object" && !is_node(value)) {
+    return Object.values(value as Record<string, unknown>).some(has_reactive_part);
+  }
+  return false;
+}
+
+function svg_attr_name(key: string): string {
+  return SVG_ATTR_ALIASES[key] ?? key;
+}
+
+function write_svg_attr(el: SVGElement, key: string, value: unknown): void {
+  if (value == null) el.removeAttribute(key);
+  else el.setAttribute(key, String(value));
+}
+
 function set_svg_prop(el: SVGElement, key: string, value: unknown): void {
   if (key === "ref") {
     (value as (el: SVGElement) => void)(el);
@@ -36,8 +104,10 @@ function set_svg_prop(el: SVGElement, key: string, value: unknown): void {
     return;
   }
 
-  if (key === "class") {
-    if (is_reactive(value) || (Array.isArray(value) && value.some(is_reactive))) {
+  const attr = svg_attr_name(key);
+
+  if (attr === "class") {
+    if (has_reactive_part(value)) {
       const dispose = effect(() => {
         el.setAttribute("class", class_str(is_reactive(value) ? resolve(value) : value));
       });
@@ -79,10 +149,10 @@ function set_svg_prop(el: SVGElement, key: string, value: unknown): void {
   // properties too, but the property model is inconsistent across browsers
   // and engines; setAttribute is the safe path.
   if (is_reactive(value)) {
-    const dispose = effect(() => el.setAttribute(key, safe_str(resolve(value))));
+    const dispose = effect(() => write_svg_attr(el, attr, resolve(value)));
     auto_dispose(el, dispose);
   } else {
-    el.setAttribute(key, safe_str(value));
+    write_svg_attr(el, attr, value);
   }
 }
 
@@ -93,7 +163,7 @@ export function svg_el(tag: string, props?: Props | unknown, ...children: unknow
   if (
     props != null &&
     (typeof props !== "object" ||
-      props instanceof Node ||
+      is_node(props) ||
       Array.isArray(props) ||
       is_reactive(props))
   ) {

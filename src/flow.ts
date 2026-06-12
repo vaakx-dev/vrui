@@ -2,7 +2,7 @@
 // vrui - flow control (list, show)
 // ============================================================
 
-import { Condition, Derive, effect, resolve, sig, Sig } from "./core";
+import { batch, Condition, Derive, effect, resolve, sig, Sig } from "./core";
 import { auto_dispose } from "./dom";
 import { enter_scope, exit_scope } from "./scope";
 
@@ -12,6 +12,18 @@ type DynamicChildValue<T> = Sig<T> | Derive<T> | Condition | (() => T);
 
 function resolve_dynamic_child<T>(value: DynamicChildValue<T>): T {
   return value instanceof Condition ? value.get() as T : resolve(value);
+}
+
+function collect_scope<T>(fn: () => T): { value: T; scope: (() => void)[] } {
+  enter_scope();
+  try {
+    const value = fn();
+    return { value, scope: exit_scope() };
+  } catch (err) {
+    const scope = exit_scope();
+    for (const dispose of scope) dispose();
+    throw err;
+  }
 }
 
 export function dynamic_child<T>(
@@ -77,15 +89,15 @@ export function list<T, K>(
       let row = candidates?.shift();
 
       if (row) {
-        row.item.set(val);
-        row.idx.set(i);
+        batch(() => {
+          row.item.set(val);
+          row.idx.set(i);
+        });
       } else {
         const item_sig = sig(val);
         const idx_sig = sig(i);
-        enter_scope();
-        const row_el = factory(item_sig, idx_sig);
-        const scope = exit_scope();
-        row = { el: row_el, item: item_sig, idx: idx_sig, key, scope };
+        const created = collect_scope(() => factory(item_sig, idx_sig));
+        row = { el: created.value, item: item_sig, idx: idx_sig, key, scope: created.scope };
       }
 
       newRows.push(row);
@@ -144,9 +156,9 @@ export function show(
     const visible = resolve(condition instanceof Condition ? () => condition.get() : condition);
     if (visible) {
       if (!node) {
-        enter_scope();
-        node = factory();
-        scope = exit_scope();
+        const created = collect_scope(factory);
+        node = created.value;
+        scope = created.scope;
       }
       if (node.parentNode !== wrapper) wrapper.appendChild(node);
     } else {
@@ -198,9 +210,9 @@ export function keep(
     const visible = resolve(condition instanceof Condition ? () => condition.get() : condition);
     if (visible) {
       if (!node) {
-        enter_scope();
-        node = factory();
-        scope = exit_scope();
+        const created = collect_scope(factory);
+        node = created.value;
+        scope = created.scope;
         wrapper.appendChild(node);
       }
       node.style.display = "";

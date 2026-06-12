@@ -21,7 +21,7 @@ export {
 } from "./scope";
 
 export { resource, store } from "./store";
-export type { Resource } from "./store";
+export type { Resource, Store } from "./store";
 
 export {
   Fragment,

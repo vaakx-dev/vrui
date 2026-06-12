@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { sig } from "./core";
 import { button, by_id, class_str, div, el, input, listen, mount, replace, safe_str, span } from "./dom";
 
@@ -12,6 +12,15 @@ describe("string and class helpers", () => {
 
     active.set(false);
     expect(class_str({ active })).toBe("");
+  });
+
+  it("does not require a global Node constructor for class helpers", () => {
+    vi.stubGlobal("Node", undefined);
+    try {
+      expect(class_str(["base", { active: true, hidden: false }])).toBe("base active");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 
@@ -74,6 +83,58 @@ describe("dom element factories", () => {
     expect(root.textContent).toBe("Count: 1!");
     count.set(2);
     expect(root.textContent).toBe("Count: 2!");
+  });
+
+  it("clears stale cssText when whole reactive styles switch shape", () => {
+    const styles = sig<unknown>("color: red; width: 12px;");
+    const node = div({ style: styles });
+
+    expect(node.style.color).toBe("red");
+    expect(node.style.width).toBe("12px");
+
+    styles.set({ height: 20, opacity: 0.5 });
+    expect(node.style.color).toBe("");
+    expect(node.style.width).toBe("");
+    expect(node.style.height).toBe("20px");
+    expect(node.style.opacity).toBe("0.5");
+
+    styles.set(null);
+    expect(node.style.cssText).toBe("");
+
+    styles.set("margin-top: 3px;");
+    expect(node.style.marginTop).toBe("3px");
+
+    styles.set(undefined);
+    expect(node.style.cssText).toBe("");
+  });
+
+  it("removes nullish data, aria, and role attributes", () => {
+    const state = sig<string | null>("open");
+    const label = sig<string | undefined>("Save");
+    const role = sig<string | null>("button");
+    const node = div({
+      "data-state": state,
+      "data-empty": null,
+      "aria-label": label,
+      "aria-hidden": undefined,
+      role,
+    });
+    const empty_role = div({ role: null });
+
+    expect(node.getAttribute("data-state")).toBe("open");
+    expect(node.hasAttribute("data-empty")).toBe(false);
+    expect(node.getAttribute("aria-label")).toBe("Save");
+    expect(node.hasAttribute("aria-hidden")).toBe(false);
+    expect(node.getAttribute("role")).toBe("button");
+    expect(empty_role.hasAttribute("role")).toBe(false);
+
+    state.set(null);
+    label.set(undefined);
+    role.set(null);
+
+    expect(node.hasAttribute("data-state")).toBe(false);
+    expect(node.hasAttribute("aria-label")).toBe(false);
+    expect(node.hasAttribute("role")).toBe(false);
   });
 
   it("returns a disposer from listen", () => {

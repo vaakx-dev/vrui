@@ -11,10 +11,14 @@ export function safe_str(v: unknown): string {
   return v == null ? "" : String(v);
 }
 
+function is_node(v: unknown): v is Node {
+  return typeof Node !== "undefined" && v instanceof Node;
+}
+
 export function class_str(v: unknown): string {
   if (Array.isArray(v)) return v.map(class_str).filter(Boolean).join(" ");
   if (v == null || v === false) return "";
-  if (typeof v === "object" && !(v instanceof Node)) {
+  if (typeof v === "object" && !is_node(v)) {
     return Object.entries(v as Record<string, unknown>)
       .filter(([, enabled]) => !!resolve(enabled))
       .map(([name]) => name)
@@ -257,19 +261,25 @@ export function set_style(el: HTMLElement | SVGElement, value: unknown): void {
 
   if (is_reactive(value)) {
     let prev: Set<string> | null = null;
+    let prev_css_text = false;
     const dispose = effect(() => {
       const next = resolve(value);
       if (next == null) {
-        if (prev) for (const k of prev) el.style.removeProperty(k);
+        if (prev_css_text) el.style.cssText = "";
+        else if (prev) for (const k of prev) el.style.removeProperty(k);
         prev = null;
+        prev_css_text = false;
         return;
       }
       if (typeof next === "string") {
         el.style.cssText = next;
         prev = null;
+        prev_css_text = true;
         return;
       }
+      if (prev_css_text) el.style.cssText = "";
       prev = apply_style_object(el, next as Record<string, unknown>, prev);
+      prev_css_text = false;
     });
     auto_dispose(el, dispose);
     return;
@@ -290,7 +300,7 @@ export function set_style(el: HTMLElement | SVGElement, value: unknown): void {
 function has_reactive_part(value: unknown): boolean {
   if (is_reactive(value)) return true;
   if (Array.isArray(value)) return value.some(has_reactive_part);
-  if (value && typeof value === "object" && !(value instanceof Node)) {
+  if (value && typeof value === "object" && !is_node(value)) {
     return Object.values(value as Record<string, unknown>).some(has_reactive_part);
   }
   return false;
@@ -350,10 +360,15 @@ function set_prop(el: HTMLElement, key: string, value: unknown): void {
 
   if (key.startsWith("data-") || key.startsWith("aria-") || key === "role") {
     if (is_reactive(value)) {
-      const dispose = effect(() => el.setAttribute(key, safe_str(resolve(value))));
+      const dispose = effect(() => {
+        const next = resolve(value);
+        if (next == null) el.removeAttribute(key);
+        else el.setAttribute(key, String(next));
+      });
       auto_dispose(el, dispose);
     } else {
-      el.setAttribute(key, safe_str(value));
+      if (value == null) el.removeAttribute(key);
+      else el.setAttribute(key, String(value));
     }
     return;
   }
@@ -395,7 +410,7 @@ export function append_child(parent: Node, child: unknown): void {
     return;
   }
 
-  if (child instanceof Node) {
+  if (is_node(child)) {
     parent.appendChild(child);
     return;
   }
@@ -514,7 +529,7 @@ export function el(tag: string, props?: Props | unknown, ...children: unknown[])
   if (
     props != null &&
     (typeof props !== "object" ||
-      props instanceof Node ||
+      is_node(props) ||
       Array.isArray(props) ||
       is_reactive(props))
   ) {
