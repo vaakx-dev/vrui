@@ -20,6 +20,7 @@ import {
   on_mount,
   safe_str,
   set_style,
+  type Child,
   type Props,
 } from "./dom";
 
@@ -156,7 +157,7 @@ function set_svg_prop(el: SVGElement, key: string, value: unknown): void {
   }
 }
 
-export function svg_el(tag: string, props?: Props | unknown, ...children: unknown[]): SVGElement {
+export function svg_el(tag: string, props?: Props<SVGElement> | Child, ...children: Child[]): SVGElement {
   const node = document.createElementNS(SVG_NS, tag);
 
   // Mirror dom.ts: allow callers to omit props and pass children directly.
@@ -187,16 +188,16 @@ export function svg_el(tag: string, props?: Props | unknown, ...children: unknow
 /* tag shortcuts. We rename anything that collides with HTML factory names
  * in dom.ts (a, title) or with JS reserved words (use) to keep imports
  * unambiguous at call sites. */
-export const svg = (props?: Props, ...children: unknown[]) => svg_el("svg", props, ...children);
-export const g = (props?: Props, ...children: unknown[]) => svg_el("g", props, ...children);
-export const path = (props?: Props, ...children: unknown[]) => svg_el("path", props, ...children);
-export const rect = (props?: Props, ...children: unknown[]) => svg_el("rect", props, ...children);
-export const circle = (props?: Props, ...children: unknown[]) => svg_el("circle", props, ...children);
-export const ellipse = (props?: Props, ...children: unknown[]) => svg_el("ellipse", props, ...children);
-export const line = (props?: Props, ...children: unknown[]) => svg_el("line", props, ...children);
-export const polyline = (props?: Props, ...children: unknown[]) => svg_el("polyline", props, ...children);
-export const polygon = (props?: Props, ...children: unknown[]) => svg_el("polygon", props, ...children);
-export const defs = (props?: Props, ...children: unknown[]) => svg_el("defs", props, ...children);
-export const text_el = (props?: Props, ...children: unknown[]) => svg_el("text", props, ...children);
-export const title_el = (props?: Props, ...children: unknown[]) => svg_el("title", props, ...children);
-export const use_el = (props?: Props, ...children: unknown[]) => svg_el("use", props, ...children);
+export const svg = (props?: Props<SVGSVGElement> | Child, ...children: Child[]) => svg_el("svg", props, ...children);
+export const g = (props?: Props<SVGGElement> | Child, ...children: Child[]) => svg_el("g", props, ...children);
+export const path = (props?: Props<SVGPathElement> | Child, ...children: Child[]) => svg_el("path", props, ...children);
+export const rect = (props?: Props<SVGRectElement> | Child, ...children: Child[]) => svg_el("rect", props, ...children);
+export const circle = (props?: Props<SVGCircleElement> | Child, ...children: Child[]) => svg_el("circle", props, ...children);
+export const ellipse = (props?: Props<SVGEllipseElement> | Child, ...children: Child[]) => svg_el("ellipse", props, ...children);
+export const line = (props?: Props<SVGLineElement> | Child, ...children: Child[]) => svg_el("line", props, ...children);
+export const polyline = (props?: Props<SVGPolylineElement> | Child, ...children: Child[]) => svg_el("polyline", props, ...children);
+export const polygon = (props?: Props<SVGPolygonElement> | Child, ...children: Child[]) => svg_el("polygon", props, ...children);
+export const defs = (props?: Props<SVGDefsElement> | Child, ...children: Child[]) => svg_el("defs", props, ...children);
+export const text_el = (props?: Props<SVGTextElement> | Child, ...children: Child[]) => svg_el("text", props, ...children);
+export const title_el = (props?: Props<SVGTitleElement> | Child, ...children: Child[]) => svg_el("title", props, ...children);
+export const use_el = (props?: Props<SVGUseElement> | Child, ...children: Child[]) => svg_el("use", props, ...children);

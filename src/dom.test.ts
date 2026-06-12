@@ -1,6 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
 import { sig } from "./core";
-import { button, by_id, class_str, div, el, input, listen, mount, replace, safe_str, span } from "./dom";
+import {
+  button,
+  by_id,
+  canvas,
+  class_str,
+  dialog,
+  div,
+  form,
+  h3,
+  input,
+  label,
+  option,
+  replace,
+  safe_str,
+  select,
+  span,
+  table,
+  tbody,
+  td,
+  textarea,
+  tr,
+  el,
+  listen,
+  mount,
+} from "./dom";
 
 describe("string and class helpers", () => {
   it("normalizes nullable strings and mixed class inputs", () => {
@@ -83,6 +107,61 @@ describe("dom element factories", () => {
     expect(root.textContent).toBe("Count: 1!");
     count.set(2);
     expect(root.textContent).toBe("Count: 2!");
+  });
+
+  it("binds input, textarea, select value, and checkbox checked state", () => {
+    const name = sig("Ada");
+    const field = input({ bind_value: name });
+
+    expect(field.value).toBe("Ada");
+    name.set("Grace");
+    expect(field.value).toBe("Grace");
+    field.value = "Katherine";
+    field.dispatchEvent(new Event("input"));
+    expect(name.get()).toBe("Katherine");
+
+    const notes = sig("first");
+    const area = textarea({ bind_value: notes });
+    area.value = "updated";
+    area.dispatchEvent(new Event("input"));
+    expect(notes.get()).toBe("updated");
+
+    const choice = sig("b");
+    const menu = select(
+      { bind_value: choice },
+      option({ value: "a" }, "A"),
+      option({ value: "b" }, "B"),
+    );
+    expect(menu.value).toBe("b");
+    menu.value = "a";
+    menu.dispatchEvent(new Event("change"));
+    expect(choice.get()).toBe("a");
+
+    const enabled = sig(false);
+    const toggle = input({ type: "checkbox", bind_checked: enabled });
+    expect(toggle.checked).toBe(false);
+    enabled.set(true);
+    expect(toggle.checked).toBe(true);
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event("change"));
+    expect(enabled.get()).toBe(false);
+  });
+
+  it("exports common tag factories to avoid raw document.createElement usage", () => {
+    const node = form(
+      label("Name", input({ value: "Ada" })),
+      h3("Rows"),
+      table(tbody(tr(td("cell")))),
+      canvas({ width: 100, height: 50 }),
+      dialog("Dialog"),
+    );
+
+    expect(node.tagName).toBe("FORM");
+    expect(node.querySelector("label input")).not.toBeNull();
+    expect(node.querySelector("h3")?.textContent).toBe("Rows");
+    expect(node.querySelector("td")?.textContent).toBe("cell");
+    expect(node.querySelector("canvas")?.getAttribute("width")).toBe("100");
+    expect(node.querySelector("dialog")?.textContent).toBe("Dialog");
   });
 
   it("clears stale cssText when whole reactive styles switch shape", () => {

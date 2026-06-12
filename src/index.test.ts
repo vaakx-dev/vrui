@@ -23,6 +23,13 @@ describe("public index exports", () => {
     expect(typeof vrui.show).toBe("function");
     expect(typeof vrui.list).toBe("function");
     expect(typeof vrui.keep).toBe("function");
+    expect(typeof vrui.keys).toBe("function");
+    expect(typeof vrui.prevent_then).toBe("function");
+    expect(typeof vrui.on_interval).toBe("function");
+    expect(typeof vrui.on_resize).toBe("function");
+    expect(typeof vrui.form).toBe("function");
+    expect(typeof vrui.textarea).toBe("function");
+    expect(typeof vrui.table).toBe("function");
 
     doubled.dispose();
   });

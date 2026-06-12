@@ -2,7 +2,8 @@
 // vrui - dom factories + reactive prop/child bindings
 // ============================================================
 
-import { effect, is_reactive, resolve, type Cleanup } from "./core";
+import { effect, is_reactive, resolve, type Cleanup, type ReactiveValue } from "./core";
+import type { EventHandler } from "./events";
 import { enter_scope, exit_scope, has_scope, register_in_scope } from "./scope";
 
 /* ---------- string + class helpers ---------- */
@@ -182,9 +183,75 @@ export function on_document(
   on_target(owner, document, event, handler, options);
 }
 
-/* ---------- props ---------- */
+/* ---------- public UI types ---------- */
 
-export type Props = Record<string, unknown>;
+export type MaybeReactive<T> = T | ReactiveValue<T>;
+
+export type Child =
+  | Node
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | ReactiveValue<unknown>
+  | Child[];
+
+export type ClassValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | ReactiveValue<unknown>
+  | ClassValue[]
+  | Record<string, unknown>;
+
+export type StylePrimitive = string | number | boolean | null | undefined;
+export type StyleMap = Record<string, unknown>;
+export type StyleValue =
+  | string
+  | StyleMap
+  | null
+  | undefined
+  | ReactiveValue<unknown>;
+
+export type WritableSignal<T> = {
+  get(): T;
+  set(value: T): void;
+};
+
+type DataProps = {
+  [key: `data-${string}`]: MaybeReactive<unknown>;
+};
+
+type AriaProps = {
+  [key: `aria-${string}`]: MaybeReactive<unknown>;
+};
+
+type EventProps = {
+  [key: `on_${string}`]: EventHandler<any>;
+};
+
+export type Props<E extends Element = HTMLElement> = {
+  ref?: (el: E) => void;
+  on_mount?: (el: Node) => Cleanup;
+  class?: ClassValue;
+  style?: StyleValue;
+  text?: MaybeReactive<unknown>;
+  role?: MaybeReactive<string>;
+  bind_value?: WritableSignal<unknown>;
+  bind_checked?: WritableSignal<boolean>;
+} & DataProps
+  & AriaProps
+  & EventProps
+  & Partial<Record<keyof E, unknown>>
+  & Record<string, unknown>;
+
+export type Component<P extends Props = Props, E extends HTMLElement = HTMLElement> = (
+  props?: P | Child,
+  ...children: Child[]
+) => E;
 
 /* ---------- style ----------
  *
@@ -317,6 +384,60 @@ function set_class(el: HTMLElement, value: unknown): void {
   el.className = class_str(value);
 }
 
+function is_writable_signal(value: unknown): value is WritableSignal<unknown> {
+  return !!value &&
+    typeof value === "object" &&
+    typeof (value as WritableSignal<unknown>).get === "function" &&
+    typeof (value as WritableSignal<unknown>).set === "function";
+}
+
+function is_value_element(
+  el: HTMLElement,
+): el is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+  return el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    el instanceof HTMLSelectElement;
+}
+
+function bind_value(el: HTMLElement, value: unknown): void {
+  if (!is_writable_signal(value)) {
+    throw new Error("vrui: bind_value expects a writable signal");
+  }
+  if (!is_value_element(el)) {
+    throw new Error("vrui: bind_value can only be used on input, textarea, or select");
+  }
+
+  const dispose = effect(() => {
+    const next = safe_str(value.get());
+    if (el.value !== next) el.value = next;
+  });
+  auto_dispose(el, dispose);
+
+  const event = el instanceof HTMLSelectElement ? "change" : "input";
+  const handler = () => value.set(el.value);
+  el.addEventListener(event, handler);
+  auto_dispose(el, () => el.removeEventListener(event, handler));
+}
+
+function bind_checked(el: HTMLElement, value: unknown): void {
+  if (!is_writable_signal(value)) {
+    throw new Error("vrui: bind_checked expects a writable boolean signal");
+  }
+  if (!(el instanceof HTMLInputElement)) {
+    throw new Error("vrui: bind_checked can only be used on input");
+  }
+
+  const dispose = effect(() => {
+    const next = !!value.get();
+    if (el.checked !== next) el.checked = next;
+  });
+  auto_dispose(el, dispose);
+
+  const handler = () => value.set(el.checked);
+  el.addEventListener("change", handler);
+  auto_dispose(el, () => el.removeEventListener("change", handler));
+}
+
 function set_prop(el: HTMLElement, key: string, value: unknown): void {
   if (key === "ref") {
     (value as (el: HTMLElement) => void)(el);
@@ -325,6 +446,16 @@ function set_prop(el: HTMLElement, key: string, value: unknown): void {
 
   if (key === "on_mount") {
     on_mount(el, value as (el: Node) => Cleanup);
+    return;
+  }
+
+  if (key === "bind_value") {
+    bind_value(el, value);
+    return;
+  }
+
+  if (key === "bind_checked") {
+    bind_checked(el, value);
     return;
   }
 
@@ -402,7 +533,7 @@ export function by_id<T extends Element = HTMLElement>(id: string): T {
   return el as unknown as T;
 }
 
-export function append_child(parent: Node, child: unknown): void {
+export function append_child(parent: Node, child: Child): void {
   if (child == null || child === false || child === true) return;
 
   if (Array.isArray(child)) {
@@ -428,7 +559,7 @@ export function append_child(parent: Node, child: unknown): void {
   parent.appendChild(document.createTextNode(safe_str(child)));
 }
 
-function mount_children(parent: Node, children: unknown[]): () => void {
+function mount_children(parent: Node, children: Child[]): () => void {
   const frag = document.createDocumentFragment();
 
   enter_scope();
@@ -463,7 +594,7 @@ function document_observer_root(): Node {
   return document.documentElement ?? document.body ?? document;
 }
 
-function mount_when_available(target_id: string, children: unknown[]): () => void {
+function mount_when_available(target_id: string, children: Child[]): () => void {
   let stop_mount: (() => void) | undefined;
   let disposed = false;
   let observer: MutationObserver | undefined;
@@ -492,7 +623,7 @@ function mount_when_available(target_id: string, children: unknown[]): () => voi
   return dispose;
 }
 
-export function mount(target: Node | string, ...children: unknown[]): () => void {
+export function mount(target: Node | string, ...children: Child[]): () => void {
   if (typeof target !== "string") return mount_children(target, children);
 
   const parent = document.getElementById(target);
@@ -503,7 +634,7 @@ export function mount(target: Node | string, ...children: unknown[]): () => void
 
 const replace_mounts = new WeakMap<Node, () => void>();
 
-export function replace(target: Node | string, ...children: unknown[]): () => void {
+export function replace(target: Node | string, ...children: Child[]): () => void {
   const parent = typeof target === "string" ? by_id(target) : target;
   const previous = replace_mounts.get(parent);
   if (previous) previous();
@@ -523,7 +654,13 @@ export function replace(target: Node | string, ...children: unknown[]): () => vo
   return dispose;
 }
 
-export function el(tag: string, props?: Props | unknown, ...children: unknown[]): HTMLElement {
+export function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  props?: Props<HTMLElementTagNameMap[K]> | Child,
+  ...children: Child[]
+): HTMLElementTagNameMap[K];
+export function el(tag: string, props?: Props | Child, ...children: Child[]): HTMLElement;
+export function el(tag: string, props?: Props | Child, ...children: Child[]): HTMLElement {
   const node = document.createElement(tag);
 
   if (
@@ -537,9 +674,11 @@ export function el(tag: string, props?: Props | unknown, ...children: unknown[])
     props = undefined;
   }
 
+  const deferred_props: [string, unknown][] = [];
   if (props) {
     for (const [key, value] of Object.entries(props as Props)) {
-      set_prop(node, key, value);
+      if (key === "bind_value" || key === "bind_checked") deferred_props.push([key, value]);
+      else set_prop(node, key, value);
     }
   }
 
@@ -547,28 +686,63 @@ export function el(tag: string, props?: Props | unknown, ...children: unknown[])
     append_child(node, child);
   }
 
+  for (const [key, value] of deferred_props) {
+    set_prop(node, key, value);
+  }
+
   return node;
 }
 
-export function Fragment(_props?: Props | unknown, ...children: unknown[]): unknown[] {
+export function Fragment(_props?: Props | Child, ...children: Child[]): Child[] {
   return children;
 }
 
 /* tag shortcuts */
-export const div = (props?: unknown, ...children: unknown[]) => el("div", props, ...children);
-export const span = (props?: unknown, ...children: unknown[]) => el("span", props, ...children);
-export const button = (props?: unknown, ...children: unknown[]) => el("button", props, ...children);
-export const input = (props?: Props) => el("input", props);
-export const a = (props?: unknown, ...children: unknown[]) => el("a", props, ...children);
-export const ul = (props?: unknown, ...children: unknown[]) => el("ul", props, ...children);
-export const li = (props?: unknown, ...children: unknown[]) => el("li", props, ...children);
-export const h1 = (props?: unknown, ...children: unknown[]) => el("h1", props, ...children);
-export const h2 = (props?: unknown, ...children: unknown[]) => el("h2", props, ...children);
-export const p = (props?: unknown, ...children: unknown[]) => el("p", props, ...children);
-export const section = (props?: unknown, ...children: unknown[]) => el("section", props, ...children);
-export const article = (props?: unknown, ...children: unknown[]) => el("article", props, ...children);
-export const nav = (props?: unknown, ...children: unknown[]) => el("nav", props, ...children);
-export const header = (props?: unknown, ...children: unknown[]) => el("header", props, ...children);
-export const footer = (props?: unknown, ...children: unknown[]) => el("footer", props, ...children);
-export const main = (props?: unknown, ...children: unknown[]) => el("main", props, ...children);
-export const aside = (props?: unknown, ...children: unknown[]) => el("aside", props, ...children);
+export const div = (props?: Props<HTMLDivElement> | Child, ...children: Child[]) => el("div", props, ...children);
+export const span = (props?: Props<HTMLSpanElement> | Child, ...children: Child[]) => el("span", props, ...children);
+export const button = (props?: Props<HTMLButtonElement> | Child, ...children: Child[]) => el("button", props, ...children);
+export const input = (props?: Props<HTMLInputElement>) => el("input", props);
+export const textarea = (props?: Props<HTMLTextAreaElement> | Child, ...children: Child[]) => el("textarea", props, ...children);
+export const select = (props?: Props<HTMLSelectElement> | Child, ...children: Child[]) => el("select", props, ...children);
+export const option = (props?: Props<HTMLOptionElement> | Child, ...children: Child[]) => el("option", props, ...children);
+export const label = (props?: Props<HTMLLabelElement> | Child, ...children: Child[]) => el("label", props, ...children);
+export const form = (props?: Props<HTMLFormElement> | Child, ...children: Child[]) => el("form", props, ...children);
+export const fieldset = (props?: Props<HTMLFieldSetElement> | Child, ...children: Child[]) => el("fieldset", props, ...children);
+export const legend = (props?: Props<HTMLLegendElement> | Child, ...children: Child[]) => el("legend", props, ...children);
+export const a = (props?: Props<HTMLAnchorElement> | Child, ...children: Child[]) => el("a", props, ...children);
+export const img = (props?: Props<HTMLImageElement>) => el("img", props);
+export const dialog = (props?: Props<HTMLDialogElement> | Child, ...children: Child[]) => el("dialog", props, ...children);
+export const canvas = (props?: Props<HTMLCanvasElement> | Child, ...children: Child[]) => el("canvas", props, ...children);
+export const ul = (props?: Props<HTMLUListElement> | Child, ...children: Child[]) => el("ul", props, ...children);
+export const ol = (props?: Props<HTMLOListElement> | Child, ...children: Child[]) => el("ol", props, ...children);
+export const li = (props?: Props<HTMLLIElement> | Child, ...children: Child[]) => el("li", props, ...children);
+export const dl = (props?: Props<HTMLDListElement> | Child, ...children: Child[]) => el("dl", props, ...children);
+export const dt = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("dt", props, ...children);
+export const dd = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("dd", props, ...children);
+export const h1 = (props?: Props<HTMLHeadingElement> | Child, ...children: Child[]) => el("h1", props, ...children);
+export const h2 = (props?: Props<HTMLHeadingElement> | Child, ...children: Child[]) => el("h2", props, ...children);
+export const h3 = (props?: Props<HTMLHeadingElement> | Child, ...children: Child[]) => el("h3", props, ...children);
+export const h4 = (props?: Props<HTMLHeadingElement> | Child, ...children: Child[]) => el("h4", props, ...children);
+export const h5 = (props?: Props<HTMLHeadingElement> | Child, ...children: Child[]) => el("h5", props, ...children);
+export const h6 = (props?: Props<HTMLHeadingElement> | Child, ...children: Child[]) => el("h6", props, ...children);
+export const p = (props?: Props<HTMLParagraphElement> | Child, ...children: Child[]) => el("p", props, ...children);
+export const strong = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("strong", props, ...children);
+export const em = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("em", props, ...children);
+export const small = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("small", props, ...children);
+export const section = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("section", props, ...children);
+export const article = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("article", props, ...children);
+export const nav = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("nav", props, ...children);
+export const header = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("header", props, ...children);
+export const footer = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("footer", props, ...children);
+export const main = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("main", props, ...children);
+export const aside = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("aside", props, ...children);
+export const table = (props?: Props<HTMLTableElement> | Child, ...children: Child[]) => el("table", props, ...children);
+export const thead = (props?: Props<HTMLTableSectionElement> | Child, ...children: Child[]) => el("thead", props, ...children);
+export const tbody = (props?: Props<HTMLTableSectionElement> | Child, ...children: Child[]) => el("tbody", props, ...children);
+export const tfoot = (props?: Props<HTMLTableSectionElement> | Child, ...children: Child[]) => el("tfoot", props, ...children);
+export const tr = (props?: Props<HTMLTableRowElement> | Child, ...children: Child[]) => el("tr", props, ...children);
+export const th = (props?: Props<HTMLTableCellElement> | Child, ...children: Child[]) => el("th", props, ...children);
+export const td = (props?: Props<HTMLTableCellElement> | Child, ...children: Child[]) => el("td", props, ...children);
+export const details = (props?: Props<HTMLDetailsElement> | Child, ...children: Child[]) => el("details", props, ...children);
+export const summary = (props?: Props<HTMLElement> | Child, ...children: Child[]) => el("summary", props, ...children);
+export const template = (props?: Props<HTMLTemplateElement> | Child, ...children: Child[]) => el("template", props, ...children);

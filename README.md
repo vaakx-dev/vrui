@@ -8,6 +8,43 @@ VRUI builds real DOM nodes directly. State lives in signals, reactive reads insi
 
 Use it when you want lightweight UI code without a virtual DOM or component runtime.
 
+## Application code style
+
+VRUI app code should read like a small UI language over the DOM. Prefer factories,
+reactive props, bindings, flow helpers, and cleanup-aware event helpers before
+reaching for raw browser APIs.
+
+Prefer this:
+
+```ts
+import { div, keys, sig, stop } from "@vaakx-dev/vrui";
+
+const open = sig(false);
+
+const palette = div(
+  {
+    on_click: stop,
+    on_keydown: keys({
+      Escape: open.setter(false),
+      Enter: run_selected,
+      ArrowDown: () => move_selection(1),
+      ArrowUp: () => move_selection(-1),
+    }),
+  },
+  "Commands",
+);
+```
+
+Avoid app-level code like this unless you are integrating a browser API,
+third-party widget, canvas renderer, measurement, or another true escape hatch:
+
+```ts
+const palette = document.createElement("div");
+palette.addEventListener("keydown", (event) => {
+  event.preventDefault();
+});
+```
+
 ## Install, use, and imports
 
 This package exports built ESM from `./dist/index.js` with TypeScript declarations from `./dist/index.d.ts` for browser-bundled apps.
@@ -69,7 +106,7 @@ Signals also include helpers such as `update`, `toggle`, `setter`, `from_input`,
 
 ## DOM factories and reactive props
 
-Factories create DOM nodes: `div`, `span`, `button`, `input`, `a`, `ul`, `li`, `h1`, `h2`, `p`, `section`, `article`, `nav`, `header`, `footer`, `main`, and `aside`. Use `el(tag, props, ...children)` for other tags.
+Factories create DOM nodes: `div`, `span`, `button`, `input`, `form`, `label`, `textarea`, `select`, `option`, `a`, `img`, `dialog`, `canvas`, lists, headings through `h6`, table elements, sectioning elements, and semantic text helpers like `strong`, `em`, and `small`. Use `el(tag, props, ...children)` for custom or uncommon tags.
 
 Props can be plain values or reactive values. `class`, `style`, `text`, `data-*`, `aria-*`, `role`, `value` on inputs, normal DOM properties, and children can all react to signals or derives. Event props use `on_eventName`.
 
@@ -84,7 +121,7 @@ const form = div(
     class: ["panel", { active: enabled }],
     style: { opacity: enabled.map((v) => (v ? 1 : 0.5)) },
   },
-  input({ value: name, on_input: name.from_input() }),
+  input({ bind_value: name }),
   button({ disabled: enabled.map((v) => !v), on_click: enabled.toggle() }, "Toggle"),
   "Hello ",
   name,
@@ -102,6 +139,87 @@ mount("sidebar", div("Tools"));
 ```
 
 Lifecycle props and helpers include `ref`, `on_mount`, `on_disconnect`, `listen`, `on_window`, `on_document`, and `on_target`.
+
+## Events and keyboard maps
+
+Event props use `on_eventName`. VRUI includes helpers for common UI event
+boilerplate:
+
+```ts
+import { button, div, keys, prevent_then, stop } from "@vaakx-dev/vrui";
+
+const save_button = button({ on_click: prevent_then(save) }, "Save");
+
+const palette = div({
+  on_click: stop,
+  on_keydown: keys({
+    Escape: close_palette,
+    Enter: run_selected,
+    ArrowDown: () => move_selection(1),
+    ArrowUp: () => move_selection(-1),
+  }),
+});
+```
+
+`keys(map)` handles only mapped keys and prevents their default browser action
+by default. Use options when needed:
+
+```ts
+keys({ Enter: submit }, { prevent: false });
+keys({ Escape: close }, { stop: true, repeat: false });
+```
+
+Available helpers are `stop`, `prevent`, `stop_then(fn)`,
+`prevent_then(fn)`, `event(fn, options)`, and `keys(map, options)`.
+
+## Form bindings
+
+Use bindings for common form state:
+
+```ts
+import { input, option, select, sig, textarea } from "@vaakx-dev/vrui";
+
+const name = sig("Ada");
+const enabled = sig(false);
+const role = sig("admin");
+
+input({ bind_value: name });
+textarea({ bind_value: name });
+input({ type: "checkbox", bind_checked: enabled });
+select(
+  { bind_value: role },
+  option({ value: "admin" }, "Admin"),
+  option({ value: "viewer" }, "Viewer"),
+);
+```
+
+## Browser side effects
+
+Use cleanup-aware helpers for common browser side effects:
+
+```ts
+import {
+  div,
+  on_interval,
+  on_media,
+  on_resize,
+  resize_observer,
+} from "@vaakx-dev/vrui";
+
+const panel = div({
+  on_mount: (el) => {
+    on_resize(el, recalc_layout);
+    resize_observer(el as Element, recalc_panel);
+    on_interval(refresh, 30_000);
+    on_media("(prefers-reduced-motion: reduce)", (matches) => {
+      reduced_motion.set(matches);
+    });
+  },
+});
+```
+
+Available helpers are `on_timeout`, `on_interval`, `on_raf`, `on_resize`,
+`on_media`, `resize_observer`, and `intersection_observer`.
 
 ## Runtime and input caveats
 
