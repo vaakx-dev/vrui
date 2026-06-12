@@ -14,11 +14,16 @@ export {
 export type { Cleanup, ReactiveValue } from "./core";
 
 export {
+  collect_scope,
+  dispose_all,
   enter_scope,
   exit_scope,
   has_scope,
+  once,
   register_in_scope,
+  scoped,
 } from "./scope";
+export type { Disposer, ScopedValue } from "./scope";
 
 export { resource, store } from "./store";
 export type { Resource, Store } from "./store";

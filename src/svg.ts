@@ -90,57 +90,80 @@ function svg_attr_name(key: string): string {
 }
 
 function write_svg_attr(el: SVGElement, key: string, value: unknown): void {
-  if (value == null) el.removeAttribute(key);
-  else el.setAttribute(key, String(value));
+  if (value == null) {
+    el.removeAttribute(key);
+    return;
+  }
+
+  el.setAttribute(key, String(value));
 }
 
+type SvgPropSetter = (el: SVGElement, value: unknown) => void;
+
+function set_svg_class(el: SVGElement, value: unknown): void {
+  if (!has_reactive_part(value)) {
+    el.setAttribute("class", class_str(value));
+    return;
+  }
+
+  const dispose = effect(() => {
+    el.setAttribute("class", class_str(is_reactive(value) ? resolve(value) : value));
+  });
+  auto_dispose(el, dispose);
+}
+
+function set_svg_text(el: SVGElement, value: unknown): void {
+  if (!is_reactive(value)) {
+    el.textContent = safe_str(value);
+    return;
+  }
+
+  const dispose = effect(() => {
+    el.textContent = safe_str(resolve(value));
+  });
+  auto_dispose(el, dispose);
+}
+
+function set_svg_event(el: SVGElement, key: string, value: unknown): void {
+  const event = key.slice(3);
+  const handler = value as EventListener;
+  el.addEventListener(event, handler);
+  auto_dispose(el, () => el.removeEventListener(event, handler));
+}
+
+function set_svg_attr(el: SVGElement, key: string, value: unknown): void {
+  if (!is_reactive(value)) {
+    write_svg_attr(el, key, value);
+    return;
+  }
+
+  const dispose = effect(() => write_svg_attr(el, key, resolve(value)));
+  auto_dispose(el, dispose);
+}
+
+const SVG_PROP_SETTERS: Record<string, SvgPropSetter> = {
+  ref: (el, value) => (value as (el: SVGElement) => void)(el),
+  on_mount: (el, value) => on_mount(el, value as (el: Node) => void | (() => void)),
+  style: set_style,
+  text: set_svg_text,
+};
+
 function set_svg_prop(el: SVGElement, key: string, value: unknown): void {
-  if (key === "ref") {
-    (value as (el: SVGElement) => void)(el);
-    return;
-  }
-
-  if (key === "on_mount") {
-    on_mount(el, value as (el: Node) => void | (() => void));
-    return;
-  }
-
   const attr = svg_attr_name(key);
 
   if (attr === "class") {
-    if (has_reactive_part(value)) {
-      const dispose = effect(() => {
-        el.setAttribute("class", class_str(is_reactive(value) ? resolve(value) : value));
-      });
-      auto_dispose(el, dispose);
-    } else {
-      el.setAttribute("class", class_str(value));
-    }
+    set_svg_class(el, value);
     return;
   }
 
-  if (key === "style") {
-    set_style(el, value);
-    return;
-  }
-
-  if (key === "text") {
-    if (is_reactive(value)) {
-      const dispose = effect(() => {
-        el.textContent = safe_str(resolve(value));
-      });
-      auto_dispose(el, dispose);
-    } else {
-      el.textContent = safe_str(value);
-    }
+  const setter = SVG_PROP_SETTERS[key];
+  if (setter) {
+    setter(el, value);
     return;
   }
 
   if (key.startsWith("on_")) {
-    const event = key.slice(3);
-    const handler = value as EventListener;
-    el.addEventListener(event, handler);
-    auto_dispose(el, () => el.removeEventListener(event, handler));
+    set_svg_event(el, key, value);
     return;
   }
 
@@ -149,25 +172,22 @@ function set_svg_prop(el: SVGElement, key: string, value: unknown): void {
   // goes through setAttribute. SVG elements expose most of these as DOM
   // properties too, but the property model is inconsistent across browsers
   // and engines; setAttribute is the safe path.
-  if (is_reactive(value)) {
-    const dispose = effect(() => write_svg_attr(el, attr, resolve(value)));
-    auto_dispose(el, dispose);
-  } else {
-    write_svg_attr(el, attr, value);
-  }
+  set_svg_attr(el, attr, value);
+}
+
+function is_child_argument(value: Props<SVGElement> | Child | undefined): value is Child {
+  return value != null &&
+    (typeof value !== "object" ||
+      is_node(value) ||
+      Array.isArray(value) ||
+      is_reactive(value));
 }
 
 export function svg_el(tag: string, props?: Props<SVGElement> | Child, ...children: Child[]): SVGElement {
   const node = document.createElementNS(SVG_NS, tag);
 
   // Mirror dom.ts: allow callers to omit props and pass children directly.
-  if (
-    props != null &&
-    (typeof props !== "object" ||
-      is_node(props) ||
-      Array.isArray(props) ||
-      is_reactive(props))
-  ) {
+  if (is_child_argument(props)) {
     children.unshift(props);
     props = undefined;
   }

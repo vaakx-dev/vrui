@@ -30,6 +30,9 @@ describe("public index exports", () => {
     expect(typeof vrui.form).toBe("function");
     expect(typeof vrui.textarea).toBe("function");
     expect(typeof vrui.table).toBe("function");
+    expect(typeof vrui.collect_scope).toBe("function");
+    expect(typeof vrui.dispose_all).toBe("function");
+    expect(typeof vrui.once).toBe("function");
 
     doubled.dispose();
   });

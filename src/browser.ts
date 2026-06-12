@@ -3,44 +3,24 @@
 // ============================================================
 
 import { auto_dispose, on_window } from "./dom";
-import { has_scope, register_in_scope } from "./scope";
-
-function scoped(dispose: () => void): () => void {
-  if (has_scope()) register_in_scope(dispose);
-  return dispose;
-}
+import { once, scoped } from "./scope";
 
 export function on_timeout(fn: () => void, ms?: number): () => void {
   const id = window.setTimeout(fn, ms);
-  let active = true;
 
-  return scoped(() => {
-    if (!active) return;
-    active = false;
-    window.clearTimeout(id);
-  });
+  return scoped(once(() => window.clearTimeout(id)));
 }
 
 export function on_interval(fn: () => void, ms?: number): () => void {
   const id = window.setInterval(fn, ms);
-  let active = true;
 
-  return scoped(() => {
-    if (!active) return;
-    active = false;
-    window.clearInterval(id);
-  });
+  return scoped(once(() => window.clearInterval(id)));
 }
 
 export function on_raf(fn: FrameRequestCallback): () => void {
   const id = window.requestAnimationFrame(fn);
-  let active = true;
 
-  return scoped(() => {
-    if (!active) return;
-    active = false;
-    window.cancelAnimationFrame(id);
-  });
+  return scoped(once(() => window.cancelAnimationFrame(id)));
 }
 
 export function on_resize(
@@ -61,11 +41,11 @@ export function on_media(query: string | MediaQueryList, fn: MediaHandler): () =
 
   if (typeof media.addEventListener === "function") {
     media.addEventListener("change", handler);
-    return scoped(() => media.removeEventListener("change", handler));
+    return scoped(once(() => media.removeEventListener("change", handler)));
   }
 
   media.addListener(handler);
-  return scoped(() => media.removeListener(handler));
+  return scoped(once(() => media.removeListener(handler)));
 }
 
 export function resize_observer(

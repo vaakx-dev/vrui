@@ -4,7 +4,14 @@
 
 import { effect, is_reactive, resolve, type Cleanup, type ReactiveValue } from "./core";
 import type { EventHandler } from "./events";
-import { enter_scope, exit_scope, has_scope, register_in_scope } from "./scope";
+import {
+  collect_scope,
+  dispose_all,
+  has_scope,
+  once,
+  register_in_scope,
+  scoped,
+} from "./scope";
 
 /* ---------- string + class helpers ---------- */
 
@@ -35,54 +42,70 @@ const pending_mounts = new Map<Node, ((el: Node) => Cleanup)[]>();
 const mount_cleanups = new Map<Node, (() => void)[]>();
 let mo: MutationObserver | null = null;
 
+function push_map<K, V>(map: Map<K, V[]>, key: K, value: V): void {
+  const values = map.get(key);
+  if (!values) {
+    map.set(key, [value]);
+    return;
+  }
+
+  values.push(value);
+}
+
+function is_connected(node: Node): boolean {
+  return (node as any).isConnected;
+}
+
+function disconnected_nodes<V>(map: Map<Node, V[]>): Node[] {
+  const nodes: Node[] = [];
+  for (const node of map.keys()) {
+    if (!is_connected(node)) nodes.push(node);
+  }
+  return nodes;
+}
+
+function run_node_callbacks(map: Map<Node, (() => void)[]>, node: Node): void {
+  const callbacks = map.get(node);
+  map.delete(node);
+  if (!callbacks) return;
+
+  for (const callback of callbacks) callback();
+}
+
+function add_mount_cleanup(node: Node, cleanup: Cleanup): void {
+  if (typeof cleanup !== "function") return;
+  ensure_mo();
+  push_map(mount_cleanups, node, cleanup);
+}
+
 function flush_disconnects(): void {
   if (disconnect_cbs.size === 0 && mount_cleanups.size === 0) return;
-  let stale_disc: Node[] | null = null;
-  for (const node of disconnect_cbs.keys()) {
-    if (!(node as any).isConnected) {
-      (stale_disc ??= []).push(node);
-    }
+
+  for (const node of disconnected_nodes(disconnect_cbs)) {
+    run_node_callbacks(disconnect_cbs, node);
   }
-  let stale_mc: Node[] | null = null;
-  for (const node of mount_cleanups.keys()) {
-    if (!(node as any).isConnected) {
-      (stale_mc ??= []).push(node);
-    }
-  }
-  if (stale_disc) {
-    for (const node of stale_disc) {
-      const cbs = disconnect_cbs.get(node);
-      disconnect_cbs.delete(node);
-      if (cbs) for (const cb of cbs) cb();
-    }
-  }
-  if (stale_mc) {
-    for (const node of stale_mc) {
-      const cbs = mount_cleanups.get(node);
-      mount_cleanups.delete(node);
-      if (cbs) for (const cb of cbs) cb();
-    }
+
+  for (const node of disconnected_nodes(mount_cleanups)) {
+    run_node_callbacks(mount_cleanups, node);
   }
 }
 
 function flush_mounts(): void {
   if (pending_mounts.size === 0) return;
-  let fired: Node[] | null = null;
+
+  const fired: Node[] = [];
   for (const node of pending_mounts.keys()) {
-    if ((node as any).isConnected) (fired ??= []).push(node);
+    if (is_connected(node)) fired.push(node);
   }
-  if (!fired) return;
+  if (!fired.length) return;
+
   for (const node of fired) {
     const fns = pending_mounts.get(node);
     pending_mounts.delete(node);
     if (!fns) continue;
+
     for (const fn of fns) {
-      const cleanup = fn(node);
-      if (typeof cleanup === "function") {
-        const arr = mount_cleanups.get(node);
-        if (arr) arr.push(cleanup);
-        else mount_cleanups.set(node, [cleanup]);
-      }
+      add_mount_cleanup(node, fn(node));
     }
   }
 }
@@ -105,34 +128,29 @@ function ensure_mo(): void {
 
 export function on_disconnect(el: Node, fn: () => void): void {
   ensure_mo();
-  const arr = disconnect_cbs.get(el);
-  if (arr) arr.push(fn);
-  else disconnect_cbs.set(el, [fn]);
+  push_map(disconnect_cbs, el, fn);
 }
 
 /* on_mount: run fn(el) once el is in the document. If a Cleanup is
  * returned, it fires when el is later disconnected. If el is already
  * connected when on_mount is called, fn runs synchronously. */
 export function on_mount(el: Node, fn: (el: Node) => Cleanup): void {
-  if ((el as any).isConnected) {
-    const cleanup = fn(el);
-    if (typeof cleanup === "function") {
-      ensure_mo();
-      const arr = mount_cleanups.get(el);
-      if (arr) arr.push(cleanup);
-      else mount_cleanups.set(el, [cleanup]);
-    }
+  if (is_connected(el)) {
+    add_mount_cleanup(el, fn(el));
     return;
   }
+
   ensure_mo();
-  const arr = pending_mounts.get(el);
-  if (arr) arr.push(fn);
-  else pending_mounts.set(el, [fn]);
+  push_map(pending_mounts, el, fn);
 }
 
 export function auto_dispose(el: Node, dispose: () => void): void {
-  if (has_scope()) register_in_scope(dispose);
-  else on_disconnect(el, dispose);
+  if (has_scope()) {
+    register_in_scope(dispose);
+    return;
+  }
+
+  on_disconnect(el, dispose);
 }
 
 export function listen(
@@ -142,9 +160,7 @@ export function listen(
   options?: boolean | AddEventListenerOptions,
 ): () => void {
   target.addEventListener(event, handler, options);
-  const dispose = () => target.removeEventListener(event, handler, options);
-  if (has_scope()) register_in_scope(dispose);
-  return dispose;
+  return scoped(once(() => target.removeEventListener(event, handler, options)));
 }
 
 export function on_target(
@@ -155,14 +171,9 @@ export function on_target(
   options?: boolean | AddEventListenerOptions,
 ): void {
   const stop = listen(target, event, handler, options);
-  let stopped = false;
-  const dispose = () => {
-    if (stopped) return;
-    stopped = true;
-    stop();
-  };
+  const dispose = once(stop);
   on_disconnect(owner, dispose);
-  if (has_scope()) register_in_scope(dispose);
+  scoped(dispose);
 }
 
 export function on_window(
@@ -295,8 +306,12 @@ function format_style_value(kebab: string, v: unknown): string {
 function write_style_key(el: HTMLElement | SVGElement, key: string, v: unknown): void {
   const k = to_kebab(key);
   const s = format_style_value(k, v);
-  if (s === "") el.style.removeProperty(k);
-  else el.style.setProperty(k, s);
+  if (s === "") {
+    el.style.removeProperty(k);
+    return;
+  }
+
+  el.style.setProperty(k, s);
 }
 
 function apply_style_object(
@@ -318,6 +333,68 @@ function apply_style_object(
   return seen;
 }
 
+function clear_style_keys(el: HTMLElement | SVGElement, keys: Set<string> | null): void {
+  if (!keys) return;
+  for (const key of keys) el.style.removeProperty(key);
+}
+
+function clear_reactive_style(
+  el: HTMLElement | SVGElement,
+  keys: Set<string> | null,
+  used_css_text: boolean,
+): void {
+  if (used_css_text) {
+    el.style.cssText = "";
+    return;
+  }
+
+  clear_style_keys(el, keys);
+}
+
+function set_style_entry(el: HTMLElement | SVGElement, key: string, value: unknown): void {
+  if (!is_reactive(value)) {
+    write_style_key(el, key, value);
+    return;
+  }
+
+  const dispose = effect(() => write_style_key(el, key, resolve(value)));
+  auto_dispose(el, dispose);
+}
+
+function set_style_object(el: HTMLElement | SVGElement, value: Record<string, unknown>): void {
+  for (const [key, entry] of Object.entries(value)) {
+    set_style_entry(el, key, entry);
+  }
+}
+
+function bind_reactive_style(el: HTMLElement | SVGElement, value: ReactiveValue<unknown>): void {
+  let prev: Set<string> | null = null;
+  let prev_css_text = false;
+
+  const dispose = effect(() => {
+    const next = resolve(value);
+    if (next == null) {
+      clear_reactive_style(el, prev, prev_css_text);
+      prev = null;
+      prev_css_text = false;
+      return;
+    }
+
+    if (typeof next === "string") {
+      el.style.cssText = next;
+      prev = null;
+      prev_css_text = true;
+      return;
+    }
+
+    if (prev_css_text) el.style.cssText = "";
+    prev = apply_style_object(el, next as Record<string, unknown>, prev);
+    prev_css_text = false;
+  });
+
+  auto_dispose(el, dispose);
+}
+
 export function set_style(el: HTMLElement | SVGElement, value: unknown): void {
   if (value == null) return;
 
@@ -327,41 +404,12 @@ export function set_style(el: HTMLElement | SVGElement, value: unknown): void {
   }
 
   if (is_reactive(value)) {
-    let prev: Set<string> | null = null;
-    let prev_css_text = false;
-    const dispose = effect(() => {
-      const next = resolve(value);
-      if (next == null) {
-        if (prev_css_text) el.style.cssText = "";
-        else if (prev) for (const k of prev) el.style.removeProperty(k);
-        prev = null;
-        prev_css_text = false;
-        return;
-      }
-      if (typeof next === "string") {
-        el.style.cssText = next;
-        prev = null;
-        prev_css_text = true;
-        return;
-      }
-      if (prev_css_text) el.style.cssText = "";
-      prev = apply_style_object(el, next as Record<string, unknown>, prev);
-      prev_css_text = false;
-    });
-    auto_dispose(el, dispose);
+    bind_reactive_style(el, value);
     return;
   }
 
-  if (typeof value === "object") {
-    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
-      if (is_reactive(v)) {
-        const dispose = effect(() => write_style_key(el, key, resolve(v)));
-        auto_dispose(el, dispose);
-      } else {
-        write_style_key(el, key, v);
-      }
-    }
-  }
+  if (typeof value !== "object") return;
+  set_style_object(el, value as Record<string, unknown>);
 }
 
 function has_reactive_part(value: unknown): boolean {
@@ -438,93 +486,110 @@ function bind_checked(el: HTMLElement, value: unknown): void {
   auto_dispose(el, () => el.removeEventListener("change", handler));
 }
 
+type DomPropSetter = (el: HTMLElement, value: unknown) => void;
+
+function set_text(el: HTMLElement, value: unknown): void {
+  if (!is_reactive(value)) {
+    el.textContent = safe_str(value);
+    return;
+  }
+
+  const dispose = effect(() => {
+    el.textContent = safe_str(resolve(value));
+  });
+  auto_dispose(el, dispose);
+}
+
+function set_event_prop(el: HTMLElement, key: string, value: unknown): void {
+  const event = key.slice(3);
+  const handler = value as EventListener;
+  el.addEventListener(event, handler);
+  auto_dispose(el, () => el.removeEventListener(event, handler));
+}
+
+function is_attribute_prop(key: string): boolean {
+  return key.startsWith("data-") || key.startsWith("aria-") || key === "role";
+}
+
+function write_attribute(el: HTMLElement, key: string, value: unknown): void {
+  if (value == null) {
+    el.removeAttribute(key);
+    return;
+  }
+
+  el.setAttribute(key, String(value));
+}
+
+function set_attribute_prop(el: HTMLElement, key: string, value: unknown): void {
+  if (!is_reactive(value)) {
+    write_attribute(el, key, value);
+    return;
+  }
+
+  const dispose = effect(() => write_attribute(el, key, resolve(value)));
+  auto_dispose(el, dispose);
+}
+
+function set_input_value_prop(el: HTMLInputElement, value: unknown): void {
+  if (!is_reactive(value)) {
+    el.value = safe_str(value);
+    return;
+  }
+
+  const dispose = effect(() => {
+    const next = safe_str(resolve(value));
+    if (el.value !== next) el.value = next;
+  });
+  auto_dispose(el, dispose);
+}
+
+function maybe_set_input_value_prop(el: HTMLElement, key: string, value: unknown): boolean {
+  if (key !== "value" || !(el instanceof HTMLInputElement)) return false;
+  set_input_value_prop(el, value);
+  return true;
+}
+
+function set_dom_property(el: HTMLElement, key: string, value: unknown): void {
+  if (!is_reactive(value)) {
+    (el as any)[key] = value;
+    return;
+  }
+
+  const dispose = effect(() => {
+    (el as any)[key] = resolve(value);
+  });
+  auto_dispose(el, dispose);
+}
+
+const DOM_PROP_SETTERS: Record<string, DomPropSetter> = {
+  ref: (el, value) => (value as (el: HTMLElement) => void)(el),
+  on_mount: (el, value) => on_mount(el, value as (el: Node) => Cleanup),
+  bind_value,
+  bind_checked,
+  class: set_class,
+  style: set_style,
+  text: set_text,
+};
+
 function set_prop(el: HTMLElement, key: string, value: unknown): void {
-  if (key === "ref") {
-    (value as (el: HTMLElement) => void)(el);
-    return;
-  }
-
-  if (key === "on_mount") {
-    on_mount(el, value as (el: Node) => Cleanup);
-    return;
-  }
-
-  if (key === "bind_value") {
-    bind_value(el, value);
-    return;
-  }
-
-  if (key === "bind_checked") {
-    bind_checked(el, value);
-    return;
-  }
-
-  if (key === "class") {
-    set_class(el, value);
-    return;
-  }
-
-  if (key === "style") {
-    set_style(el, value);
-    return;
-  }
-
-  if (key === "text") {
-    if (is_reactive(value)) {
-      const dispose = effect(() => {
-        el.textContent = safe_str(resolve(value));
-      });
-      auto_dispose(el, dispose);
-    } else {
-      el.textContent = safe_str(value);
-    }
+  const setter = DOM_PROP_SETTERS[key];
+  if (setter) {
+    setter(el, value);
     return;
   }
 
   if (key.startsWith("on_")) {
-    const event = key.slice(3);
-    const handler = value as EventListener;
-    el.addEventListener(event, handler);
-    auto_dispose(el, () => el.removeEventListener(event, handler));
+    set_event_prop(el, key, value);
     return;
   }
 
-  if (key.startsWith("data-") || key.startsWith("aria-") || key === "role") {
-    if (is_reactive(value)) {
-      const dispose = effect(() => {
-        const next = resolve(value);
-        if (next == null) el.removeAttribute(key);
-        else el.setAttribute(key, String(next));
-      });
-      auto_dispose(el, dispose);
-    } else {
-      if (value == null) el.removeAttribute(key);
-      else el.setAttribute(key, String(value));
-    }
+  if (is_attribute_prop(key)) {
+    set_attribute_prop(el, key, value);
     return;
   }
 
-  if (key === "value" && el instanceof HTMLInputElement) {
-    if (is_reactive(value)) {
-      const dispose = effect(() => {
-        const v = safe_str(resolve(value));
-        if (el.value !== v) el.value = v;
-      });
-      auto_dispose(el, dispose);
-    } else {
-      el.value = safe_str(value);
-    }
-    return;
-  }
-
-  if (is_reactive(value)) {
-    const dispose = effect(() => {
-      (el as any)[key] = resolve(value);
-    });
-    auto_dispose(el, dispose);
-  } else {
-    (el as any)[key] = value;
-  }
+  if (maybe_set_input_value_prop(el, key, value)) return;
+  set_dom_property(el, key, value);
 }
 
 export function by_id<T extends Element = HTMLElement>(id: string): T {
@@ -562,31 +627,21 @@ export function append_child(parent: Node, child: Child): void {
 function mount_children(parent: Node, children: Child[]): () => void {
   const frag = document.createDocumentFragment();
 
-  enter_scope();
-  let scope: (() => void)[];
-  try {
+  const { scope } = collect_scope(() => {
     for (const child of children) append_child(frag, child);
-    scope = exit_scope();
-  } catch (err) {
-    scope = exit_scope();
-    for (const dispose of scope) dispose();
-    throw err;
-  }
+  });
 
   const mounted = Array.from(frag.childNodes);
   parent.appendChild(frag);
 
-  let disposed = false;
-  const dispose = () => {
-    if (disposed) return;
-    disposed = true;
+  const dispose = once(() => {
     for (const node of mounted) {
       if (node.parentNode === parent) parent.removeChild(node);
     }
-    for (const dispose of scope) dispose();
-  };
+    dispose_all(scope);
+  });
 
-  if (has_scope()) register_in_scope(dispose);
+  scoped(dispose);
   return dispose;
 }
 
@@ -612,14 +667,13 @@ function mount_when_available(target_id: string, children: Child[]): () => void 
   observer.observe(document_observer_root(), { childList: true, subtree: true });
   queueMicrotask(try_mount);
 
-  const dispose = () => {
-    if (disposed) return;
+  const dispose = once(() => {
     disposed = true;
     observer?.disconnect();
     stop_mount?.();
-  };
+  });
 
-  if (has_scope()) register_in_scope(dispose);
+  scoped(dispose);
   return dispose;
 }
 
@@ -642,16 +696,21 @@ export function replace(target: Node | string, ...children: Child[]): () => void
   while (parent.firstChild) parent.removeChild(parent.firstChild);
   const stop = mount(parent, ...children);
 
-  let disposed = false;
-  const dispose = () => {
-    if (disposed) return;
-    disposed = true;
+  const dispose = once(() => {
     stop();
     if (replace_mounts.get(parent) === dispose) replace_mounts.delete(parent);
-  };
+  });
 
   replace_mounts.set(parent, dispose);
   return dispose;
+}
+
+function is_child_argument(value: Props | Child | undefined): value is Child {
+  return value != null &&
+    (typeof value !== "object" ||
+      is_node(value) ||
+      Array.isArray(value) ||
+      is_reactive(value));
 }
 
 export function el<K extends keyof HTMLElementTagNameMap>(
@@ -663,13 +722,7 @@ export function el(tag: string, props?: Props | Child, ...children: Child[]): HT
 export function el(tag: string, props?: Props | Child, ...children: Child[]): HTMLElement {
   const node = document.createElement(tag);
 
-  if (
-    props != null &&
-    (typeof props !== "object" ||
-      is_node(props) ||
-      Array.isArray(props) ||
-      is_reactive(props))
-  ) {
+  if (is_child_argument(props)) {
     children.unshift(props);
     props = undefined;
   }
@@ -677,8 +730,12 @@ export function el(tag: string, props?: Props | Child, ...children: Child[]): HT
   const deferred_props: [string, unknown][] = [];
   if (props) {
     for (const [key, value] of Object.entries(props as Props)) {
-      if (key === "bind_value" || key === "bind_checked") deferred_props.push([key, value]);
-      else set_prop(node, key, value);
+      if (key === "bind_value" || key === "bind_checked") {
+        deferred_props.push([key, value]);
+        continue;
+      }
+
+      set_prop(node, key, value);
     }
   }
 

@@ -8,7 +8,7 @@
 // portal() lets the declarative tree express "this lives over there" while
 // keeping cleanup wired to the call site, not the destination.
 
-import { enter_scope, exit_scope, register_in_scope } from "./scope";
+import { collect_scope, dispose_all, once, register_in_scope } from "./scope";
 import { by_id, on_disconnect } from "./dom";
 
 export function portal(target: Node | string, child: Node | (() => Node)): HTMLElement {
@@ -22,27 +22,16 @@ export function portal(target: Node | string, child: Node | (() => Node)): HTMLE
   // Build the portaled child inside a fresh scope so its effects, lists,
   // signals, etc. get cleaned up with the portal rather than leaking when
   // target outlives us.
-  enter_scope();
-  let node: Node;
-  let scope: (() => void)[];
-  try {
-    node = typeof child === "function" ? child() : child;
-    scope = exit_scope();
-  } catch (err) {
-    scope = exit_scope();
-    for (const d of scope) d();
-    throw err;
-  }
+  const created = collect_scope(() => typeof child === "function" ? child() : child);
+  const node = created.value;
+  const scope = created.scope;
 
   parent.appendChild(node);
 
-  let disposed = false;
-  const dispose = () => {
-    if (disposed) return;
-    disposed = true;
+  const dispose = once(() => {
     if (node.parentNode === parent) parent.removeChild(node);
-    for (const d of scope) d();
-  };
+    dispose_all(scope);
+  });
 
   // Register against both the surrounding scope (if any) AND the marker's
   // disconnect. Either fires first wins; the disposed guard prevents a

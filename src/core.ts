@@ -2,7 +2,7 @@
 // vrui - core (signals, derives, effects, batching)
 // ============================================================
 
-import { enter_scope, exit_scope, register_in_scope } from "./scope";
+import { dispose_all, enter_scope, exit_scope, register_in_scope } from "./scope";
 
 /* ---------- globals ---------- */
 
@@ -45,29 +45,36 @@ export class Effect {
     if (!this.scope_disposers.length) return;
     const ds = this.scope_disposers;
     this.scope_disposers = [];
-    for (const d of ds) d();
+    dispose_all(ds);
+  }
+
+  private clear_deps(): void {
+    for (const d of this.deps) d.unsub(this);
+    this.deps.clear();
+  }
+
+  private restore_deps(old_deps: Set<Sig<unknown>>): void {
+    this.clear_deps();
+    for (const d of old_deps) {
+      this.deps.add(d);
+      d.sub(this);
+    }
+  }
+
+  private run_cleanup(): void {
+    if (!this.cleanup) return;
+    this.cleanup();
+    this.cleanup = undefined;
   }
 
   run(): void {
     if (this.disposed || this.running) return;
     this.running = true;
     const old_deps = new Set(this.deps);
-    const restore_old_deps = () => {
-      for (const d of this.deps) d.unsub(this);
-      this.deps.clear();
-      for (const d of old_deps) {
-        this.deps.add(d);
-        d.sub(this);
-      }
-    };
     try {
-      for (const d of this.deps) d.unsub(this);
-      this.deps.clear();
+      this.clear_deps();
       this.drain_scope();
-      if (this.cleanup) {
-        this.cleanup();
-        this.cleanup = undefined;
-      }
+      this.run_cleanup();
 
       const prev = active_effect;
       active_effect = this;
@@ -80,9 +87,9 @@ export class Effect {
         const failed_scope = exit_scope();
         active_effect = prev;
         try {
-          for (const d of failed_scope) d();
+          dispose_all(failed_scope);
         } finally {
-          restore_old_deps();
+          this.restore_deps(old_deps);
         }
         throw err;
       } finally {
@@ -107,23 +114,20 @@ export class Effect {
 
   notify(): void {
     if (this.disposed || this.running) return;
-    if (batch_depth > 0) {
-      batch_queue.add(this);
-    } else {
+    if (batch_depth === 0) {
       this.run();
+      return;
     }
+
+    batch_queue.add(this);
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    for (const d of this.deps) d.unsub(this);
-    this.deps.clear();
+    this.clear_deps();
     this.drain_scope();
-    if (this.cleanup) {
-      this.cleanup();
-      this.cleanup = undefined;
-    }
+    this.run_cleanup();
   }
 }
 
@@ -134,29 +138,31 @@ export function effect(fn: () => Cleanup): () => void {
 
 /* ---------- batch ---------- */
 
+function flush_batch_queue(): void {
+  while (batch_queue.size) {
+    const q = Array.from(batch_queue);
+    batch_queue.clear();
+    for (let i = 0; i < q.length; i++) {
+      try {
+        q[i].run();
+      } catch (err) {
+        for (let j = i + 1; j < q.length; j++) batch_queue.add(q[j]);
+        throw err;
+      }
+    }
+  }
+}
+
 export function batch(fn: () => void): void {
   batch_depth++;
   try {
-    try {
-      fn();
-    } finally {
-      if (batch_depth === 1) {
-        while (batch_queue.size) {
-          const q = Array.from(batch_queue);
-          batch_queue.clear();
-          for (let i = 0; i < q.length; i++) {
-            try {
-              q[i].run();
-            } catch (err) {
-              for (let j = i + 1; j < q.length; j++) batch_queue.add(q[j]);
-              throw err;
-            }
-          }
-        }
-      }
-    }
+    fn();
   } finally {
-    batch_depth--;
+    try {
+      if (batch_depth === 1) flush_batch_queue();
+    } finally {
+      batch_depth--;
+    }
   }
 }
 
@@ -171,10 +177,10 @@ export class Sig<T> {
   }
 
   get(): T {
-    if (active_effect) {
-      this.subs.add(active_effect);
-      active_effect.add_dep(this);
-    }
+    if (!active_effect) return this._val;
+
+    this.subs.add(active_effect);
+    active_effect.add_dep(this);
     return this._val;
   }
 
@@ -281,10 +287,9 @@ export class Derive<T> extends Sig<T> {
     super(undefined as T);
     this._effect = new Effect(() => {
       const v = fn();
-      if (!Object.is(v, this._val)) {
-        this._val = v;
-        this.notify();
-      }
+      if (Object.is(v, this._val)) return;
+      this._val = v;
+      this.notify();
     }, false);
     register_in_scope(() => this.dispose());
   }
