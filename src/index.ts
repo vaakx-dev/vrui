@@ -10,6 +10,7 @@ export {
   derive,
   effect,
   sig,
+  untrack,
 } from "./core";
 export type { Cleanup, ReactiveValue } from "./core";
 

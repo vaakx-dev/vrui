@@ -23,6 +23,7 @@ import {
   type Child,
   type Props,
 } from "./dom";
+import { event_name_from_prop } from "./events";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -125,7 +126,7 @@ function set_svg_text(el: SVGElement, value: unknown): void {
 }
 
 function set_svg_event(el: SVGElement, key: string, value: unknown): void {
-  const event = key.slice(3);
+  const event = event_name_from_prop(key);
   const handler = value as EventListener;
   el.addEventListener(event, handler);
   auto_dispose(el, () => el.removeEventListener(event, handler));

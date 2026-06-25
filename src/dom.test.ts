@@ -94,6 +94,19 @@ describe("dom element factories", () => {
     expect((node as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("normalizes snake case event props to browser event names", () => {
+    let pointer_downs = 0;
+    const node = canvas({
+      on_pointer_down: () => {
+        pointer_downs++;
+      },
+    });
+
+    node.dispatchEvent(new Event("pointerdown"));
+
+    expect(pointer_downs).toBe(1);
+  });
+
   it("sets input values and appends nested static and reactive children", () => {
     const value = sig("first");
     const count = sig(1);

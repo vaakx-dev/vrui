@@ -49,6 +49,19 @@ describe("svg factories", () => {
     expect(node.getAttribute("class")).toBe("active");
   });
 
+  it("normalizes snake case event props to browser event names", () => {
+    let pointer_downs = 0;
+    const node = rect({
+      on_pointer_down: () => {
+        pointer_downs++;
+      },
+    });
+
+    node.dispatchEvent(new Event("pointerdown"));
+
+    expect(pointer_downs).toBe(1);
+  });
+
   it("updates nested reactive class parts", () => {
     const active = sig(true);
     const node = circle({ class: ["dot", { active, hidden: false }] });

@@ -25,6 +25,16 @@ export function is_reactive(v: unknown): v is ReactiveValue<unknown> {
   return v instanceof Sig || v instanceof Derive || typeof v === "function";
 }
 
+export function untrack<T>(fn: () => T): T {
+  const prev = active_effect;
+  active_effect = null;
+  try {
+    return fn();
+  } finally {
+    active_effect = prev;
+  }
+}
+
 /* ---------- effect ---------- */
 
 export class Effect {

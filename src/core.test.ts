@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { batch, derive, effect, is_reactive, resolve, sig } from "./core";
+import { batch, derive, effect, is_reactive, resolve, sig, untrack } from "./core";
 import { enter_scope, exit_scope, has_scope } from "./scope";
 
 describe("core helpers", () => {
@@ -47,6 +47,21 @@ describe("core helpers", () => {
 
     count.set(4);
     expect(seen).toEqual([0, 1, 3]);
+  });
+
+  it("runs code without tracking signal reads", () => {
+    const count = sig(0);
+    let runs = 0;
+
+    const stop = effect(() => {
+      runs++;
+      untrack(() => count.get());
+    });
+
+    count.set(1);
+
+    expect(runs).toBe(1);
+    stop();
   });
 
   it("disposes nested scope work from a failed effect rerun", () => {

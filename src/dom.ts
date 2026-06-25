@@ -3,7 +3,7 @@
 // ============================================================
 
 import { effect, is_reactive, resolve, type Cleanup, type ReactiveValue } from "./core";
-import type { EventHandler } from "./events";
+import { event_name_from_prop, type EventHandler } from "./events";
 import {
   collect_scope,
   dispose_all,
@@ -501,7 +501,7 @@ function set_text(el: HTMLElement, value: unknown): void {
 }
 
 function set_event_prop(el: HTMLElement, key: string, value: unknown): void {
-  const event = key.slice(3);
+  const event = event_name_from_prop(key);
   const handler = value as EventListener;
   el.addEventListener(event, handler);
   auto_dispose(el, () => el.removeEventListener(event, handler));
