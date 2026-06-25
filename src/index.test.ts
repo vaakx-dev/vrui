@@ -33,6 +33,7 @@ describe("public index exports", () => {
     expect(typeof vrui.collect_scope).toBe("function");
     expect(typeof vrui.dispose_all).toBe("function");
     expect(typeof vrui.once).toBe("function");
+    expect(typeof vrui.untrack).toBe("function");
 
     doubled.dispose();
   });

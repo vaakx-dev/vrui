@@ -4,6 +4,10 @@
 
 export type EventHandler<E extends Event = Event> = (event: E) => void;
 
+export function event_name_from_prop(key: string): string {
+  return key.slice(3).replace(/_/g, "");
+}
+
 export type EventOptions = {
   prevent?: boolean;
   stop?: boolean;

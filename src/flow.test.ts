@@ -34,6 +34,21 @@ describe("dynamic_child", () => {
     expect(root.textContent).toBe("b");
   });
 
+  it("does not replace the child when factory-local state changes", () => {
+    const current = sig("a");
+    const local = sig("rectangle");
+    const root = dynamic_child(current, (value) => {
+      local.get();
+      return div({ text: value });
+    });
+    const first = root.children[0];
+
+    local.set("arrow");
+
+    expect(root.children[0]).toBe(first);
+    expect(root.textContent).toBe("a");
+  });
+
   it("runs scoped cleanup when the child is replaced and disconnected", async () => {
     const current = sig("a");
     const source = sig(0);

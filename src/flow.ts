@@ -2,7 +2,7 @@
 // vrui - flow control (list, show)
 // ============================================================
 
-import { batch, Condition, Derive, effect, resolve, sig, Sig } from "./core";
+import { batch, Condition, Derive, effect, resolve, sig, Sig, untrack } from "./core";
 import { auto_dispose } from "./dom";
 import { collect_scope, dispose_all, type Disposer } from "./scope";
 
@@ -23,14 +23,19 @@ export function dynamic_child<T>(
   if (!container) node.style.display = "contents";
 
   let child: HTMLElement | null = null;
+  let child_scope: Disposer[] = [];
 
   const dispose_eff = effect(() => {
     const next = resolve_dynamic_child(value);
-    child = factory(next);
+    const created = untrack(() => collect_scope(() => factory(next)));
+    child = created.value;
+    child_scope = created.scope;
     node.appendChild(child);
 
     return () => {
       if (child?.parentNode === node) node.removeChild(child);
+      dispose_all(child_scope);
+      child_scope = [];
       child = null;
     };
   });

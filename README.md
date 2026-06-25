@@ -108,7 +108,7 @@ Signals also include helpers such as `update`, `toggle`, `setter`, `from_input`,
 
 Factories create DOM nodes: `div`, `span`, `button`, `input`, `form`, `label`, `textarea`, `select`, `option`, `a`, `img`, `dialog`, `canvas`, lists, headings through `h6`, table elements, sectioning elements, and semantic text helpers like `strong`, `em`, and `small`. Use `el(tag, props, ...children)` for custom or uncommon tags.
 
-Props can be plain values or reactive values. `class`, `style`, `text`, `data-*`, `aria-*`, `role`, `value` on inputs, normal DOM properties, and children can all react to signals or derives. Event props use `on_eventName`.
+Props can be plain values or reactive values. `class`, `style`, `text`, `data-*`, `aria-*`, `role`, `value` on inputs, normal DOM properties, and children can all react to signals or derives. Event props use `on_event_name`, such as `on_click`, `on_input`, and `on_pointer_down`.
 
 ```ts
 import { button, div, input, sig } from "@vaakx-dev/vrui";
@@ -142,7 +142,7 @@ Lifecycle props and helpers include `ref`, `on_mount`, `on_disconnect`, `listen`
 
 ## Events and keyboard maps
 
-Event props use `on_eventName`. VRUI includes helpers for common UI event
+Event props use `on_event_name`. Underscores after `on_` are removed when the browser event listener is registered, so `on_pointer_down` listens for `pointerdown`. VRUI includes helpers for common UI event
 boilerplate:
 
 ```ts
@@ -229,12 +229,13 @@ Text children and the `text` prop are assigned through text nodes or `textConten
 
 ## Flow helpers
 
-`show` lazily creates a node when a condition is true and disposes it when hidden. `keep` also creates lazily, but keeps the node mounted and toggles display. `list` renders keyed arrays and reuses rows by key.
+`dynamic_child` replaces one child when its input value changes. The child factory is built without tracking incidental signal reads, so local child state does not cause a remount. `show` lazily creates a node when a condition is true and disposes it when hidden. `keep` also creates lazily, but keeps the node mounted and toggles display. `list` renders keyed arrays and reuses rows by key.
 
 ```ts
-import { button, derive, div, keep, li, list, show, sig, ul } from "@vaakx-dev/vrui";
+import { button, derive, div, dynamic_child, keep, li, list, show, sig, ul } from "@vaakx-dev/vrui";
 
 const open = sig(false);
+const mode = sig("summary");
 const items = sig([
   { id: 1, label: "Alpha" },
   { id: 2, label: "Beta" },
@@ -242,6 +243,7 @@ const items = sig([
 
 const view = div(
   button({ on_click: open.toggle() }, "Toggle"),
+  dynamic_child(mode, (value) => div(value)),
   show(open, () => div("Visible only while open")),
   keep(open, () => div("State is kept while hidden")),
   list(items, (item) => item.id, (item, idx) => {
