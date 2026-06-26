@@ -16,7 +16,7 @@ describe("public index exports", () => {
     expect(node.textContent).toBe("2");
     expect(picture.firstElementChild?.localName).toBe("rect");
     expect(state.name.get()).toBe("Ada");
-    expect(marker.style.display).toBe("none");
+    expect(marker.nodeType).toBe(Node.COMMENT_NODE);
     expect(target.textContent).toBe("ported");
     expect(typeof vrui.by_id).toBe("function");
     expect(typeof vrui.mount).toBe("function");

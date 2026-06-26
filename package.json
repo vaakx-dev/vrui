@@ -2,6 +2,14 @@
   "name": "@vaakx-dev/vrui",
   "version": "0.1.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vaakx-dev/vrui.git"
+  },
+  "homepage": "https://github.com/vaakx-dev/vrui#readme",
+  "bugs": {
+    "url": "https://github.com/vaakx-dev/vrui/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { sig, effect } from "./core";
-import { div, on_mount, span } from "./dom";
+import { button, div, on_mount, span } from "./dom";
 import { dynamic_child, keep, list, show } from "./flow";
 import { portal } from "./portal";
 import { has_scope } from "./scope";
@@ -47,6 +47,41 @@ describe("dynamic_child", () => {
 
     expect(root.children[0]).toBe(first);
     expect(root.textContent).toBe("a");
+  });
+
+  it("updates reactive child props without replacing the child", () => {
+    const current = sig("a");
+    const label = sig("first");
+    const root = dynamic_child(current, (value) => div({ "data-mode": value }, label));
+    const first = root.children[0];
+
+    label.set("second");
+
+    expect(root.children[0]).toBe(first);
+    expect(root.textContent).toBe("second");
+  });
+
+  it("recreates factory-local state when the driving signal changes", () => {
+    const current = sig("a");
+    const root = dynamic_child(current, (value) => {
+      const count = sig(0);
+
+      return div(
+        div("Mode: ", value),
+        div("Count: ", count),
+        button({ on_click: () => count.update((n) => n + 1) }, "Increment"),
+      );
+    });
+
+    const first = root.children[0];
+    first.querySelector("button")?.dispatchEvent(new MouseEvent("click"));
+    expect(first.textContent).toContain("Count: 1");
+
+    current.set("b");
+
+    expect(root.children[0]).not.toBe(first);
+    expect(root.textContent).toContain("Mode: b");
+    expect(root.textContent).toContain("Count: 0");
   });
 
   it("runs scoped cleanup when the child is replaced and disconnected", async () => {
@@ -312,7 +347,7 @@ describe("portal", () => {
       return el;
     });
     expect(target.querySelector("#portaled")).not.toBeNull();
-    expect(marker.style.display).toBe("none");
+    expect(marker.nodeType).toBe(Node.COMMENT_NODE);
     document.body.removeChild(target);
   });
 

@@ -1,23 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { event, keys, prevent, prevent_then, stop, stop_then } from "./events";
 
 describe("event helpers", () => {
   it("provides stop and prevent handlers", () => {
-    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
-    let parent_calls = 0;
-    const parent = document.createElement("div");
-    const child = document.createElement("button");
+    const click = new MouseEvent("click", { cancelable: true });
+    const stop_spy = vi.spyOn(click, "stopPropagation");
 
-    parent.appendChild(child);
-    parent.addEventListener("click", () => {
-      parent_calls++;
-    });
-    child.addEventListener("click", stop);
-    child.addEventListener("click", prevent);
+    stop(click);
+    prevent(click);
 
-    child.dispatchEvent(click);
-
-    expect(parent_calls).toBe(0);
+    expect(stop_spy).toHaveBeenCalledOnce();
     expect(click.defaultPrevented).toBe(true);
   });
 
@@ -87,27 +79,23 @@ describe("keys", () => {
   });
 
   it("can stop propagation and ignore repeated keydown events", () => {
-    const parent = document.createElement("div");
-    const child = document.createElement("button");
-    let parent_calls = 0;
     let handled = 0;
 
-    parent.appendChild(child);
-    parent.addEventListener("keydown", () => {
-      parent_calls++;
-    });
-    child.addEventListener("keydown", keys({
+    const handler = keys({
       Enter: () => {
         handled++;
       },
-    }, { repeat: false, stop: true }));
+    }, { repeat: false, stop: true });
 
-    child.dispatchEvent(new KeyboardEvent("keydown", {
+    const enter = new KeyboardEvent("keydown", {
       key: "Enter",
       bubbles: true,
       cancelable: true,
-    }));
-    child.dispatchEvent(new KeyboardEvent("keydown", {
+    });
+    const stop_spy = vi.spyOn(enter, "stopPropagation");
+
+    handler(enter);
+    handler(new KeyboardEvent("keydown", {
       key: "Enter",
       bubbles: true,
       cancelable: true,
@@ -115,6 +103,6 @@ describe("keys", () => {
     }));
 
     expect(handled).toBe(1);
-    expect(parent_calls).toBe(1);
+    expect(stop_spy).toHaveBeenCalledOnce();
   });
 });

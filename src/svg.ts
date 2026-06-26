@@ -18,6 +18,7 @@ import {
   append_child,
   class_str,
   on_mount,
+  on_target,
   safe_str,
   set_style,
   type Child,
@@ -128,8 +129,7 @@ function set_svg_text(el: SVGElement, value: unknown): void {
 function set_svg_event(el: SVGElement, key: string, value: unknown): void {
   const event = event_name_from_prop(key);
   const handler = value as EventListener;
-  el.addEventListener(event, handler);
-  auto_dispose(el, () => el.removeEventListener(event, handler));
+  on_target(el, el, event, handler);
 }
 
 function set_svg_attr(el: SVGElement, key: string, value: unknown): void {

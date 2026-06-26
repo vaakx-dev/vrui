@@ -61,23 +61,11 @@ describe("cleanup-aware browser helpers", () => {
   });
 
   it("registers media query listeners and returns a disposer", () => {
-    let listener: (() => void) | undefined;
-    let removed = false;
-    const media = {
+    const media = Object.assign(new EventTarget(), {
       matches: false,
       media: "(min-width: 1px)",
       onchange: null,
-      addEventListener: (_event: string, handler: () => void) => {
-        listener = handler;
-      },
-      removeEventListener: (_event: string, handler: () => void) => {
-        removed = listener === handler;
-        listener = undefined;
-      },
-      addListener: () => {},
-      removeListener: () => {},
-      dispatchEvent: () => true,
-    } as unknown as MediaQueryList;
+    }) as MediaQueryList & { matches: boolean };
     const seen: boolean[] = [];
 
     const dispose = on_media(media, (matches) => {
@@ -85,11 +73,13 @@ describe("cleanup-aware browser helpers", () => {
     });
 
     expect(seen).toEqual([false]);
-    (media as { matches: boolean }).matches = true;
-    listener?.();
+    media.matches = true;
+    media.dispatchEvent(new Event("change"));
     expect(seen).toEqual([false, true]);
 
     dispose();
-    expect(removed).toBe(true);
+    media.matches = false;
+    media.dispatchEvent(new Event("change"));
+    expect(seen).toEqual([false, true]);
   });
 });

@@ -2,7 +2,7 @@
 // vrui - cleanup-aware browser helpers
 // ============================================================
 
-import { auto_dispose, on_window } from "./dom";
+import { auto_dispose, listen, on_window } from "./dom";
 import { once, scoped } from "./scope";
 
 export function on_timeout(fn: () => void, ms?: number): () => void {
@@ -39,13 +39,7 @@ export function on_media(query: string | MediaQueryList, fn: MediaHandler): () =
 
   handler();
 
-  if (typeof media.addEventListener === "function") {
-    media.addEventListener("change", handler);
-    return scoped(once(() => media.removeEventListener("change", handler)));
-  }
-
-  media.addListener(handler);
-  return scoped(once(() => media.removeListener(handler)));
+  return listen(media, "change", handler);
 }
 
 export function resize_observer(

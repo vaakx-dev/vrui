@@ -463,8 +463,7 @@ function bind_value(el: HTMLElement, value: unknown): void {
 
   const event = el instanceof HTMLSelectElement ? "change" : "input";
   const handler = () => value.set(el.value);
-  el.addEventListener(event, handler);
-  auto_dispose(el, () => el.removeEventListener(event, handler));
+  on_target(el, el, event, handler);
 }
 
 function bind_checked(el: HTMLElement, value: unknown): void {
@@ -482,8 +481,7 @@ function bind_checked(el: HTMLElement, value: unknown): void {
   auto_dispose(el, dispose);
 
   const handler = () => value.set(el.checked);
-  el.addEventListener("change", handler);
-  auto_dispose(el, () => el.removeEventListener("change", handler));
+  on_target(el, el, "change", handler);
 }
 
 type DomPropSetter = (el: HTMLElement, value: unknown) => void;
@@ -503,8 +501,7 @@ function set_text(el: HTMLElement, value: unknown): void {
 function set_event_prop(el: HTMLElement, key: string, value: unknown): void {
   const event = event_name_from_prop(key);
   const handler = value as EventListener;
-  el.addEventListener(event, handler);
-  auto_dispose(el, () => el.removeEventListener(event, handler));
+  on_target(el, el, event, handler);
 }
 
 function is_attribute_prop(key: string): boolean {
