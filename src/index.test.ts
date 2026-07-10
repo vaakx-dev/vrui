@@ -27,6 +27,9 @@ describe("public index exports", () => {
     expect(typeof vrui.prevent_then).toBe("function");
     expect(typeof vrui.on_interval).toBe("function");
     expect(typeof vrui.on_resize).toBe("function");
+    expect(typeof vrui.on_mount).toBe("function");
+    expect(typeof vrui.set_style).toBe("function");
+    expect(typeof vrui.icon).toBe("function");
     expect(typeof vrui.form).toBe("function");
     expect(typeof vrui.textarea).toBe("function");
     expect(typeof vrui.table).toBe("function");

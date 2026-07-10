@@ -10,34 +10,26 @@ import { register_in_scope } from "./scope";
 export type Store<T extends object> = { readonly [K in keyof T]: Sig<T[K]> };
 
 export function store<T extends object>(initial: T): Store<T> {
-  const signals = new Map<string | symbol, Sig<unknown>>();
+  const prototype = Object.getPrototypeOf(initial);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new TypeError("vrui: store expects a plain object");
+  }
 
-  const signal_for = (target: T, prop: string | symbol): Sig<unknown> => {
-    const existing = signals.get(prop);
-    if (existing) return existing;
+  const result = {} as Store<T>;
 
-    const created = sig((target as any)[prop]);
-    signals.set(prop, created);
-    return created;
-  };
+  for (const key of Reflect.ownKeys(initial)) {
+    const descriptor = Object.getOwnPropertyDescriptor(initial, key);
+    if (!descriptor) continue;
 
-  return new Proxy(initial, {
-    get(target, prop) {
-      return signal_for(target, prop);
-    },
-    set(target, prop, value) {
-      (target as any)[prop] = value;
+    Object.defineProperty(result, key, {
+      value: sig(Reflect.get(initial, key)),
+      enumerable: descriptor.enumerable,
+      configurable: false,
+      writable: false,
+    });
+  }
 
-      const existing = signals.get(prop);
-      if (!existing) {
-        signals.set(prop, sig(value));
-        return true;
-      }
-
-      existing.set(value);
-      return true;
-    },
-  }) as Store<T>;
+  return Object.freeze(result);
 }
 
 /* ---------- resource ---------- */

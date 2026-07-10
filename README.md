@@ -23,11 +23,14 @@ declarations from `./dist/index.d.ts` for browser-bundled apps.
 import {
   button,
   div,
-  icon,
   input,
   mount,
   sig,
 } from "@vaakx-dev/vrui";
+```
+
+```sh
+npm install @vaakx-dev/vrui lucide
 ```
 
 Quick start:
@@ -86,7 +89,7 @@ third-party widget, canvas renderer, measurement, or another real escape hatch.
 | `canvas` | DOM factory for canvas escape hatches through `ref` and `on_mount` |
 | `dynamic_child` | Replaces one child when its driving reactive value changes |
 | `sig` | Mutable signal with helpers such as `set`, `update`, `map`, and `toggle` |
-| `icon` | Lucide icon wrapper with name normalization |
+| `icon` | Lucide icon wrapper for explicitly imported icon nodes |
 
 ## Event and lifecycle props
 
@@ -175,6 +178,7 @@ validated or sanitized them first.
 
 ```sh
 npm run build
+npm run check
 npm test
 npm run typecheck
 ```

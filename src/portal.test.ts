@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { effect, sig } from "./core";
-import { div, span } from "./dom";
+import { div, span } from "./elements";
 import { portal } from "./portal";
 import { enter_scope, exit_scope } from "./scope";
 
@@ -119,12 +119,13 @@ describe("portal", () => {
 
   it("cleans scoped work when the target disconnects", async () => {
     const target = div();
+    const host = div();
     const source = sig(0);
     let runs = 0;
     let cleanups = 0;
 
-    document.body.appendChild(target);
-    portal(target, () => {
+    document.body.append(target, host);
+    const marker = portal(target, () => {
       effect(() => {
         source.get();
         runs++;
@@ -134,6 +135,7 @@ describe("portal", () => {
       });
       return span("portaled");
     });
+    host.appendChild(marker);
 
     expect(runs).toBe(1);
 
@@ -144,6 +146,10 @@ describe("portal", () => {
 
     source.set(1);
     expect(runs).toBe(1);
+
+    host.remove();
+    await flush_mutation_observer();
+    expect(cleanups).toBe(1);
   });
 
   it("cleans scoped work when a portaled child disconnects", async () => {

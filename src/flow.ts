@@ -3,7 +3,7 @@
 // ============================================================
 
 import { batch, Condition, Derive, effect, resolve, sig, Sig, untrack } from "./core";
-import { auto_dispose } from "./dom";
+import { auto_dispose } from "./lifecycle";
 import { collect_scope, dispose_all, type Disposer } from "./scope";
 
 /* ---------- dynamic_child ---------- */

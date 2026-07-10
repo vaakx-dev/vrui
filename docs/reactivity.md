@@ -3,6 +3,11 @@
 Use `sig` for mutable state, `derive` for read-only computed state, `effect`
 for side effects, and `batch` to group updates so dependent effects run once.
 
+Updates are synchronous. VRUI settles every affected derive before running user
+effects, so an effect never observes a mixture of old and new computed values.
+An effect that depends on both a source and its derive runs once for that
+transaction.
+
 ```ts
 import { batch, derive, effect, sig } from "@vaakx-dev/vrui";
 
@@ -21,6 +26,12 @@ batch(() => {
 
 stop();
 ```
+
+If reactive work throws, VRUI still drains the queued transaction before
+reporting the error. Cleanup likewise attempts every owned disposer, reporting
+multiple failures with `AggregateError` after teardown completes. A failed
+derive propagates that failure to its readers until it recomputes successfully;
+VRUI does not expose its last value as if it belonged to the new transaction.
 
 Signals include helpers such as `update`, `toggle`, `setter`, `from_input`,
 `map`, `eq`, `prop`, `or`, `index`, and `filter`.

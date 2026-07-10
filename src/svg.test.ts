@@ -3,6 +3,23 @@ import { sig } from "./core";
 import { circle, rect, svg, svg_el, text_el } from "./svg";
 
 describe("svg factories", () => {
+  it("provides closed SVG attribute and event types", () => {
+    circle({
+      cx: sig(12),
+      on_pointer_down: (event) => {
+        const pointer_event: PointerEvent = event;
+        expect(pointer_event).toBeDefined();
+      },
+    });
+
+    if (false) {
+      // @ts-expect-error Misspelled SVG attributes are rejected.
+      circle({ strokeWitdh: 2 });
+      // @ts-expect-error Misspelled event props are rejected.
+      circle({ on_clik: () => {} });
+    }
+  });
+
   it("creates namespaced elements with attributes and children", () => {
     const node = svg({ width: 10, height: 20 }, rect({ x: 1, y: 2, width: 3, height: 4 }));
 

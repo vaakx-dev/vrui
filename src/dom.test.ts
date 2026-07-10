@@ -1,10 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { sig } from "./core";
+import type { StyleShape } from "./dom_types";
+import {
+  class_str,
+  el,
+  safe_str,
+} from "./dom";
 import {
   button,
-  by_id,
   canvas,
-  class_str,
   dialog,
   div,
   form,
@@ -12,8 +16,6 @@ import {
   input,
   label,
   option,
-  replace,
-  safe_str,
   select,
   span,
   table,
@@ -21,10 +23,9 @@ import {
   td,
   textarea,
   tr,
-  el,
-  listen,
-  mount,
-} from "./dom";
+} from "./elements";
+import { listen } from "./lifecycle";
+import { by_id, mount, replace } from "./mount";
 
 describe("string and class helpers", () => {
   it("normalizes nullable strings and mixed class inputs", () => {
@@ -49,6 +50,31 @@ describe("string and class helpers", () => {
 });
 
 describe("dom element factories", () => {
+  it("provides closed element-specific prop types", () => {
+    button({
+      disabled: sig(false),
+      on_click: (event) => {
+        const mouse_event: MouseEvent = event;
+        expect(mouse_event.type).toBe("click");
+      },
+    }).click();
+
+    if (false) {
+      // @ts-expect-error Misspelled event props are rejected.
+      button({ on_clik: () => {} });
+      // @ts-expect-error DOM property values retain their browser types.
+      button({ disabled: "yes" });
+      // @ts-expect-error Form bindings only belong on value elements.
+      div({ bind_value: sig("") });
+      // @ts-expect-error Checked bindings require a boolean signal.
+      input({ bind_checked: sig("yes") });
+      // @ts-expect-error Unknown DOM properties require an explicit escape hatch.
+      div({ mystery_property: true });
+      // @ts-expect-error Element methods are not assignable factory props.
+      div({ focus: () => {} });
+    }
+  });
+
   it("applies props, events, refs, reactive text, and reactive attributes", () => {
     const label = sig("save");
     const active = sig(true);
@@ -190,7 +216,7 @@ describe("dom element factories", () => {
   });
 
   it("clears stale cssText when whole reactive styles switch shape", () => {
-    const styles = sig<unknown>("color: red; width: 12px;");
+    const styles = sig<StyleShape>("color: red; width: 12px;");
     const node = div({ style: styles });
 
     expect(node.style.color).toBe("red");

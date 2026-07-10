@@ -5,7 +5,7 @@ import { resource, store } from "./store";
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("store", () => {
-  it("exposes object fields as signals and updates them through proxy writes", () => {
+  it("exposes object fields as independently writable signals", () => {
     const state = store({ count: 1, name: "Ada" });
     const seen: number[] = [];
 
@@ -16,16 +16,55 @@ describe("store", () => {
     expect(state.count.get()).toBe(1);
     expect(state.name.get()).toBe("Ada");
 
-    if (false) {
-      // @ts-expect-error store fields expose readonly signals; proxy writes need an explicit runtime cast.
-      state.count = 2;
-    }
-    (state as unknown as { count: number }).count = 2;
+    state.count.set(2);
 
     expect(state.count.get()).toBe(2);
     expect(seen).toEqual([1, 2]);
 
     stop();
+  });
+
+  it("returns a frozen plain object without mutating the initial object", () => {
+    const initial = { count: 1 };
+    const state = store(initial);
+
+    expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
+    expect(Object.isFrozen(state)).toBe(true);
+
+    state.count.set(2);
+
+    expect(initial.count).toBe(1);
+    expect(state.count.get()).toBe(2);
+
+    if (false) {
+      // @ts-expect-error Store fields are signals and cannot be replaced.
+      state.count = 2;
+    }
+  });
+
+  it("includes every own string and symbol field", () => {
+    const status = Symbol("status");
+    const initial = { name: "Ada", hidden: true, [status]: "active" };
+
+    Object.defineProperty(initial, "hidden", {
+      value: true,
+      enumerable: false,
+    });
+
+    const state = store(initial);
+
+    expect(Reflect.ownKeys(state)).toEqual(["name", "hidden", status]);
+    expect(state.name.get()).toBe("Ada");
+    expect(state[status].get()).toBe("active");
+    expect(state.hidden.get()).toBe(true);
+    expect(Object.keys(state)).toEqual(["name"]);
+  });
+
+  it("rejects objects with inherited domain state", () => {
+    const initial = Object.create({ inherited: "base" }) as { own: string };
+    initial.own = "value";
+
+    expect(() => store(initial)).toThrow("vrui: store expects a plain object");
   });
 });
 

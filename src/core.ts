@@ -8,7 +8,56 @@ import { dispose_all, enter_scope, exit_scope, register_in_scope } from "./scope
 
 let active_effect: Effect | null = null;
 let batch_depth = 0;
-const batch_queue = new Set<Effect>();
+let notification_depth = 0;
+let effect_depth = 0;
+let flushing = false;
+const derive_queue = new Set<Effect>();
+const effect_queue = new Set<Effect>();
+
+function throw_errors(errors: unknown[], message: string): void {
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1) throw new AggregateError(errors, message);
+}
+
+function take_first(queue: Set<Effect>): Effect {
+  const item = queue.values().next().value as Effect;
+  queue.delete(item);
+  return item;
+}
+
+function flush_queue(): void {
+  if (flushing || batch_depth || notification_depth || effect_depth) return;
+
+  const errors: unknown[] = [];
+  flushing = true;
+
+  try {
+    while (derive_queue.size || effect_queue.size) {
+      const queue = derive_queue.size ? derive_queue : effect_queue;
+      const next = take_first(queue);
+
+      try {
+        next.run();
+      } catch (err) {
+        errors.push(err);
+      }
+    }
+  } finally {
+    flushing = false;
+  }
+
+  throw_errors(errors, "vrui: multiple reactive updates failed");
+}
+
+function enqueue(effect: Effect, derived: boolean): void {
+  (derived ? derive_queue : effect_queue).add(effect);
+  flush_queue();
+}
+
+function dequeue(effect: Effect): void {
+  derive_queue.delete(effect);
+  effect_queue.delete(effect);
+}
 
 /* ---------- core types ---------- */
 
@@ -44,18 +93,47 @@ export class Effect {
   private scope_disposers: (() => void)[] = [];
   private disposed = false;
   private running = false;
+  private derived: boolean;
 
-  constructor(fn: () => Cleanup, track_scope = true) {
+  constructor(fn: () => Cleanup, track_scope = true, derived = false) {
     this.fn = fn;
+    this.derived = derived;
     this.run();
     if (track_scope) register_in_scope(() => this.dispose());
   }
 
-  private drain_scope(): void {
-    if (!this.scope_disposers.length) return;
-    const ds = this.scope_disposers;
+  private release_owned(scope: (() => void)[], cleanup: Cleanup): void {
+    const errors: unknown[] = [];
+    const prev = active_effect;
+    active_effect = null;
+
+    try {
+      try {
+        dispose_all(scope);
+      } catch (err) {
+        errors.push(err);
+      }
+
+      if (cleanup) {
+        try {
+          cleanup();
+        } catch (err) {
+          errors.push(err);
+        }
+      }
+    } finally {
+      active_effect = prev;
+    }
+
+    throw_errors(errors, "vrui: multiple effect cleanups failed");
+  }
+
+  private drain_owned(): void {
+    const scope = this.scope_disposers;
+    const cleanup = this.cleanup;
     this.scope_disposers = [];
-    dispose_all(ds);
+    this.cleanup = undefined;
+    this.release_owned(scope, cleanup);
   }
 
   private clear_deps(): void {
@@ -71,47 +149,86 @@ export class Effect {
     }
   }
 
-  private run_cleanup(): void {
-    if (!this.cleanup) return;
-    this.cleanup();
-    this.cleanup = undefined;
-  }
-
-  run(): void {
-    if (this.disposed || this.running) return;
-    this.running = true;
+  private execute(): void {
     const old_deps = new Set(this.deps);
+
+    this.running = true;
     try {
       this.clear_deps();
-      this.drain_scope();
-      this.run_cleanup();
+
+      try {
+        this.drain_owned();
+      } catch (err) {
+        if (!this.disposed) this.restore_deps(old_deps);
+        throw err;
+      }
+
+      if (this.disposed) return;
 
       const prev = active_effect;
       active_effect = this;
       enter_scope();
-      let completed = false;
+
+      let cleanup: Cleanup = undefined;
+      let scope: (() => void)[] = [];
+      const errors: unknown[] = [];
+
       try {
-        this.cleanup = this.fn();
-        completed = true;
+        cleanup = this.fn();
       } catch (err) {
-        const failed_scope = exit_scope();
-        active_effect = prev;
-        try {
-          dispose_all(failed_scope);
-        } finally {
-          this.restore_deps(old_deps);
-        }
-        throw err;
+        errors.push(err);
       } finally {
         try {
-          if (completed) this.scope_disposers = exit_scope();
+          scope = exit_scope();
+        } catch (err) {
+          errors.push(err);
         } finally {
           active_effect = prev;
         }
       }
+
+      if (errors.length || this.disposed) {
+        this.clear_deps();
+        if (!this.disposed) this.restore_deps(old_deps);
+
+        try {
+          this.release_owned(scope, errors.length ? undefined : cleanup);
+        } catch (err) {
+          errors.push(err);
+        }
+
+        throw_errors(errors, "vrui: effect execution and cleanup failed");
+        return;
+      }
+
+      this.cleanup = cleanup;
+      this.scope_disposers = scope;
     } finally {
       this.running = false;
     }
+  }
+
+  run(): void {
+    if (this.disposed || this.running) return;
+
+    const errors: unknown[] = [];
+    effect_depth++;
+
+    try {
+      this.execute();
+    } catch (err) {
+      errors.push(err);
+    } finally {
+      effect_depth--;
+    }
+
+    try {
+      flush_queue();
+    } catch (err) {
+      errors.push(err);
+    }
+
+    throw_errors(errors, "vrui: effect and scheduled updates failed");
   }
 
   add_dep(sig: Sig<unknown>): void {
@@ -124,20 +241,15 @@ export class Effect {
 
   notify(): void {
     if (this.disposed || this.running) return;
-    if (batch_depth === 0) {
-      this.run();
-      return;
-    }
-
-    batch_queue.add(this);
+    enqueue(this, this.derived);
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    dequeue(this);
     this.clear_deps();
-    this.drain_scope();
-    this.run_cleanup();
+    this.drain_owned();
   }
 }
 
@@ -148,32 +260,25 @@ export function effect(fn: () => Cleanup): () => void {
 
 /* ---------- batch ---------- */
 
-function flush_batch_queue(): void {
-  while (batch_queue.size) {
-    const q = Array.from(batch_queue);
-    batch_queue.clear();
-    for (let i = 0; i < q.length; i++) {
-      try {
-        q[i].run();
-      } catch (err) {
-        for (let j = i + 1; j < q.length; j++) batch_queue.add(q[j]);
-        throw err;
-      }
-    }
-  }
-}
-
 export function batch(fn: () => void): void {
+  const errors: unknown[] = [];
   batch_depth++;
+
   try {
     fn();
+  } catch (err) {
+    errors.push(err);
   } finally {
-    try {
-      if (batch_depth === 1) flush_batch_queue();
-    } finally {
-      batch_depth--;
-    }
+    batch_depth--;
   }
+
+  try {
+    flush_queue();
+  } catch (err) {
+    errors.push(err);
+  }
+
+  throw_errors(errors, "vrui: batch and scheduled updates failed");
 }
 
 /* ---------- sig ---------- */
@@ -219,8 +324,15 @@ export class Sig<T> {
     // Snapshot to avoid re-visiting effects that re-subscribe mid-iteration.
     // JS Set iteration revisits entries that are deleted then re-added during
     // the same loop, which Effect.run does (unsubs all deps, then re-reads).
-    const snapshot = Array.from(this.subs);
-    for (const e of snapshot) e.notify();
+    notification_depth++;
+    try {
+      const snapshot = Array.from(this.subs);
+      for (const e of snapshot) e.notify();
+    } finally {
+      notification_depth--;
+    }
+
+    flush_queue();
   }
 
   dispose(): void {
@@ -264,23 +376,22 @@ export class Sig<T> {
 
   /* -- array only -- */
 
-  index(idx: number | Sig<number>): Derive<T extends (infer E)[] ? E | undefined : never> {
+  index<E>(this: Sig<readonly E[]>, idx: number | Sig<number>): Derive<E | undefined> {
     return derive(() => {
       const i = idx instanceof Sig ? idx.get() : idx;
-      const arr = this.get() as unknown as any[];
-      return arr[i];
-    }) as Derive<T extends (infer E)[] ? E | undefined : never>;
+      return this.get()[i];
+    });
   }
 
-  filter<Q>(
+  filter<E, Q>(
+    this: Sig<readonly E[]>,
     query: Sig<Q>,
-    fn: (item: T extends (infer E)[] ? E : never, q: Q) => boolean
-  ): Derive<T extends (infer E)[] ? E[] : never> {
+    fn: (item: E, query: Q) => boolean,
+  ): Derive<E[]> {
     return derive(() => {
-      const q = query.get();
-      const arr = this.get() as unknown as any[];
-      return arr.filter((item: any) => fn(item, q));
-    }) as Derive<T extends (infer E)[] ? E[] : never>;
+      const value = query.get();
+      return this.get().filter((item) => fn(item, value));
+    });
   }
 }
 
@@ -290,18 +401,37 @@ export function sig<T>(v: T): Sig<T> {
 
 /* ---------- derive ---------- */
 
+const NO_DERIVE_ERROR = Symbol("no derive error");
+
 export class Derive<T> extends Sig<T> {
   private _effect: Effect;
+  private _error: unknown = NO_DERIVE_ERROR;
 
   constructor(fn: () => T) {
     super(undefined as T);
     this._effect = new Effect(() => {
-      const v = fn();
-      if (Object.is(v, this._val)) return;
-      this._val = v;
+      let value: T;
+      try {
+        value = fn();
+      } catch (error) {
+        this._error = error;
+        this.notify();
+        throw error;
+      }
+
+      const recovered = this._error !== NO_DERIVE_ERROR;
+      this._error = NO_DERIVE_ERROR;
+      if (!recovered && Object.is(value, this._val)) return;
+      this._val = value;
       this.notify();
-    }, false);
+    }, false, true);
     register_in_scope(() => this.dispose());
+  }
+
+  get(): T {
+    const value = super.get();
+    if (this._error !== NO_DERIVE_ERROR) throw this._error;
+    return value;
   }
 
   set(_v: T): never {

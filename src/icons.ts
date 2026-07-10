@@ -2,29 +2,48 @@
 // vrui - lucide icon helper
 // ============================================================
 
-import { createElement, icons, type IconNode } from "lucide";
+import type { IconNode as LucideIconNode } from "lucide";
 
-export type icon_node = IconNode;
+export type IconNode = LucideIconNode;
 
-const icon_map = icons as Record<string, IconNode>;
+type NodeAttributes = Record<string, string | number | undefined>;
+type NodeData = readonly [
+  tag: string,
+  attributes: NodeAttributes,
+  children?: readonly NodeData[],
+];
 
-export function snake_to_pascal(name: string): string {
-  return name
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("");
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function create_node([tag, attributes, children]: NodeData): SVGElement {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [name, value] of Object.entries(attributes)) {
+    node.setAttribute(name, String(value));
+  }
+  for (const child of children ?? []) node.appendChild(create_node(child));
+  return node;
 }
 
-function icon_node_for(name: string): IconNode | undefined {
-  return icon_map[name] ?? icon_map[snake_to_pascal(name)];
+function create_icon(node: IconNode, attributes: NodeAttributes): SVGElement {
+  return create_node([
+    "svg",
+    {
+      xmlns: SVG_NS,
+      width: 24,
+      height: 24,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      "stroke-width": 2,
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      ...attributes,
+    },
+    node as unknown as readonly NodeData[],
+  ]);
 }
 
-export function has_icon(name: string): boolean {
-  return icon_node_for(name) != null;
-}
-
-export function icon(name: string, size = 12, stroke_width = 2): HTMLElement {
+export function icon(node: IconNode, size = 12, stroke_width = 2): HTMLElement {
   const wrapper = document.createElement("span");
   wrapper.className = "vrui-icon";
   Object.assign(wrapper.style, {
@@ -34,14 +53,7 @@ export function icon(name: string, size = 12, stroke_width = 2): HTMLElement {
     lineHeight: "0",
   });
 
-  const node = icon_node_for(name);
-  if (!node) {
-    wrapper.textContent = "?";
-    console.warn(`unknown lucide icon: ${name}`);
-    return wrapper;
-  }
-
-  wrapper.appendChild(createElement(node, {
+  wrapper.appendChild(create_icon(node, {
     width: size,
     height: size,
     "stroke-width": stroke_width,

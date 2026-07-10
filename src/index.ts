@@ -30,23 +30,24 @@ export { resource, store } from "./store";
 export type { Resource, Store } from "./store";
 
 export {
+  append_child,
+  class_str,
+  el,
+  safe_str,
+} from "./dom";
+export {
   Fragment,
   a,
-  append_child,
   article,
   aside,
-  auto_dispose,
-  by_id,
   button,
   canvas,
-  class_str,
   dd,
   details,
   div,
   dialog,
   dl,
   dt,
-  el,
   em,
   fieldset,
   footer,
@@ -63,23 +64,13 @@ export {
   label,
   li,
   legend,
-  listen,
   main,
-  mount,
   nav,
   ol,
   option,
-  on_disconnect,
-  on_document,
-  on_mount,
-  on_target,
-  on_window,
   p,
-  replace,
-  safe_str,
   section,
   select,
-  set_style,
   small,
   span,
   strong,
@@ -94,18 +85,31 @@ export {
   thead,
   tr,
   ul,
-} from "./dom";
+} from "./elements";
+export {
+  auto_dispose,
+  listen,
+  on_disconnect,
+  on_document,
+  on_mount,
+  on_target,
+  on_window,
+} from "./lifecycle";
+export { by_id, mount, replace } from "./mount";
+export { set_style } from "./style";
 export type {
   Child,
   ClassValue,
   Component,
   MaybeReactive,
   Props,
+  StyleEntry,
   StyleMap,
   StylePrimitive,
+  StyleShape,
   StyleValue,
   WritableSignal,
-} from "./dom";
+} from "./dom_types";
 
 export {
   event,
@@ -121,6 +125,9 @@ export type {
   KeyHandler,
   KeyMap,
   KeyOptions,
+  EventNameFromProp,
+  EventPropName,
+  EventProps,
 } from "./events";
 
 export {
@@ -154,10 +161,7 @@ export {
   title_el,
   use_el,
 } from "./svg";
+export type { SvgAttribute, SvgProps } from "./svg_types";
 
-export {
-  has_icon,
-  icon,
-  snake_to_pascal,
-} from "./icons";
-export type { icon_node } from "./icons";
+export { icon } from "./icons";
+export type { IconNode } from "./icons";

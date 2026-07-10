@@ -1,7 +1,9 @@
 # SVG
 
 SVG factories mirror DOM factories but create namespaced SVG nodes and set most
-props as attributes.
+props as attributes. Their props cover the standard presentation, geometry,
+text, transform, link, data, accessibility, lifecycle, and event attributes;
+misspellings fail type checking.
 
 Available helpers include `svg`, `g`, `path`, `rect`, `circle`, `ellipse`,
 `line`, `polyline`, `polygon`, `defs`, `text_el`, `title_el`, and `use_el`.
@@ -22,5 +24,5 @@ const mark = svg(
 );
 ```
 
-Use SVG factories for inline vector UI. Use `icon` when you want a Lucide icon
-by name.
+Use SVG factories for inline vector UI. Use `icon` with an explicitly imported
+Lucide icon node when you want a packaged icon.

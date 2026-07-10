@@ -77,4 +77,52 @@ describe("scope stack", () => {
 
     expect(calls).toEqual(["once", "scoped"]);
   });
+
+  it("attempts every disposer before reporting failures", () => {
+    const first = new Error("first");
+    const second = new Error("second");
+    const calls: string[] = [];
+    let thrown: unknown;
+
+    try {
+      dispose_all([
+        () => {
+          calls.push("first");
+          throw first;
+        },
+        () => calls.push("middle"),
+        () => {
+          calls.push("second");
+          throw second;
+        },
+      ]);
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(calls).toEqual(["first", "middle", "second"]);
+    expect(thrown).toBeInstanceOf(AggregateError);
+    expect((thrown as AggregateError).errors).toEqual([first, second]);
+  });
+
+  it("preserves scope and cleanup failures together", () => {
+    const creation = new Error("creation");
+    const cleanup = new Error("cleanup");
+    let thrown: unknown;
+
+    try {
+      collect_scope(() => {
+        register_in_scope(() => {
+          throw cleanup;
+        });
+        throw creation;
+      });
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(thrown).toBeInstanceOf(AggregateError);
+    expect((thrown as AggregateError).errors).toEqual([creation, cleanup]);
+    expect(has_scope()).toBe(false);
+  });
 });

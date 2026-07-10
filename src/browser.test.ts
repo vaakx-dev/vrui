@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { div } from "./dom";
+import { div } from "./elements";
 import { enter_scope, exit_scope } from "./scope";
 import { on_interval, on_media, on_resize, on_timeout } from "./browser";
 
@@ -57,6 +57,20 @@ describe("cleanup-aware browser helpers", () => {
     await Promise.resolve();
 
     window.dispatchEvent(new Event("resize"));
+    expect(calls).toBe(1);
+  });
+
+  it("returns a resize listener disposer", () => {
+    const owner = div();
+    let calls = 0;
+    const stop = on_resize(owner, () => {
+      calls++;
+    });
+
+    window.dispatchEvent(new Event("resize"));
+    stop();
+    window.dispatchEvent(new Event("resize"));
+
     expect(calls).toBe(1);
   });
 

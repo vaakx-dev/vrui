@@ -30,7 +30,20 @@ export function has_scope(): boolean {
 }
 
 export function dispose_all(disposers: Iterable<Disposer>): void {
-  for (const dispose of disposers) dispose();
+  const errors: unknown[] = [];
+
+  for (const dispose of disposers) {
+    try {
+      dispose();
+    } catch (err) {
+      errors.push(err);
+    }
+  }
+
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1) {
+    throw new AggregateError(errors, "vrui: multiple disposers failed");
+  }
 }
 
 export function collect_scope<T>(fn: () => T): ScopedValue<T> {
@@ -39,8 +52,16 @@ export function collect_scope<T>(fn: () => T): ScopedValue<T> {
     const value = fn();
     return { value, scope: exit_scope() };
   } catch (err) {
-    dispose_all(exit_scope());
-    throw err;
+    const errors = [err];
+
+    try {
+      dispose_all(exit_scope());
+    } catch (dispose_err) {
+      errors.push(dispose_err);
+    }
+
+    if (errors.length === 1) throw err;
+    throw new AggregateError(errors, "vrui: scope creation and cleanup failed");
   }
 }
 

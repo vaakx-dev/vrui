@@ -1,7 +1,9 @@
 # Events
 
 Event props use `on_event_name`. Underscores after `on_` are removed when the
-browser event listener is registered.
+browser event listener is registered. The supported props are closed and
+typed, so misspellings fail type checking and handlers receive the appropriate
+DOM event type.
 
 | Prop | Browser event |
 | --- | --- |
@@ -14,6 +16,19 @@ browser event listener is registered.
 | `on_pointer_cancel` | `pointercancel` |
 
 `on_mount` is a lifecycle prop, not a browser event prop.
+
+The standard set includes:
+
+- focus and form events: `on_blur`, `on_change`, `on_focus`, `on_focus_in`,
+  `on_focus_out`, `on_input`, `on_invalid`, `on_reset`, and `on_submit`
+- keyboard and composition events: `on_keydown`, `on_keypress`, `on_keyup`,
+  `on_composition_start`, `on_composition_update`, and `on_composition_end`
+- mouse, pointer, touch, drag, clipboard, and wheel events
+- animation and transition events
+- common media, loading, scrolling, selection, and toggle events
+
+Names follow browser terminology. For example, double-click is `on_dbl_click`,
+which maps to `dblclick`.
 
 ```ts
 import { canvas } from "@vaakx-dev/vrui";
@@ -58,3 +73,19 @@ keys({ Escape: close }, { stop: true, repeat: false });
 ```
 
 Use VRUI event props or cleanup-aware helpers at integration boundaries.
+
+## Custom events
+
+Declarative props intentionally cover standard browser events only. Use
+`listen` for custom events or third-party integration events. It returns a
+cleanup function.
+
+```ts
+import { listen } from "@vaakx-dev/vrui";
+
+const stop_listening = listen(target, "panel:activate", (event) => {
+  activate_panel(event);
+});
+
+stop_listening();
+```

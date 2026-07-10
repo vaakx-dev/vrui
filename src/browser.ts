@@ -2,7 +2,7 @@
 // vrui - cleanup-aware browser helpers
 // ============================================================
 
-import { auto_dispose, listen, on_window } from "./dom";
+import { auto_dispose, listen, on_window } from "./lifecycle";
 import { once, scoped } from "./scope";
 
 export function on_timeout(fn: () => void, ms?: number): () => void {
@@ -27,8 +27,8 @@ export function on_resize(
   owner: Node,
   handler: EventListener,
   options?: boolean | AddEventListenerOptions,
-): void {
-  on_window(owner, "resize", handler, options);
+): () => void {
+  return on_window(owner, "resize", handler, options);
 }
 
 export type MediaHandler = (matches: boolean, media: MediaQueryList) => void;

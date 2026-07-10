@@ -21,7 +21,8 @@ returned disposer cancels the pending mount or unmounts mounted children.
 ## on_mount
 
 `on_mount` runs when a node is connected. If the callback returns a cleanup
-function, that cleanup runs when the node disconnects.
+function, that cleanup runs when the node disconnects. `on_mount` itself
+returns a disposer that cancels a pending mount or runs the mounted cleanup.
 
 ```ts
 import { div } from "@vaakx-dev/vrui";
@@ -36,9 +37,14 @@ const panel = div({
 
 ## Cleanup helpers
 
+`on_disconnect(node, cleanup)` waits for a real mounted lifetime: a newly
+created detached node is not treated as disconnected. Its returned function
+cancels the registration without running the cleanup.
+
 Available helpers include:
 
 - `listen`
+- `on_disconnect`
 - `on_window`
 - `on_document`
 - `on_target`
@@ -49,6 +55,10 @@ Available helpers include:
 - `on_media`
 - `resize_observer`
 - `intersection_observer`
+
+Listener helpers tied to an owner node, including `on_target`, `on_window`,
+`on_document`, `on_resize`, return a disposer for explicit early cleanup as
+well as cleaning up when the owner disconnects.
 
 Example:
 
@@ -64,7 +74,7 @@ import {
 const panel = div({
   on_mount: (el) => {
     on_resize(el, recalc_layout);
-    resize_observer(el as Element, recalc_panel);
+    resize_observer(el, recalc_panel);
     const stop_refresh = on_interval(refresh, 30_000);
     const stop_media = on_media("(prefers-reduced-motion: reduce)", (matches) => {
       reduced_motion.set(matches);

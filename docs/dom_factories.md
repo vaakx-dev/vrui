@@ -36,6 +36,11 @@ Props can be plain values or reactive values. Supported patterns include:
 - event props such as `on_click`
 - lifecycle props such as `ref` and `on_mount`
 
+Props are element-specific and closed: DOM property values retain their browser
+types, form bindings are only accepted on compatible controls, and misspelled
+properties or events fail type checking. Use `ref`, `on_mount`, or `listen` for
+custom browser and third-party integration work.
+
 ## Children
 
 Children can be nodes, strings, numbers, booleans, nullish values, arrays, or

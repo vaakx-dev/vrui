@@ -1,5 +1,59 @@
-import { describe, expect, it, vi } from "vitest";
-import { event, keys, prevent, prevent_then, stop, stop_then } from "./events";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import {
+  event,
+  event_name_from_prop,
+  keys,
+  prevent,
+  prevent_then,
+  stop,
+  stop_then,
+  type EventNameFromProp,
+  type EventProps,
+} from "./events";
+
+describe("event props", () => {
+  it("maps snake_case props to browser event names", () => {
+    expect(event_name_from_prop("on_click")).toBe("click");
+    expect(event_name_from_prop("on_before_input")).toBe("beforeinput");
+    expect(event_name_from_prop("on_pointer_down")).toBe("pointerdown");
+    expect(event_name_from_prop("on_got_pointer_capture")).toBe("gotpointercapture");
+    expect(event_name_from_prop("on_security_policy_violation"))
+      .toBe("securitypolicyviolation");
+  });
+
+  it("keeps the type-level and runtime name mappings aligned", () => {
+    expectTypeOf<EventNameFromProp<"on_pointer_raw_update">>()
+      .toEqualTypeOf<"pointerrawupdate">();
+    expectTypeOf<EventNameFromProp<"on_transition_end">>()
+      .toEqualTypeOf<"transitionend">();
+  });
+
+  it("infers specific event types", () => {
+    type InputProps = EventProps<HTMLInputElement>;
+    type SelectProps = EventProps<HTMLSelectElement>;
+
+    expectTypeOf<Parameters<NonNullable<InputProps["on_click"]>>[0]>()
+      .toEqualTypeOf<MouseEvent>();
+    expectTypeOf<Parameters<NonNullable<InputProps["on_keydown"]>>[0]>()
+      .toEqualTypeOf<KeyboardEvent>();
+    expectTypeOf<Parameters<NonNullable<InputProps["on_pointer_move"]>>[0]>()
+      .toEqualTypeOf<PointerEvent>();
+    expectTypeOf<Parameters<NonNullable<InputProps["on_input"]>>[0]>()
+      .toEqualTypeOf<InputEvent>();
+    expectTypeOf<Parameters<NonNullable<SelectProps["on_input"]>>[0]>()
+      .toEqualTypeOf<Event>();
+  });
+
+  it("rejects unsupported and misspelled props", () => {
+    const props: EventProps<HTMLButtonElement> = {
+      on_click: (event) => void event.clientX,
+      // @ts-expect-error Misspelled declarative events are not supported.
+      on_clik: () => undefined,
+    };
+
+    expect(props.on_click).toBeTypeOf("function");
+  });
+});
 
 describe("event helpers", () => {
   it("provides stop and prevent handlers", () => {

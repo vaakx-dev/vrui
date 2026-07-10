@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { batch, derive, effect, is_reactive, resolve, sig, untrack } from "./core";
-import { enter_scope, exit_scope, has_scope } from "./scope";
+import { enter_scope, exit_scope, has_scope, register_in_scope } from "./scope";
 
 describe("core helpers", () => {
   it("resolves plain, signal, derive, and function values", () => {
@@ -47,6 +47,195 @@ describe("core helpers", () => {
 
     count.set(4);
     expect(seen).toEqual([0, 1, 3]);
+  });
+
+  it("settles a diamond of derives before running effects", () => {
+    const source = sig(1);
+    const left = derive(() => source.get() + 1);
+    const right = derive(() => source.get() * 10);
+    const total = derive(() => left.get() + right.get());
+    const seen: [number, number, number][] = [];
+
+    const stop = effect(() => {
+      seen.push([left.get(), right.get(), total.get()]);
+    });
+
+    source.set(2);
+
+    expect(seen).toEqual([
+      [2, 10, 12],
+      [3, 20, 23],
+    ]);
+
+    stop();
+    total.dispose();
+    right.dispose();
+    left.dispose();
+  });
+
+  it("runs an effect with direct and derived dependencies once per write", () => {
+    const source = sig(1);
+    const doubled = derive(() => source.get() * 2);
+    const seen: [number, number][] = [];
+
+    const stop = effect(() => {
+      seen.push([source.get(), doubled.get()]);
+    });
+
+    source.set(2);
+
+    expect(seen).toEqual([
+      [1, 2],
+      [2, 4],
+    ]);
+
+    stop();
+    doubled.dispose();
+  });
+
+  it("settles nested writes before later queued observers run", () => {
+    const source = sig(0);
+    const mirrored = sig(0);
+    const doubled = derive(() => mirrored.get() * 2);
+    const seen: [number, number, number][] = [];
+
+    const stop_mirror = effect(() => {
+      const value = source.get();
+      if (value) mirrored.set(value);
+    });
+    const stop_observer = effect(() => {
+      seen.push([source.get(), mirrored.get(), doubled.get()]);
+    });
+
+    source.set(2);
+
+    expect(seen).toEqual([
+      [0, 0, 0],
+      [2, 2, 4],
+    ]);
+
+    stop_observer();
+    stop_mirror();
+    doubled.dispose();
+  });
+
+  it("drains queued effects after an error and recovers on later writes", () => {
+    const source = sig(0);
+    const calls: string[] = [];
+    let fail = true;
+
+    const stop_failing = effect(() => {
+      const value = source.get();
+      if (value === 1 && fail) {
+        fail = false;
+        calls.push("failing:1");
+        throw new Error("scheduled failure");
+      }
+      calls.push(`failing:${value}`);
+    });
+    const stop_healthy = effect(() => {
+      calls.push(`healthy:${source.get()}`);
+    });
+
+    expect(() => source.set(1)).toThrow("scheduled failure");
+    expect(calls).toEqual([
+      "failing:0",
+      "healthy:0",
+      "failing:1",
+      "healthy:1",
+    ]);
+
+    source.set(2);
+    expect(calls.slice(-2)).toEqual(["failing:2", "healthy:2"]);
+
+    stop_healthy();
+    stop_failing();
+  });
+
+  it("propagates derive failures instead of exposing stale computed values", () => {
+    const source = sig(1);
+    const failure = new Error("derive failed");
+    const doubled = derive(() => {
+      const value = source.get();
+      if (value < 0) throw failure;
+      return value * 2;
+    });
+    const seen: Array<[number, number | "error"]> = [];
+
+    const stop = effect(() => {
+      const direct = source.get();
+      try {
+        seen.push([direct, doubled.get()]);
+      } catch {
+        seen.push([direct, "error"]);
+      }
+    });
+
+    expect(() => source.set(-1)).toThrow(failure);
+    expect(seen).toEqual([[1, 2], [-1, "error"]]);
+
+    source.set(2);
+    expect(seen).toEqual([[1, 2], [-1, "error"], [2, 4]]);
+
+    stop();
+    doubled.dispose();
+  });
+
+  it("clears throwing cleanups and preserves effect dependencies", () => {
+    const source = sig(0);
+    const runs: number[] = [];
+    const cleanups: number[] = [];
+
+    const stop = effect(() => {
+      const value = source.get();
+      runs.push(value);
+      return () => {
+        cleanups.push(value);
+        if (value === 0) throw new Error("cleanup failure");
+      };
+    });
+
+    expect(() => source.set(1)).toThrow("cleanup failure");
+    expect(runs).toEqual([0]);
+    expect(cleanups).toEqual([0]);
+
+    source.set(2);
+    expect(runs).toEqual([0, 2]);
+    expect(cleanups).toEqual([0]);
+
+    stop();
+    expect(cleanups).toEqual([0, 2]);
+  });
+
+  it("attempts scoped and returned cleanup even when both throw", () => {
+    const source = sig(0);
+    const calls: string[] = [];
+    const stop = effect(() => {
+      source.get();
+      register_in_scope(() => {
+        calls.push("scoped");
+        throw new Error("scoped failure");
+      });
+      return () => {
+        calls.push("returned");
+        throw new Error("returned failure");
+      };
+    });
+
+    let thrown: unknown;
+    try {
+      source.set(1);
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(calls).toEqual(["scoped", "returned"]);
+    expect(thrown).toBeInstanceOf(AggregateError);
+    expect((thrown as AggregateError).errors).toHaveLength(2);
+
+    expect(() => stop()).not.toThrow();
+    source.set(2);
+    expect(calls).toEqual(["scoped", "returned"]);
   });
 
   it("runs code without tracking signal reads", () => {

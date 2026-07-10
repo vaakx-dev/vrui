@@ -3,7 +3,7 @@
 ## store
 
 `store` wraps object fields as signals. Reading a property returns a `Sig` for
-that field.
+that field. Update fields through their signal methods.
 
 ```ts
 import { div, input, store } from "@vaakx-dev/vrui";
@@ -20,7 +20,10 @@ user.visits.update((n) => n + 1);
 ```
 
 Use `store` when an object-shaped state model is clearer than a set of separate
-signals.
+signals. It accepts a plain object, reads its own string and symbol fields once,
+then returns a frozen plain object containing independent signals. Property
+enumerability is preserved. Later changes to the initial object do not affect
+the store.
 
 ## resource
 
