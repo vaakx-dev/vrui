@@ -1,9 +1,7 @@
-# @vaakx-dev/vrui
+# VRUI
 
 Small DOM UI toolkit with signals, derived values, scoped cleanup, DOM/SVG
 factories, flow helpers, resources, portals, and Lucide icons.
-
-Repository: https://github.com/vaakx-dev/vrui
 
 ## Overview
 
@@ -14,10 +12,11 @@ or node disconnects.
 Use it when you want lightweight browser UI code without a virtual DOM or
 component runtime.
 
-## Install, use, and imports
+## Use
 
-This package exports built ESM from `./dist/index.js` with TypeScript
-declarations from `./dist/index.d.ts` for browser-bundled apps.
+VRUI is consumed directly from this GitHub repository. It builds ESM to
+`./dist/index.js` with TypeScript declarations in `./dist/index.d.ts` for
+browser-bundled apps.
 
 ```ts
 import {
@@ -30,7 +29,7 @@ import {
 ```
 
 ```sh
-npm install @vaakx-dev/vrui lucide
+npm install github:vaakx-dev/vrui lucide
 ```
 
 Quick start:
