@@ -1,6 +1,6 @@
 # Icons
 
-VRUI includes a small Lucide wrapper. `icon(node, size = 12, stroke_width = 2)`
+VRUI includes a small Lucide wrapper. `icon(node, size = 12, strokeWidth = 2)`
 returns a `span.vrui-icon` containing the SVG. Import each icon node explicitly
 from `lucide` so bundlers can exclude unused icons. VRUI re-exports Lucide's
 `IconNode` type for APIs that accept icon nodes.

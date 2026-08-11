@@ -6,7 +6,7 @@ flow helpers, resources, portals, and Lucide icons.
 
 Use these pages as the reference material behind the README:
 
-- [DOM factories](dom_factories.md)
+- [DOM factories](domFactories.md)
 - [Events](events.md)
 - [Reactivity](reactivity.md)
 - [Flow helpers](flow.md)
@@ -14,6 +14,6 @@ Use these pages as the reference material behind the README:
 - [Lifecycle and cleanup](lifecycle.md)
 - [Canvas](canvas.md)
 - [Icons](icons.md)
-- [Store and resources](store_resource.md)
+- [Store and resources](storeResource.md)
 - [Portal](portal.md)
 - [SVG](svg.md)

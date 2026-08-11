@@ -11,7 +11,7 @@ import { div, input, store } from "@vaakx-dev/vrui";
 const user = store({ name: "Ada", visits: 1 });
 
 const profile = div(
-  input({ value: user.name, on_input: user.name.from_input() }),
+  input({ value: user.name, onInput: user.name.fromInput() }),
   "Visits: ",
   user.visits,
 );
@@ -38,7 +38,7 @@ const users = resource((signal) =>
 );
 
 const panel = div(
-  button({ on_click: users.refetch }, "Reload"),
+  button({ onClick: users.refetch }, "Reload"),
   show(users.loading, () => div("Loading...")),
   show(users.error.map(Boolean), () => div("Could not load users")),
   users.data.map((data) => JSON.stringify(data ?? [])),

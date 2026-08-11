@@ -18,17 +18,17 @@ stop();
 If the id target does not exist yet, mounting is deferred until it appears. The
 returned disposer cancels the pending mount or unmounts mounted children.
 
-## on_mount
+## onMount
 
-`on_mount` runs when a node is connected. If the callback returns a cleanup
-function, that cleanup runs when the node disconnects. `on_mount` itself
+`onMount` runs when a node is connected. If the callback returns a cleanup
+function, that cleanup runs when the node disconnects. `onMount` itself
 returns a disposer that cancels a pending mount or runs the mounted cleanup.
 
 ```ts
 import { div } from "@vaakx-dev/vrui";
 
 const panel = div({
-  on_mount: () => {
+  onMount: () => {
     start();
     return stop;
   },
@@ -37,27 +37,27 @@ const panel = div({
 
 ## Cleanup helpers
 
-`on_disconnect(node, cleanup)` waits for a real mounted lifetime: a newly
+`onDisconnect(node, cleanup)` waits for a real mounted lifetime: a newly
 created detached node is not treated as disconnected. Its returned function
 cancels the registration without running the cleanup.
 
 Available helpers include:
 
 - `listen`
-- `on_disconnect`
-- `on_window`
-- `on_document`
-- `on_target`
-- `on_timeout`
-- `on_interval`
-- `on_raf`
-- `on_resize`
-- `on_media`
-- `resize_observer`
-- `intersection_observer`
+- `onDisconnect`
+- `onWindow`
+- `onDocument`
+- `onTarget`
+- `onTimeout`
+- `onInterval`
+- `onRaf`
+- `onResize`
+- `onMedia`
+- `resizeObserver`
+- `intersectionObserver`
 
-Listener helpers tied to an owner node, including `on_target`, `on_window`,
-`on_document`, `on_resize`, return a disposer for explicit early cleanup as
+Listener helpers tied to an owner node, including `onTarget`, `onWindow`,
+`onDocument`, `onResize`, return a disposer for explicit early cleanup as
 well as cleaning up when the owner disconnects.
 
 Example:
@@ -65,24 +65,24 @@ Example:
 ```ts
 import {
   div,
-  on_interval,
-  on_media,
-  on_resize,
-  resize_observer,
+  onInterval,
+  onMedia,
+  onResize,
+  resizeObserver,
 } from "@vaakx-dev/vrui";
 
 const panel = div({
-  on_mount: (el) => {
-    on_resize(el, recalc_layout);
-    resize_observer(el, recalc_panel);
-    const stop_refresh = on_interval(refresh, 30_000);
-    const stop_media = on_media("(prefers-reduced-motion: reduce)", (matches) => {
-      reduced_motion.set(matches);
+  onMount: (el) => {
+    onResize(el, recalcLayout);
+    resizeObserver(el, recalcPanel);
+    const stopRefresh = onInterval(refresh, 30_000);
+    const stopMedia = onMedia("(prefers-reduced-motion: reduce)", (matches) => {
+      reducedMotion.set(matches);
     });
 
     return () => {
-      stop_refresh();
-      stop_media();
+      stopRefresh();
+      stopMedia();
     };
   },
 });

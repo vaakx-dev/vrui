@@ -2,7 +2,7 @@ import type {
   AttributePrimitive,
   CommonProps,
   MaybeReactive,
-} from "./dom_types";
+} from "./domTypes";
 
 export type SvgAttribute =
   | "alignmentBaseline"

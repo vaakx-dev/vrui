@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sig } from "./core";
-import type { StyleMap, StylePrimitive } from "./dom_types";
+import type { StyleMap, StylePrimitive } from "./domTypes";
 import { div } from "./elements";
 import { rect } from "./svg";
 

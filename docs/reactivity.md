@@ -33,7 +33,7 @@ multiple failures with `AggregateError` after teardown completes. A failed
 derive propagates that failure to its readers until it recomputes successfully;
 VRUI does not expose its last value as if it belonged to the new transaction.
 
-Signals include helpers such as `update`, `toggle`, `setter`, `from_input`,
+Signals include helpers such as `update`, `toggle`, `setter`, `fromInput`,
 `map`, `eq`, `prop`, `or`, `index`, and `filter`.
 
 ## Reactive UI
@@ -47,7 +47,7 @@ const active = sig(false);
 
 const view = div(
   { class: ["panel", { active }] },
-  button({ on_click: active.toggle() }, active.map((value) => value ? "On" : "Off")),
+  button({ onClick: active.toggle() }, active.map((value) => value ? "On" : "Off")),
 );
 ```
 

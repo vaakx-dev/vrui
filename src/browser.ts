@@ -2,38 +2,38 @@
 // vrui - cleanup-aware browser helpers
 // ============================================================
 
-import { auto_dispose, listen, on_window } from "./lifecycle";
+import { autoDispose, listen, onWindow } from "./lifecycle";
 import { once, scoped } from "./scope";
 
-export function on_timeout(fn: () => void, ms?: number): () => void {
+export function onTimeout(fn: () => void, ms?: number): () => void {
   const id = window.setTimeout(fn, ms);
 
   return scoped(once(() => window.clearTimeout(id)));
 }
 
-export function on_interval(fn: () => void, ms?: number): () => void {
+export function onInterval(fn: () => void, ms?: number): () => void {
   const id = window.setInterval(fn, ms);
 
   return scoped(once(() => window.clearInterval(id)));
 }
 
-export function on_raf(fn: FrameRequestCallback): () => void {
+export function onRaf(fn: FrameRequestCallback): () => void {
   const id = window.requestAnimationFrame(fn);
 
   return scoped(once(() => window.cancelAnimationFrame(id)));
 }
 
-export function on_resize(
+export function onResize(
   owner: Node,
   handler: EventListener,
   options?: boolean | AddEventListenerOptions,
 ): () => void {
-  return on_window(owner, "resize", handler, options);
+  return onWindow(owner, "resize", handler, options);
 }
 
 export type MediaHandler = (matches: boolean, media: MediaQueryList) => void;
 
-export function on_media(query: string | MediaQueryList, fn: MediaHandler): () => void {
+export function onMedia(query: string | MediaQueryList, fn: MediaHandler): () => void {
   const media = typeof query === "string" ? window.matchMedia(query) : query;
   const handler = () => fn(media.matches, media);
 
@@ -42,24 +42,24 @@ export function on_media(query: string | MediaQueryList, fn: MediaHandler): () =
   return listen(media, "change", handler);
 }
 
-export function resize_observer(
+export function resizeObserver(
   owner: Element,
   fn: ResizeObserverCallback,
   options?: ResizeObserverOptions,
 ): ResizeObserver {
   const observer = new ResizeObserver(fn);
   observer.observe(owner, options);
-  auto_dispose(owner, () => observer.disconnect());
+  autoDispose(owner, () => observer.disconnect());
   return observer;
 }
 
-export function intersection_observer(
+export function intersectionObserver(
   owner: Element,
   fn: IntersectionObserverCallback,
   options?: IntersectionObserverInit,
 ): IntersectionObserver {
   const observer = new IntersectionObserver(fn, options);
   observer.observe(owner);
-  auto_dispose(owner, () => observer.disconnect());
+  autoDispose(owner, () => observer.disconnect());
   return observer;
 }

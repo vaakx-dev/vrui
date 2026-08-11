@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { div } from "./elements";
-import { enter_scope, exit_scope } from "./scope";
-import { on_interval, on_media, on_resize, on_timeout } from "./browser";
+import { enterScope, exitScope } from "./scope";
+import { onInterval, onMedia, onResize, onTimeout } from "./browser";
 
 describe("cleanup-aware browser helpers", () => {
   afterEach(() => {
@@ -13,11 +13,11 @@ describe("cleanup-aware browser helpers", () => {
     vi.useFakeTimers();
     let calls = 0;
 
-    enter_scope();
-    on_interval(() => {
+    enterScope();
+    onInterval(() => {
       calls++;
     }, 10);
-    const scope = exit_scope();
+    const scope = exitScope();
 
     vi.advanceTimersByTime(25);
     expect(calls).toBe(2);
@@ -31,7 +31,7 @@ describe("cleanup-aware browser helpers", () => {
     vi.useFakeTimers();
     let calls = 0;
 
-    const dispose = on_timeout(() => {
+    const dispose = onTimeout(() => {
       calls++;
     }, 10);
 
@@ -46,7 +46,7 @@ describe("cleanup-aware browser helpers", () => {
     let calls = 0;
 
     document.body.appendChild(owner);
-    on_resize(owner, () => {
+    onResize(owner, () => {
       calls++;
     });
 
@@ -63,7 +63,7 @@ describe("cleanup-aware browser helpers", () => {
   it("returns a resize listener disposer", () => {
     const owner = div();
     let calls = 0;
-    const stop = on_resize(owner, () => {
+    const stop = onResize(owner, () => {
       calls++;
     });
 
@@ -82,7 +82,7 @@ describe("cleanup-aware browser helpers", () => {
     }) as MediaQueryList & { matches: boolean };
     const seen: boolean[] = [];
 
-    const dispose = on_media(media, (matches) => {
+    const dispose = onMedia(media, (matches) => {
       seen.push(matches);
     });
 

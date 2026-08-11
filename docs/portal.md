@@ -14,7 +14,7 @@ const view = div(
   "Page content",
   portal(
     "modals",
-    div({ class: "modal" }, button({ on_click: close }, "Close")),
+    div({ class: "modal" }, button({ onClick: close }, "Close")),
   ),
 );
 ```
@@ -33,7 +33,7 @@ const view = div(
 
     return div(
       { class: "modal" },
-      button({ on_click: open.setter(false) }, "Close"),
+      button({ onClick: open.setter(false) }, "Close"),
     );
   }),
 );

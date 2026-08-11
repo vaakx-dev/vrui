@@ -9,27 +9,27 @@ export type ScopedValue<T> = {
   scope: Disposer[];
 };
 
-const scope_stack: Disposer[][] = [];
+const scopeStack: Disposer[][] = [];
 
-export function enter_scope(): void {
-  scope_stack.push([]);
+export function enterScope(): void {
+  scopeStack.push([]);
 }
 
-export function exit_scope(): Disposer[] {
-  const scope = scope_stack.pop();
-  if (!scope) throw new Error("vrui: exit_scope called without matching enter_scope");
+export function exitScope(): Disposer[] {
+  const scope = scopeStack.pop();
+  if (!scope) throw new Error("vrui: exitScope called without matching enterScope");
   return scope;
 }
 
-export function register_in_scope(dispose: Disposer): void {
-  if (scope_stack.length) scope_stack[scope_stack.length - 1].push(dispose);
+export function registerInScope(dispose: Disposer): void {
+  if (scopeStack.length) scopeStack[scopeStack.length - 1].push(dispose);
 }
 
-export function has_scope(): boolean {
-  return scope_stack.length > 0;
+export function hasScope(): boolean {
+  return scopeStack.length > 0;
 }
 
-export function dispose_all(disposers: Iterable<Disposer>): void {
+export function disposeAll(disposers: Iterable<Disposer>): void {
   const errors: unknown[] = [];
 
   for (const dispose of disposers) {
@@ -46,18 +46,18 @@ export function dispose_all(disposers: Iterable<Disposer>): void {
   }
 }
 
-export function collect_scope<T>(fn: () => T): ScopedValue<T> {
-  enter_scope();
+export function collectScope<T>(fn: () => T): ScopedValue<T> {
+  enterScope();
   try {
     const value = fn();
-    return { value, scope: exit_scope() };
+    return { value, scope: exitScope() };
   } catch (err) {
     const errors = [err];
 
     try {
-      dispose_all(exit_scope());
-    } catch (dispose_err) {
-      errors.push(dispose_err);
+      disposeAll(exitScope());
+    } catch (disposeErr) {
+      errors.push(disposeErr);
     }
 
     if (errors.length === 1) throw err;
@@ -76,6 +76,6 @@ export function once(dispose: Disposer): Disposer {
 }
 
 export function scoped(dispose: Disposer): Disposer {
-  if (has_scope()) register_in_scope(dispose);
+  if (hasScope()) registerInScope(dispose);
   return dispose;
 }

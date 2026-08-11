@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { sig } from "./core";
-import type { StyleShape } from "./dom_types";
+import type { StyleShape } from "./domTypes";
 import {
-  class_str,
+  classStr,
   el,
-  safe_str,
+  safeStr,
 } from "./dom";
 import {
   button,
@@ -25,24 +25,24 @@ import {
   tr,
 } from "./elements";
 import { listen } from "./lifecycle";
-import { by_id, mount, replace } from "./mount";
+import { byId, mount, replace } from "./mount";
 
 describe("string and class helpers", () => {
   it("normalizes nullable strings and mixed class inputs", () => {
     const active = sig(true);
 
-    expect(safe_str(null)).toBe("");
-    expect(safe_str(0)).toBe("0");
-    expect(class_str(["base", null, false, { active, hidden: false }, ["nested"]])).toBe("base active nested");
+    expect(safeStr(null)).toBe("");
+    expect(safeStr(0)).toBe("0");
+    expect(classStr(["base", null, false, { active, hidden: false }, ["nested"]])).toBe("base active nested");
 
     active.set(false);
-    expect(class_str({ active })).toBe("");
+    expect(classStr({ active })).toBe("");
   });
 
   it("does not require a global Node constructor for class helpers", () => {
     vi.stubGlobal("Node", undefined);
     try {
-      expect(class_str(["base", { active: true, hidden: false }])).toBe("base active");
+      expect(classStr(["base", { active: true, hidden: false }])).toBe("base active");
     } finally {
       vi.unstubAllGlobals();
     }
@@ -53,23 +53,23 @@ describe("dom element factories", () => {
   it("provides closed element-specific prop types", () => {
     button({
       disabled: sig(false),
-      on_click: (event) => {
-        const mouse_event: MouseEvent = event;
-        expect(mouse_event.type).toBe("click");
+      onClick: (event) => {
+        const mouseEvent: MouseEvent = event;
+        expect(mouseEvent.type).toBe("click");
       },
     }).click();
 
     if (false) {
       // @ts-expect-error Misspelled event props are rejected.
-      button({ on_clik: () => {} });
+      button({ onClik: () => {} });
       // @ts-expect-error DOM property values retain their browser types.
       button({ disabled: "yes" });
       // @ts-expect-error Form bindings only belong on value elements.
-      div({ bind_value: sig("") });
+      div({ bindValue: sig("") });
       // @ts-expect-error Checked bindings require a boolean signal.
-      input({ bind_checked: sig("yes") });
+      input({ bindChecked: sig("yes") });
       // @ts-expect-error Unknown DOM properties require an explicit escape hatch.
-      div({ mystery_property: true });
+      div({ mysteryProperty: true });
       // @ts-expect-error Element methods are not assignable factory props.
       div({ focus: () => {} });
     }
@@ -93,7 +93,7 @@ describe("dom element factories", () => {
         "data-state": label,
         "aria-label": "Save",
         role: "button",
-        on_click: () => {
+        onClick: () => {
           clicks++;
         },
       },
@@ -123,16 +123,16 @@ describe("dom element factories", () => {
   it("normalizes snake case pointer event props to browser event names", () => {
     const calls: string[] = [];
     const node = canvas({
-      on_pointer_down: () => {
+      onPointerDown: () => {
         calls.push("down");
       },
-      on_pointer_move: () => {
+      onPointerMove: () => {
         calls.push("move");
       },
-      on_pointer_up: () => {
+      onPointerUp: () => {
         calls.push("up");
       },
-      on_pointer_cancel: () => {
+      onPointerCancel: () => {
         calls.push("cancel");
       },
     });
@@ -162,7 +162,7 @@ describe("dom element factories", () => {
 
   it("binds input, textarea, select value, and checkbox checked state", () => {
     const name = sig("Ada");
-    const field = input({ bind_value: name });
+    const field = input({ bindValue: name });
 
     expect(field.value).toBe("Ada");
     name.set("Grace");
@@ -172,14 +172,14 @@ describe("dom element factories", () => {
     expect(name.get()).toBe("Katherine");
 
     const notes = sig("first");
-    const area = textarea({ bind_value: notes });
+    const area = textarea({ bindValue: notes });
     area.value = "updated";
     area.dispatchEvent(new Event("input"));
     expect(notes.get()).toBe("updated");
 
     const choice = sig("b");
     const menu = select(
-      { bind_value: choice },
+      { bindValue: choice },
       option({ value: "a" }, "A"),
       option({ value: "b" }, "B"),
     );
@@ -189,7 +189,7 @@ describe("dom element factories", () => {
     expect(choice.get()).toBe("a");
 
     const enabled = sig(false);
-    const toggle = input({ type: "checkbox", bind_checked: enabled });
+    const toggle = input({ type: "checkbox", bindChecked: enabled });
     expect(toggle.checked).toBe(false);
     enabled.set(true);
     expect(toggle.checked).toBe(true);
@@ -249,14 +249,14 @@ describe("dom element factories", () => {
       "aria-hidden": undefined,
       role,
     });
-    const empty_role = div({ role: null });
+    const emptyRole = div({ role: null });
 
     expect(node.getAttribute("data-state")).toBe("open");
     expect(node.hasAttribute("data-empty")).toBe(false);
     expect(node.getAttribute("aria-label")).toBe("Save");
     expect(node.hasAttribute("aria-hidden")).toBe(false);
     expect(node.getAttribute("role")).toBe("button");
-    expect(empty_role.hasAttribute("role")).toBe(false);
+    expect(emptyRole.hasAttribute("role")).toBe(false);
 
     state.set(null);
     label.set(undefined);
@@ -287,8 +287,8 @@ describe("dom element factories", () => {
     document.body.appendChild(target);
 
     try {
-      expect(by_id("vrui-test-target")).toBe(target);
-      expect(() => by_id("vrui-missing-target")).toThrow("vrui: missing element #vrui-missing-target");
+      expect(byId("vrui-test-target")).toBe(target);
+      expect(() => byId("vrui-missing-target")).toThrow("vrui: missing element #vrui-missing-target");
     } finally {
       target.remove();
     }

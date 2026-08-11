@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  collect_scope,
-  dispose_all,
-  enter_scope,
-  exit_scope,
-  has_scope,
+  collectScope,
+  disposeAll,
+  enterScope,
+  exitScope,
+  hasScope,
   once,
-  register_in_scope,
+  registerInScope,
   scoped,
 } from "./scope";
 
@@ -14,49 +14,49 @@ describe("scope stack", () => {
   it("collects disposers in the active scope", () => {
     const calls: string[] = [];
 
-    register_in_scope(() => calls.push("outside"));
-    expect(has_scope()).toBe(false);
+    registerInScope(() => calls.push("outside"));
+    expect(hasScope()).toBe(false);
 
-    enter_scope();
-    expect(has_scope()).toBe(true);
-    register_in_scope(() => calls.push("outer"));
+    enterScope();
+    expect(hasScope()).toBe(true);
+    registerInScope(() => calls.push("outer"));
 
-    enter_scope();
-    register_in_scope(() => calls.push("inner"));
-    const inner = exit_scope();
+    enterScope();
+    registerInScope(() => calls.push("inner"));
+    const inner = exitScope();
 
-    expect(has_scope()).toBe(true);
+    expect(hasScope()).toBe(true);
     expect(calls).toEqual([]);
 
     for (const dispose of inner) dispose();
     expect(calls).toEqual(["inner"]);
 
-    const outer = exit_scope();
-    expect(has_scope()).toBe(false);
+    const outer = exitScope();
+    expect(hasScope()).toBe(false);
 
     for (const dispose of outer) dispose();
     expect(calls).toEqual(["inner", "outer"]);
   });
 
   it("throws clearly when exiting without a matching enter", () => {
-    expect(() => exit_scope()).toThrow("vrui: exit_scope called without matching enter_scope");
+    expect(() => exitScope()).toThrow("vrui: exitScope called without matching enterScope");
   });
 
   it("collects scoped work and cleans up failed scopes", () => {
     const calls: string[] = [];
 
-    const created = collect_scope(() => {
-      register_in_scope(() => calls.push("ok"));
+    const created = collectScope(() => {
+      registerInScope(() => calls.push("ok"));
       return 42;
     });
 
     expect(created.value).toBe(42);
     expect(calls).toEqual([]);
-    dispose_all(created.scope);
+    disposeAll(created.scope);
     expect(calls).toEqual(["ok"]);
 
-    expect(() => collect_scope(() => {
-      register_in_scope(() => calls.push("failed"));
+    expect(() => collectScope(() => {
+      registerInScope(() => calls.push("failed"));
       throw new Error("boom");
     })).toThrow("boom");
     expect(calls).toEqual(["ok", "failed"]);
@@ -70,10 +70,10 @@ describe("scope stack", () => {
     dispose();
     expect(calls).toEqual(["once"]);
 
-    enter_scope();
-    const scoped_dispose = scoped(once(() => calls.push("scoped")));
-    scoped_dispose();
-    dispose_all(exit_scope());
+    enterScope();
+    const scopedDispose = scoped(once(() => calls.push("scoped")));
+    scopedDispose();
+    disposeAll(exitScope());
 
     expect(calls).toEqual(["once", "scoped"]);
   });
@@ -85,7 +85,7 @@ describe("scope stack", () => {
     let thrown: unknown;
 
     try {
-      dispose_all([
+      disposeAll([
         () => {
           calls.push("first");
           throw first;
@@ -111,8 +111,8 @@ describe("scope stack", () => {
     let thrown: unknown;
 
     try {
-      collect_scope(() => {
-        register_in_scope(() => {
+      collectScope(() => {
+        registerInScope(() => {
           throw cleanup;
         });
         throw creation;
@@ -123,6 +123,6 @@ describe("scope stack", () => {
 
     expect(thrown).toBeInstanceOf(AggregateError);
     expect((thrown as AggregateError).errors).toEqual([creation, cleanup]);
-    expect(has_scope()).toBe(false);
+    expect(hasScope()).toBe(false);
   });
 });

@@ -1,31 +1,31 @@
 # Canvas
 
 Use the `canvas` factory for canvas elements and treat drawing as an imperative
-escape hatch. Keep setup inside `ref` or `on_mount`, and use cleanup-aware
+escape hatch. Keep setup inside `ref` or `onMount`, and use cleanup-aware
 helpers for resize and global listeners.
 
 This example loads an image, resizes the backing store for `devicePixelRatio`,
 draws the image, and maps pointer coordinates from CSS pixels to canvas pixels.
 
 ```ts
-import { canvas, div, img, on_resize, on_target } from "@vaakx-dev/vrui";
+import { canvas, div, img, onResize, onTarget } from "@vaakx-dev/vrui";
 
-const image = img({ src: image_url });
+const image = img({ src: imageUrl });
 
 let point = { x: 0, y: 0 };
 
-function canvas_point(el: HTMLCanvasElement, event: PointerEvent) {
+function canvasPoint(el: HTMLCanvasElement, event: PointerEvent) {
   const rect = el.getBoundingClientRect();
-  const scale_x = el.width / rect.width;
-  const scale_y = el.height / rect.height;
+  const scaleX = el.width / rect.width;
+  const scaleY = el.height / rect.height;
 
   return {
-    x: (event.clientX - rect.left) * scale_x,
-    y: (event.clientY - rect.top) * scale_y,
+    x: (event.clientX - rect.left) * scaleX,
+    y: (event.clientY - rect.top) * scaleY,
   };
 }
 
-function resize_canvas(el: HTMLCanvasElement) {
+function resizeCanvas(el: HTMLCanvasElement) {
   const rect = el.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
   el.width = Math.max(1, Math.round(rect.width * dpr));
@@ -47,20 +47,20 @@ function draw(el: HTMLCanvasElement) {
 const view = div(
   canvas({
     style: { width: 320, height: 180 },
-    on_mount: (node) => {
+    onMount: (node) => {
       const el = node as HTMLCanvasElement;
       const render = () => {
-        resize_canvas(el);
+        resizeCanvas(el);
         draw(el);
       };
 
-      on_target(el, image, "load", render, { once: true });
-      on_resize(el, render);
+      onTarget(el, image, "load", render, { once: true });
+      onResize(el, render);
       render();
     },
-    on_pointer_move: (event) => {
+    onPointerMove: (event) => {
       const el = event.currentTarget as HTMLCanvasElement;
-      point = canvas_point(el, event);
+      point = canvasPoint(el, event);
       draw(el);
     },
   }),

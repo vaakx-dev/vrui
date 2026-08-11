@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { sig } from "./core";
-import { circle, rect, svg, svg_el, text_el } from "./svg";
+import { circle, rect, svg, svgEl, textEl } from "./svg";
 
 describe("svg factories", () => {
   it("provides closed SVG attribute and event types", () => {
     circle({
       cx: sig(12),
-      on_pointer_down: (event) => {
-        const pointer_event: PointerEvent = event;
-        expect(pointer_event).toBeDefined();
+      onPointerDown: (event) => {
+        const pointerEvent: PointerEvent = event;
+        expect(pointerEvent).toBeDefined();
       },
     });
 
@@ -16,7 +16,7 @@ describe("svg factories", () => {
       // @ts-expect-error Misspelled SVG attributes are rejected.
       circle({ strokeWitdh: 2 });
       // @ts-expect-error Misspelled event props are rejected.
-      circle({ on_clik: () => {} });
+      circle({ onClik: () => {} });
     }
   });
 
@@ -44,7 +44,7 @@ describe("svg factories", () => {
       r: radius,
       text: label,
       class: cls,
-      on_click: () => {
+      onClick: () => {
         clicks++;
       },
     });
@@ -67,16 +67,16 @@ describe("svg factories", () => {
   });
 
   it("normalizes snake case event props to browser event names", () => {
-    let pointer_downs = 0;
+    let pointerDowns = 0;
     const node = rect({
-      on_pointer_down: () => {
-        pointer_downs++;
+      onPointerDown: () => {
+        pointerDowns++;
       },
     });
 
     node.dispatchEvent(new Event("pointerdown"));
 
-    expect(pointer_downs).toBe(1);
+    expect(pointerDowns).toBe(1);
   });
 
   it("updates nested reactive class parts", () => {
@@ -117,7 +117,7 @@ describe("svg factories", () => {
 
   it("allows omitted props and reactive text children", () => {
     const label = sig("hello");
-    const node = svg_el("g", text_el(null, label));
+    const node = svgEl("g", textEl(null, label));
 
     expect(node.localName).toBe("g");
     expect(node.textContent).toBe("hello");

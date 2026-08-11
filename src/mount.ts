@@ -1,17 +1,17 @@
-import { append_child } from "./dom";
-import type { Child } from "./dom_types";
-import { collect_scope, dispose_all, once, scoped } from "./scope";
+import { appendChild } from "./dom";
+import type { Child } from "./domTypes";
+import { collectScope, disposeAll, once, scoped } from "./scope";
 
-export function by_id<T extends Element = HTMLElement>(id: string): T {
+export function byId<T extends Element = HTMLElement>(id: string): T {
   const el = document.getElementById(id);
   if (!el) throw new Error(`vrui: missing element #${id}`);
   return el as unknown as T;
 }
 
-function mount_children(parent: Node, children: Child[]): () => void {
+function mountChildren(parent: Node, children: Child[]): () => void {
   const fragment = document.createDocumentFragment();
-  const { scope } = collect_scope(() => {
-    for (const child of children) append_child(fragment, child);
+  const { scope } = collectScope(() => {
+    for (const child of children) appendChild(fragment, child);
   });
 
   const mounted = Array.from(fragment.childNodes);
@@ -21,55 +21,55 @@ function mount_children(parent: Node, children: Child[]): () => void {
     for (const node of mounted) {
       if (node.parentNode === parent) parent.removeChild(node);
     }
-    dispose_all(scope);
+    disposeAll(scope);
   });
 
   return scoped(dispose);
 }
 
-function observer_root(): Node {
+function observerRoot(): Node {
   return document.documentElement ?? document.body ?? document;
 }
 
-function mount_when_available(target_id: string, children: Child[]): () => void {
-  let stop_mount: (() => void) | undefined;
+function mountWhenAvailable(targetId: string, children: Child[]): () => void {
+  let stopMount: (() => void) | undefined;
   let disposed = false;
   let observer: MutationObserver | undefined;
 
-  function try_mount(): void {
-    if (disposed || stop_mount) return;
-    const parent = document.getElementById(target_id);
+  function tryMount(): void {
+    if (disposed || stopMount) return;
+    const parent = document.getElementById(targetId);
     if (!parent) return;
     observer?.disconnect();
     observer = undefined;
-    stop_mount = mount_children(parent, children);
+    stopMount = mountChildren(parent, children);
   }
 
-  observer = new MutationObserver(try_mount);
-  observer.observe(observer_root(), { childList: true, subtree: true });
-  queueMicrotask(try_mount);
+  observer = new MutationObserver(tryMount);
+  observer.observe(observerRoot(), { childList: true, subtree: true });
+  queueMicrotask(tryMount);
 
   const dispose = once(() => {
     disposed = true;
     observer?.disconnect();
-    stop_mount?.();
+    stopMount?.();
   });
 
   return scoped(dispose);
 }
 
 export function mount(target: Node | string, ...children: Child[]): () => void {
-  if (typeof target !== "string") return mount_children(target, children);
+  if (typeof target !== "string") return mountChildren(target, children);
 
   const parent = document.getElementById(target);
-  if (parent) return mount_children(parent, children);
-  return mount_when_available(target, children);
+  if (parent) return mountChildren(parent, children);
+  return mountWhenAvailable(target, children);
 }
 
 const replacements = new WeakMap<Node, () => void>();
 
 export function replace(target: Node | string, ...children: Child[]): () => void {
-  const parent = typeof target === "string" ? by_id(target) : target;
+  const parent = typeof target === "string" ? byId(target) : target;
   replacements.get(parent)?.();
 
   while (parent.firstChild) parent.removeChild(parent.firstChild);

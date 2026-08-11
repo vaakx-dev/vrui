@@ -3,18 +3,18 @@
 // ============================================================
 
 import { batch, Condition, Derive, effect, resolve, sig, Sig, untrack } from "./core";
-import { auto_dispose } from "./lifecycle";
-import { collect_scope, dispose_all, type Disposer } from "./scope";
+import { autoDispose } from "./lifecycle";
+import { collectScope, disposeAll, type Disposer } from "./scope";
 
-/* ---------- dynamic_child ---------- */
+/* ---------- dynamicChild ---------- */
 
 type DynamicChildValue<T> = Sig<T> | Derive<T> | Condition | (() => T);
 
-function resolve_dynamic_child<T>(value: DynamicChildValue<T>): T {
+function resolveDynamicChild<T>(value: DynamicChildValue<T>): T {
   return value instanceof Condition ? value.get() as T : resolve(value);
 }
 
-export function dynamic_child<T>(
+export function dynamicChild<T>(
   value: DynamicChildValue<T>,
   factory: (value: T) => HTMLElement,
   container?: HTMLElement,
@@ -23,24 +23,24 @@ export function dynamic_child<T>(
   if (!container) node.style.display = "contents";
 
   let child: HTMLElement | null = null;
-  let child_scope: Disposer[] = [];
+  let childScope: Disposer[] = [];
 
-  const dispose_eff = effect(() => {
-    const next = resolve_dynamic_child(value);
-    const created = untrack(() => collect_scope(() => factory(next)));
+  const disposeEff = effect(() => {
+    const next = resolveDynamicChild(value);
+    const created = untrack(() => collectScope(() => factory(next)));
     child = created.value;
-    child_scope = created.scope;
+    childScope = created.scope;
     node.appendChild(child);
 
     return () => {
       if (child?.parentNode === node) node.removeChild(child);
-      dispose_all(child_scope);
-      child_scope = [];
+      disposeAll(childScope);
+      childScope = [];
       child = null;
     };
   });
 
-  auto_dispose(node, dispose_eff);
+  autoDispose(node, disposeEff);
 
   return node;
 }
@@ -55,7 +55,7 @@ type ListRow<T, K> = {
   scope: Disposer[];
 };
 
-function pool_row<T, K>(pool: Map<K, ListRow<T, K>[]>, row: ListRow<T, K>): void {
+function poolRow<T, K>(pool: Map<K, ListRow<T, K>[]>, row: ListRow<T, K>): void {
   const rows = pool.get(row.key);
   if (!rows) {
     pool.set(row.key, [row]);
@@ -65,7 +65,7 @@ function pool_row<T, K>(pool: Map<K, ListRow<T, K>[]>, row: ListRow<T, K>): void
   rows.push(row);
 }
 
-function take_pooled_row<T, K>(
+function takePooledRow<T, K>(
   pool: Map<K, ListRow<T, K>[]>,
   key: K,
 ): ListRow<T, K> | undefined {
@@ -77,97 +77,97 @@ function take_pooled_row<T, K>(
   return row;
 }
 
-function dispose_row<T, K>(row: ListRow<T, K>): void {
+function disposeRow<T, K>(row: ListRow<T, K>): void {
   row.el.remove();
-  dispose_all(row.scope);
+  disposeAll(row.scope);
   row.item.dispose();
   row.idx.dispose();
 }
 
-function dispose_rows<T, K>(rows: Iterable<ListRow<T, K>>): void {
-  for (const row of rows) dispose_row(row);
+function disposeRows<T, K>(rows: Iterable<ListRow<T, K>>): void {
+  for (const row of rows) disposeRow(row);
 }
 
-function dispose_pool<T, K>(pool: Map<K, ListRow<T, K>[]>): void {
-  for (const rows of pool.values()) dispose_rows(rows);
+function disposePool<T, K>(pool: Map<K, ListRow<T, K>[]>): void {
+  for (const rows of pool.values()) disposeRows(rows);
 }
 
-function create_row<T, K>(
+function createRow<T, K>(
   item: T,
   index: number,
   key: K,
   factory: (item: Sig<T>, idx: Sig<number>) => HTMLElement,
 ): ListRow<T, K> {
-  const item_sig = sig(item);
-  const idx_sig = sig(index);
-  const created = collect_scope(() => factory(item_sig, idx_sig));
-  return { el: created.value, item: item_sig, idx: idx_sig, key, scope: created.scope };
+  const itemSig = sig(item);
+  const idxSig = sig(index);
+  const created = collectScope(() => factory(itemSig, idxSig));
+  return { el: created.value, item: itemSig, idx: idxSig, key, scope: created.scope };
 }
 
-function update_row<T, K>(row: ListRow<T, K>, item: T, index: number): void {
+function updateRow<T, K>(row: ListRow<T, K>, item: T, index: number): void {
   batch(() => {
     row.item.set(item);
     row.idx.set(index);
   });
 }
 
-function reuse_or_create_row<T, K>(
+function reuseOrCreateRow<T, K>(
   pool: Map<K, ListRow<T, K>[]>,
   item: T,
   index: number,
   key: K,
   factory: (item: Sig<T>, idx: Sig<number>) => HTMLElement,
 ): ListRow<T, K> {
-  const row = take_pooled_row(pool, key);
-  if (!row) return create_row(item, index, key, factory);
+  const row = takePooledRow(pool, key);
+  if (!row) return createRow(item, index, key, factory);
 
-  update_row(row, item, index);
+  updateRow(row, item, index);
   return row;
 }
 
 export function list<T, K>(
   data: Sig<T[]> | Derive<T[]>,
-  key_fn: (item: T) => K,
+  keyFn: (item: T) => K,
   factory: (item: Sig<T>, idx: Sig<number>) => HTMLElement,
   container?: HTMLElement
 ): HTMLElement {
   const node = container ?? document.createElement("div");
   let rows: ListRow<T, K>[] = [];
 
-  const dispose_eff = effect(() => {
+  const disposeEff = effect(() => {
     const items = data.get();
-    const new_rows: ListRow<T, K>[] = [];
+    const newRows: ListRow<T, K>[] = [];
     const pool = new Map<K, ListRow<T, K>[]>();
 
     for (const row of rows) {
-      pool_row(pool, row);
+      poolRow(pool, row);
     }
 
     for (let i = 0; i < items.length; i++) {
       const val = items[i];
-      const key = key_fn(val);
-      new_rows.push(reuse_or_create_row(pool, val, i, key, factory));
+      const key = keyFn(val);
+      newRows.push(reuseOrCreateRow(pool, val, i, key, factory));
     }
 
     // Each row.scope owns every cleanup created by the row's factory
     // invocation, including effects spawned later via effects inside the row.
     // Disposing the scope cascades through Effect.dispose, which tears down
     // its own nested scopes - we do not need to walk recursively here.
-    dispose_pool(pool);
+    disposePool(pool);
 
-    for (let i = 0; i < new_rows.length; i++) {
-      const row = new_rows[i];
+    for (let i = 0; i < newRows.length; i++) {
+      const row = newRows[i];
       if (node.children[i] !== row.el) {
         node.insertBefore(row.el, node.children[i] ?? null);
       }
     }
 
-    rows = new_rows;
+    rows = newRows;
   });
 
-  auto_dispose(node, () => {
-    dispose_eff();
-    dispose_rows(rows);
+  autoDispose(node, () => {
+    disposeEff();
+    disposeRows(rows);
     rows = [];
   });
 
@@ -186,36 +186,36 @@ export function show(
   let node: HTMLElement | null = null;
   let scope: Disposer[] = [];
 
-  const dispose_child = () => {
+  const disposeChild = () => {
     if (node?.parentNode === wrapper) node.remove();
-    dispose_all(scope);
+    disposeAll(scope);
     scope = [];
     node = null;
   };
 
-  const ensure_child = () => {
+  const ensureChild = () => {
     if (node) return;
 
-    const created = collect_scope(factory);
+    const created = collectScope(factory);
     node = created.value;
     scope = created.scope;
   };
 
-  const dispose_eff = effect(() => {
+  const disposeEff = effect(() => {
     const visible = resolve(condition instanceof Condition ? () => condition.get() : condition);
     if (!visible) {
-      dispose_child();
+      disposeChild();
       return;
     }
 
-    ensure_child();
+    ensureChild();
     if (node!.parentNode === wrapper) return;
     wrapper.appendChild(node!);
   });
 
-  auto_dispose(wrapper, () => {
-    dispose_eff();
-    dispose_child();
+  autoDispose(wrapper, () => {
+    disposeEff();
+    disposeChild();
   });
 
   return wrapper;
@@ -247,23 +247,23 @@ export function keep(
   let node: HTMLElement | null = null;
   let scope: Disposer[] = [];
 
-  const ensure_child = () => {
+  const ensureChild = () => {
     if (node) return;
 
-    const created = collect_scope(factory);
+    const created = collectScope(factory);
     node = created.value;
     scope = created.scope;
     wrapper.appendChild(node);
   };
 
-  const dispose_child = () => {
+  const disposeChild = () => {
     if (node?.parentNode === wrapper) node.remove();
-    dispose_all(scope);
+    disposeAll(scope);
     scope = [];
     node = null;
   };
 
-  const dispose_eff = effect(() => {
+  const disposeEff = effect(() => {
     const visible = resolve(condition instanceof Condition ? () => condition.get() : condition);
     if (!visible) {
       if (!node) return;
@@ -271,13 +271,13 @@ export function keep(
       return;
     }
 
-    ensure_child();
+    ensureChild();
     node!.style.display = "";
   });
 
-  auto_dispose(wrapper, () => {
-    dispose_eff();
-    dispose_child();
+  autoDispose(wrapper, () => {
+    disposeEff();
+    disposeChild();
   });
 
   return wrapper;

@@ -8,16 +8,16 @@ Prefer:
 - factories such as `div`, `button`, `input`, `form`, `label`, `select`,
   `option`, `dialog`, `table`, and `svg`
 - reactive props and children with `sig`, `derive`, and `effect`
-- `bind_value` and `bind_checked` for common form state
-- event props such as `on_click`, `on_input`, and `on_keydown`
-- event helpers such as `stop`, `prevent`, `prevent_then`, `stop_then`, and
+- `bindValue` and `bindChecked` for common form state
+- event props such as `onClick`, `onInput`, and `onKeyDown`
+- event helpers such as `stop`, `prevent`, `preventThen`, `stopThen`, and
   `keys`
 - flow helpers such as `show`, `keep`, `list`, `portal`, `mount`, and
   `replace`
-- cleanup-aware helpers such as `listen`, `on_window`, `on_document`, and
-  `on_target`
-- browser side-effect helpers such as `on_timeout`, `on_interval`, `on_raf`,
-  `on_resize`, `on_media`, `resize_observer`, and `intersection_observer`
+- cleanup-aware helpers such as `listen`, `onWindow`, `onDocument`, and
+  `onTarget`
+- browser side-effect helpers such as `onTimeout`, `onInterval`, `onRaf`,
+  `onResize`, `onMedia`, `resizeObserver`, and `intersectionObserver`
 
 Avoid in app code unless there is a real integration need:
 
@@ -29,5 +29,5 @@ Avoid in app code unless there is a real integration need:
 
 Acceptable escape hatches include canvas rendering, third-party widgets,
 measurement/layout reads, unsupported platform APIs, and custom elements that
-need direct imperative setup. Use `ref`, `on_mount`, and cleanup-aware helpers
+need direct imperative setup. Use `ref`, `onMount`, and cleanup-aware helpers
 around those boundaries.

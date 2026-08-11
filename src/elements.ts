@@ -1,5 +1,5 @@
 import { el } from "./dom";
-import type { Child, Props } from "./dom_types";
+import type { Child, Props } from "./domTypes";
 
 export function Fragment(_props?: Props | Child, ...children: Child[]): Child[] {
   return children;

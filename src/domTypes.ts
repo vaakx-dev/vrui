@@ -54,7 +54,7 @@ type AriaProps = {
 
 export type CommonProps<E extends Element> = {
   ref?: (el: E) => void;
-  on_mount?: (el: E) => Cleanup;
+  onMount?: (el: E) => Cleanup;
   class?: ClassValue;
   style?: StyleValue;
   text?: MaybeReactive<unknown>;
@@ -95,17 +95,17 @@ type ElementPropertyProps<E extends Element> = {
 
 type BindProps<E extends Element> = E extends HTMLInputElement
   ? {
-      bind_value?: WritableSignal<string>;
-      bind_checked?: WritableSignal<boolean>;
+      bindValue?: WritableSignal<string>;
+      bindChecked?: WritableSignal<boolean>;
     }
   : E extends HTMLTextAreaElement | HTMLSelectElement
     ? {
-        bind_value?: WritableSignal<string>;
-        bind_checked?: never;
+        bindValue?: WritableSignal<string>;
+        bindChecked?: never;
       }
     : {
-        bind_value?: never;
-        bind_checked?: never;
+        bindValue?: never;
+        bindChecked?: never;
       };
 
 export type Props<E extends Element = HTMLElement> = CommonProps<E>

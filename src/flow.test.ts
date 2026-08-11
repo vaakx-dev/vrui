@@ -1,17 +1,17 @@
 import { describe, it, expect } from "vitest";
 import { sig, effect } from "./core";
 import { button, div, span } from "./elements";
-import { dynamic_child, keep, list, show } from "./flow";
-import { has_scope } from "./scope";
+import { dynamicChild, keep, list, show } from "./flow";
+import { hasScope } from "./scope";
 
-/* dynamic_child -- one reactive child */
+/* dynamicChild -- one reactive child */
 
-describe("dynamic_child", () => {
+describe("dynamicChild", () => {
   it("uses a supplied container without adding another wrapper", () => {
     const current = sig("a");
     const container = span({ class: "slot" });
 
-    const root = dynamic_child(current, (value) => div({ text: value }), container);
+    const root = dynamicChild(current, (value) => div({ text: value }), container);
 
     expect(root).toBe(container);
     expect(root.className).toBe("slot");
@@ -22,7 +22,7 @@ describe("dynamic_child", () => {
 
   it("replaces the child when the signal changes", () => {
     const current = sig("a");
-    const root = dynamic_child(current, (value) => div({ text: value }));
+    const root = dynamicChild(current, (value) => div({ text: value }));
     const first = root.children[0];
 
     current.set("b");
@@ -35,7 +35,7 @@ describe("dynamic_child", () => {
   it("does not replace the child when factory-local state changes", () => {
     const current = sig("a");
     const local = sig("rectangle");
-    const root = dynamic_child(current, (value) => {
+    const root = dynamicChild(current, (value) => {
       local.get();
       return div({ text: value });
     });
@@ -50,7 +50,7 @@ describe("dynamic_child", () => {
   it("updates reactive child props without replacing the child", () => {
     const current = sig("a");
     const label = sig("first");
-    const root = dynamic_child(current, (value) => div({ "data-mode": value }, label));
+    const root = dynamicChild(current, (value) => div({ "data-mode": value }, label));
     const first = root.children[0];
 
     label.set("second");
@@ -61,13 +61,13 @@ describe("dynamic_child", () => {
 
   it("recreates factory-local state when the driving signal changes", () => {
     const current = sig("a");
-    const root = dynamic_child(current, (value) => {
+    const root = dynamicChild(current, (value) => {
       const count = sig(0);
 
       return div(
         div("Mode: ", value),
         div("Count: ", count),
-        button({ on_click: () => count.update((n) => n + 1) }, "Increment"),
+        button({ onClick: () => count.update((n) => n + 1) }, "Increment"),
       );
     });
 
@@ -88,7 +88,7 @@ describe("dynamic_child", () => {
     let runs = 0;
     let cleanups = 0;
 
-    const root = dynamic_child(current, (value) => {
+    const root = dynamicChild(current, (value) => {
       effect(() => {
         source.get();
         runs++;
@@ -176,7 +176,7 @@ describe("list keyed reconciliation", () => {
 
     expect(runs).toBe(1);
     expect(cleanups).toBe(1);
-    expect(has_scope()).toBe(false);
+    expect(hasScope()).toBe(false);
 
     source.set(1);
     expect(runs).toBe(1);
@@ -271,7 +271,7 @@ describe("show", () => {
 
     expect(runs).toBe(1);
     expect(cleanups).toBe(1);
-    expect(has_scope()).toBe(false);
+    expect(hasScope()).toBe(false);
 
     source.set(1);
     expect(runs).toBe(1);
@@ -325,7 +325,7 @@ describe("keep", () => {
 
     expect(runs).toBe(1);
     expect(cleanups).toBe(1);
-    expect(has_scope()).toBe(false);
+    expect(hasScope()).toBe(false);
 
     source.set(1);
     expect(runs).toBe(1);

@@ -1,30 +1,30 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import {
   event,
-  event_name_from_prop,
+  eventNameFromProp,
   keys,
   prevent,
-  prevent_then,
+  preventThen,
   stop,
-  stop_then,
+  stopThen,
   type EventNameFromProp,
   type EventProps,
 } from "./events";
 
 describe("event props", () => {
-  it("maps snake_case props to browser event names", () => {
-    expect(event_name_from_prop("on_click")).toBe("click");
-    expect(event_name_from_prop("on_before_input")).toBe("beforeinput");
-    expect(event_name_from_prop("on_pointer_down")).toBe("pointerdown");
-    expect(event_name_from_prop("on_got_pointer_capture")).toBe("gotpointercapture");
-    expect(event_name_from_prop("on_security_policy_violation"))
+  it("maps snakeCase props to browser event names", () => {
+    expect(eventNameFromProp("onClick")).toBe("click");
+    expect(eventNameFromProp("onBeforeInput")).toBe("beforeinput");
+    expect(eventNameFromProp("onPointerDown")).toBe("pointerdown");
+    expect(eventNameFromProp("onGotPointerCapture")).toBe("gotpointercapture");
+    expect(eventNameFromProp("onSecurityPolicyViolation"))
       .toBe("securitypolicyviolation");
   });
 
   it("keeps the type-level and runtime name mappings aligned", () => {
-    expectTypeOf<EventNameFromProp<"on_pointer_raw_update">>()
+    expectTypeOf<EventNameFromProp<"onPointerRawUpdate">>()
       .toEqualTypeOf<"pointerrawupdate">();
-    expectTypeOf<EventNameFromProp<"on_transition_end">>()
+    expectTypeOf<EventNameFromProp<"onTransitionEnd">>()
       .toEqualTypeOf<"transitionend">();
   });
 
@@ -32,38 +32,38 @@ describe("event props", () => {
     type InputProps = EventProps<HTMLInputElement>;
     type SelectProps = EventProps<HTMLSelectElement>;
 
-    expectTypeOf<Parameters<NonNullable<InputProps["on_click"]>>[0]>()
+    expectTypeOf<Parameters<NonNullable<InputProps["onClick"]>>[0]>()
       .toEqualTypeOf<MouseEvent>();
-    expectTypeOf<Parameters<NonNullable<InputProps["on_keydown"]>>[0]>()
+    expectTypeOf<Parameters<NonNullable<InputProps["onKeyDown"]>>[0]>()
       .toEqualTypeOf<KeyboardEvent>();
-    expectTypeOf<Parameters<NonNullable<InputProps["on_pointer_move"]>>[0]>()
+    expectTypeOf<Parameters<NonNullable<InputProps["onPointerMove"]>>[0]>()
       .toEqualTypeOf<PointerEvent>();
-    expectTypeOf<Parameters<NonNullable<InputProps["on_input"]>>[0]>()
+    expectTypeOf<Parameters<NonNullable<InputProps["onInput"]>>[0]>()
       .toEqualTypeOf<InputEvent>();
-    expectTypeOf<Parameters<NonNullable<SelectProps["on_input"]>>[0]>()
+    expectTypeOf<Parameters<NonNullable<SelectProps["onInput"]>>[0]>()
       .toEqualTypeOf<Event>();
   });
 
   it("rejects unsupported and misspelled props", () => {
     const props: EventProps<HTMLButtonElement> = {
-      on_click: (event) => void event.clientX,
+      onClick: (event) => void event.clientX,
       // @ts-expect-error Misspelled declarative events are not supported.
-      on_clik: () => undefined,
+      onClik: () => undefined,
     };
 
-    expect(props.on_click).toBeTypeOf("function");
+    expect(props.onClick).toBeTypeOf("function");
   });
 });
 
 describe("event helpers", () => {
   it("provides stop and prevent handlers", () => {
     const click = new MouseEvent("click", { cancelable: true });
-    const stop_spy = vi.spyOn(click, "stopPropagation");
+    const stopSpy = vi.spyOn(click, "stopPropagation");
 
     stop(click);
     prevent(click);
 
-    expect(stop_spy).toHaveBeenCalledOnce();
+    expect(stopSpy).toHaveBeenCalledOnce();
     expect(click.defaultPrevented).toBe(true);
   });
 
@@ -71,7 +71,7 @@ describe("event helpers", () => {
     const submit = new Event("submit", { bubbles: true, cancelable: true });
     let calls = 0;
 
-    prevent_then<Event>(() => {
+    preventThen<Event>(() => {
       calls++;
     })(submit);
 
@@ -79,7 +79,7 @@ describe("event helpers", () => {
     expect(submit.defaultPrevented).toBe(true);
 
     const click = new MouseEvent("click", { bubbles: true });
-    const wrapped = stop_then<MouseEvent>(() => {
+    const wrapped = stopThen<MouseEvent>(() => {
       calls++;
     });
 
@@ -146,7 +146,7 @@ describe("keys", () => {
       bubbles: true,
       cancelable: true,
     });
-    const stop_spy = vi.spyOn(enter, "stopPropagation");
+    const stopSpy = vi.spyOn(enter, "stopPropagation");
 
     handler(enter);
     handler(new KeyboardEvent("keydown", {
@@ -157,6 +157,6 @@ describe("keys", () => {
     }));
 
     expect(handled).toBe(1);
-    expect(stop_spy).toHaveBeenCalledOnce();
+    expect(stopSpy).toHaveBeenCalledOnce();
   });
 });

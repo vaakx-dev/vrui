@@ -1,10 +1,10 @@
-import { effect, is_reactive, resolve, type ReactiveValue } from "./core";
+import { effect, isReactive, resolve, type ReactiveValue } from "./core";
 import type {
   StyleMap,
   StyleShape,
   StyleValue,
-} from "./dom_types";
-import { auto_dispose } from "./lifecycle";
+} from "./domTypes";
+import { autoDispose } from "./lifecycle";
 
 const UNITLESS = new Set([
   "animation-iteration-count", "aspect-ratio", "border-image-outset",
@@ -19,12 +19,12 @@ const UNITLESS = new Set([
   "stroke-dashoffset", "stroke-miterlimit", "stroke-opacity", "stroke-width",
 ]);
 
-function to_kebab(key: string): string {
+function toKebab(key: string): string {
   if (key.startsWith("--")) return key;
   return key.replace(/[A-Z]/g, (character) => `-${character.toLowerCase()}`);
 }
 
-function format_value(key: string, value: unknown): string {
+function formatValue(key: string, value: unknown): string {
   if (value == null || value === false) return "";
   if (typeof value === "number" && !UNITLESS.has(key) && !key.startsWith("--")) {
     return `${value}px`;
@@ -32,9 +32,9 @@ function format_value(key: string, value: unknown): string {
   return String(value);
 }
 
-function write_key(el: HTMLElement | SVGElement, key: string, value: unknown): void {
-  const normalized = to_kebab(key);
-  const formatted = format_value(normalized, value);
+function writeKey(el: HTMLElement | SVGElement, key: string, value: unknown): void {
+  const normalized = toKebab(key);
+  const formatted = formatValue(normalized, value);
   if (!formatted) {
     el.style.removeProperty(normalized);
     return;
@@ -43,16 +43,16 @@ function write_key(el: HTMLElement | SVGElement, key: string, value: unknown): v
   el.style.setProperty(normalized, formatted);
 }
 
-function apply_object(
+function applyObject(
   el: HTMLElement | SVGElement,
   next: StyleMap,
   previous: Set<string> | null,
 ): Set<string> {
   const seen = new Set<string>();
   for (const [key, value] of Object.entries(next)) {
-    const normalized = to_kebab(key);
+    const normalized = toKebab(key);
     seen.add(normalized);
-    write_key(el, key, value);
+    writeKey(el, key, value);
   }
 
   if (previous) {
@@ -64,55 +64,55 @@ function apply_object(
   return seen;
 }
 
-function clear_keys(el: HTMLElement | SVGElement, keys: Set<string> | null): void {
+function clearKeys(el: HTMLElement | SVGElement, keys: Set<string> | null): void {
   if (!keys) return;
   for (const key of keys) el.style.removeProperty(key);
 }
 
-function set_entry(el: HTMLElement | SVGElement, key: string, value: unknown): void {
-  if (!is_reactive(value)) {
-    write_key(el, key, value);
+function setEntry(el: HTMLElement | SVGElement, key: string, value: unknown): void {
+  if (!isReactive(value)) {
+    writeKey(el, key, value);
     return;
   }
 
-  auto_dispose(el, effect(() => write_key(el, key, resolve(value))));
+  autoDispose(el, effect(() => writeKey(el, key, resolve(value))));
 }
 
-function set_object(el: HTMLElement | SVGElement, value: StyleMap): void {
-  for (const [key, entry] of Object.entries(value)) set_entry(el, key, entry);
+function setObject(el: HTMLElement | SVGElement, value: StyleMap): void {
+  for (const [key, entry] of Object.entries(value)) setEntry(el, key, entry);
 }
 
-function bind_reactive(
+function bindReactive(
   el: HTMLElement | SVGElement,
   value: ReactiveValue<StyleShape>,
 ): void {
   let previous: Set<string> | null = null;
-  let used_css_text = false;
+  let usedCssText = false;
 
-  auto_dispose(el, effect(() => {
+  autoDispose(el, effect(() => {
     const next = resolve(value);
     if (next == null) {
-      if (used_css_text) el.style.cssText = "";
-      else clear_keys(el, previous);
+      if (usedCssText) el.style.cssText = "";
+      else clearKeys(el, previous);
       previous = null;
-      used_css_text = false;
+      usedCssText = false;
       return;
     }
 
     if (typeof next === "string") {
       el.style.cssText = next;
       previous = null;
-      used_css_text = true;
+      usedCssText = true;
       return;
     }
 
-    if (used_css_text) el.style.cssText = "";
-    previous = apply_object(el, next, previous);
-    used_css_text = false;
+    if (usedCssText) el.style.cssText = "";
+    previous = applyObject(el, next, previous);
+    usedCssText = false;
   }));
 }
 
-export function set_style(el: HTMLElement | SVGElement, value: StyleValue): void {
+export function setStyle(el: HTMLElement | SVGElement, value: StyleValue): void {
   if (value == null) return;
 
   if (typeof value === "string") {
@@ -120,10 +120,10 @@ export function set_style(el: HTMLElement | SVGElement, value: StyleValue): void
     return;
   }
 
-  if (is_reactive(value)) {
-    bind_reactive(el, value as ReactiveValue<StyleShape>);
+  if (isReactive(value)) {
+    bindReactive(el, value as ReactiveValue<StyleShape>);
     return;
   }
 
-  set_object(el, value);
+  setObject(el, value);
 }

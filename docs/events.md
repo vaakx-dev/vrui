@@ -1,43 +1,43 @@
 # Events
 
-Event props use `on_event_name`. Underscores after `on_` are removed when the
+Event props use `onEventName`. Underscores after `on` are removed when the
 browser event listener is registered. The supported props are closed and
 typed, so misspellings fail type checking and handlers receive the appropriate
 DOM event type.
 
 | Prop | Browser event |
 | --- | --- |
-| `on_click` | `click` |
-| `on_input` | `input` |
-| `on_keydown` | `keydown` |
-| `on_pointer_down` | `pointerdown` |
-| `on_pointer_move` | `pointermove` |
-| `on_pointer_up` | `pointerup` |
-| `on_pointer_cancel` | `pointercancel` |
+| `onClick` | `click` |
+| `onInput` | `input` |
+| `onKeyDown` | `keydown` |
+| `onPointerDown` | `pointerdown` |
+| `onPointerMove` | `pointermove` |
+| `onPointerUp` | `pointerup` |
+| `onPointerCancel` | `pointercancel` |
 
-`on_mount` is a lifecycle prop, not a browser event prop.
+`onMount` is a lifecycle prop, not a browser event prop.
 
 The standard set includes:
 
-- focus and form events: `on_blur`, `on_change`, `on_focus`, `on_focus_in`,
-  `on_focus_out`, `on_input`, `on_invalid`, `on_reset`, and `on_submit`
-- keyboard and composition events: `on_keydown`, `on_keypress`, `on_keyup`,
-  `on_composition_start`, `on_composition_update`, and `on_composition_end`
+- focus and form events: `onBlur`, `onChange`, `onFocus`, `onFocusIn`,
+  `onFocusOut`, `onInput`, `onInvalid`, `onReset`, and `onSubmit`
+- keyboard and composition events: `onKeyDown`, `onKeyPress`, `onKeyUp`,
+  `onCompositionStart`, `onCompositionUpdate`, and `onCompositionEnd`
 - mouse, pointer, touch, drag, clipboard, and wheel events
 - animation and transition events
 - common media, loading, scrolling, selection, and toggle events
 
-Names follow browser terminology. For example, double-click is `on_dbl_click`,
+Names follow browser terminology. For example, double-click is `onDblClick`,
 which maps to `dblclick`.
 
 ```ts
 import { canvas } from "@vaakx-dev/vrui";
 
 const pad = canvas({
-  on_pointer_down: start_stroke,
-  on_pointer_move: move_stroke,
-  on_pointer_up: end_stroke,
-  on_pointer_cancel: end_stroke,
+  onPointerDown: startStroke,
+  onPointerMove: moveStroke,
+  onPointerUp: endStroke,
+  onPointerCancel: endStroke,
 });
 ```
 
@@ -46,23 +46,23 @@ const pad = canvas({
 VRUI includes helpers for common UI event boilerplate:
 
 ```ts
-import { button, div, keys, prevent_then, stop } from "@vaakx-dev/vrui";
+import { button, div, keys, preventThen, stop } from "@vaakx-dev/vrui";
 
-const save_button = button({ on_click: prevent_then(save) }, "Save");
+const saveButton = button({ onClick: preventThen(save) }, "Save");
 
 const palette = div({
-  on_click: stop,
-  on_keydown: keys({
-    Escape: close_palette,
-    Enter: run_selected,
-    ArrowDown: () => move_selection(1),
-    ArrowUp: () => move_selection(-1),
+  onClick: stop,
+  onKeyDown: keys({
+    Escape: closePalette,
+    Enter: runSelected,
+    ArrowDown: () => moveSelection(1),
+    ArrowUp: () => moveSelection(-1),
   }),
 });
 ```
 
-Available helpers are `stop`, `prevent`, `stop_then(fn)`,
-`prevent_then(fn)`, `event(fn, options)`, and `keys(map, options)`.
+Available helpers are `stop`, `prevent`, `stopThen(fn)`,
+`preventThen(fn)`, `event(fn, options)`, and `keys(map, options)`.
 
 `keys(map)` handles only mapped keys and prevents their default browser action
 by default.
@@ -83,9 +83,9 @@ cleanup function.
 ```ts
 import { listen } from "@vaakx-dev/vrui";
 
-const stop_listening = listen(target, "panel:activate", (event) => {
-  activate_panel(event);
+const stopListening = listen(target, "panel:activate", (event) => {
+  activatePanel(event);
 });
 
-stop_listening();
+stopListening();
 ```

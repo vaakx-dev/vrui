@@ -15,17 +15,17 @@ type NodeData = readonly [
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-function create_node([tag, attributes, children]: NodeData): SVGElement {
+function createNode([tag, attributes, children]: NodeData): SVGElement {
   const node = document.createElementNS(SVG_NS, tag);
   for (const [name, value] of Object.entries(attributes)) {
     node.setAttribute(name, String(value));
   }
-  for (const child of children ?? []) node.appendChild(create_node(child));
+  for (const child of children ?? []) node.appendChild(createNode(child));
   return node;
 }
 
-function create_icon(node: IconNode, attributes: NodeAttributes): SVGElement {
-  return create_node([
+function createIcon(node: IconNode, attributes: NodeAttributes): SVGElement {
+  return createNode([
     "svg",
     {
       xmlns: SVG_NS,
@@ -43,7 +43,7 @@ function create_icon(node: IconNode, attributes: NodeAttributes): SVGElement {
   ]);
 }
 
-export function icon(node: IconNode, size = 12, stroke_width = 2): HTMLElement {
+export function icon(node: IconNode, size = 12, strokeWidth = 2): HTMLElement {
   const wrapper = document.createElement("span");
   wrapper.className = "vrui-icon";
   Object.assign(wrapper.style, {
@@ -53,10 +53,10 @@ export function icon(node: IconNode, size = 12, stroke_width = 2): HTMLElement {
     lineHeight: "0",
   });
 
-  wrapper.appendChild(create_icon(node, {
+  wrapper.appendChild(createIcon(node, {
     width: size,
     height: size,
-    "stroke-width": stroke_width,
+    "stroke-width": strokeWidth,
     "aria-hidden": "true",
     focusable: "false",
   }));

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { sig } from "./core";
 import { button, div } from "./elements";
-import { on_disconnect, on_mount } from "./lifecycle";
-import { collect_scope, dispose_all } from "./scope";
+import { onDisconnect, onMount } from "./lifecycle";
+import { collectScope, disposeAll } from "./scope";
 
-async function flush_mutations(): Promise<void> {
+async function flushMutations(): Promise<void> {
   await Promise.resolve();
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
@@ -15,7 +15,7 @@ describe("DOM lifecycle ownership", () => {
     document.body.appendChild(node);
     let mounts = 0;
 
-    on_mount(node, () => {
+    onMount(node, () => {
       mounts++;
     });
 
@@ -28,7 +28,7 @@ describe("DOM lifecycle ownership", () => {
     let clicks = 0;
     const node = button({
       text: label,
-      on_click: () => {
+      onClick: () => {
         clicks++;
       },
     });
@@ -36,7 +36,7 @@ describe("DOM lifecycle ownership", () => {
     const unrelated = div();
     document.body.appendChild(unrelated);
     unrelated.remove();
-    await flush_mutations();
+    await flushMutations();
 
     label.set("after");
     node.click();
@@ -45,80 +45,80 @@ describe("DOM lifecycle ownership", () => {
     expect(clicks).toBe(1);
 
     document.body.appendChild(node);
-    await flush_mutations();
+    await flushMutations();
     node.remove();
-    await flush_mutations();
+    await flushMutations();
   });
 
   it("runs disconnect cleanup only after a real connection", async () => {
     const node = div();
     let cleanups = 0;
-    on_disconnect(node, () => {
+    onDisconnect(node, () => {
       cleanups++;
     });
 
     const unrelated = div();
     document.body.appendChild(unrelated);
     unrelated.remove();
-    await flush_mutations();
+    await flushMutations();
     expect(cleanups).toBe(0);
 
     document.body.appendChild(node);
-    await flush_mutations();
+    await flushMutations();
     expect(cleanups).toBe(0);
 
     node.remove();
-    await flush_mutations();
+    await flushMutations();
     expect(cleanups).toBe(1);
 
     node.remove();
-    await flush_mutations();
+    await flushMutations();
     expect(cleanups).toBe(1);
   });
 
   it("allows a pending disconnect registration to be cancelled", async () => {
     const node = div();
     let cleanups = 0;
-    const cancel = on_disconnect(node, () => {
+    const cancel = onDisconnect(node, () => {
       cleanups++;
     });
 
     cancel();
     document.body.appendChild(node);
-    await flush_mutations();
+    await flushMutations();
     node.remove();
-    await flush_mutations();
+    await flushMutations();
 
     expect(cleanups).toBe(0);
   });
 
   it("cancels pending mounts explicitly and with their owning scope", async () => {
-    const explicitly_cancelled = div();
-    let explicit_mounts = 0;
-    const cancel = on_mount(explicitly_cancelled, () => {
-      explicit_mounts++;
+    const explicitlyCancelled = div();
+    let explicitMounts = 0;
+    const cancel = onMount(explicitlyCancelled, () => {
+      explicitMounts++;
     });
     cancel();
 
-    let scoped_mounts = 0;
-    const created = collect_scope(() => {
+    let scopedMounts = 0;
+    const created = collectScope(() => {
       const node = div();
-      on_mount(node, () => {
-        scoped_mounts++;
+      onMount(node, () => {
+        scopedMounts++;
       });
       return node;
     });
-    dispose_all(created.scope);
+    disposeAll(created.scope);
 
-    document.body.append(explicitly_cancelled, created.value);
-    await flush_mutations();
+    document.body.append(explicitlyCancelled, created.value);
+    await flushMutations();
 
-    expect(explicit_mounts).toBe(0);
-    expect(scoped_mounts).toBe(0);
+    expect(explicitMounts).toBe(0);
+    expect(scopedMounts).toBe(0);
 
-    explicitly_cancelled.remove();
+    explicitlyCancelled.remove();
     created.value.remove();
-    await flush_mutations();
+    await flushMutations();
   });
 
   it("does not clean up a node moved and reinserted in the same turn", async () => {
@@ -129,31 +129,31 @@ describe("DOM lifecycle ownership", () => {
 
     document.body.append(first, second);
     first.appendChild(node);
-    on_disconnect(node, () => {
+    onDisconnect(node, () => {
       cleanups++;
     });
 
     node.remove();
     second.appendChild(node);
-    await flush_mutations();
+    await flushMutations();
 
     expect(node.parentNode).toBe(second);
     expect(cleanups).toBe(0);
 
     node.remove();
-    await flush_mutations();
+    await flushMutations();
     expect(cleanups).toBe(1);
 
     first.remove();
     second.remove();
-    await flush_mutations();
+    await flushMutations();
   });
 
   it("runs mount cleanup once across disconnect and manual disposal", async () => {
     const node = div();
     let mounts = 0;
     let cleanups = 0;
-    const dispose = on_mount(node, () => {
+    const dispose = onMount(node, () => {
       mounts++;
       return () => {
         cleanups++;
@@ -161,11 +161,11 @@ describe("DOM lifecycle ownership", () => {
     });
 
     document.body.appendChild(node);
-    await flush_mutations();
+    await flushMutations();
     expect(mounts).toBe(1);
 
     node.remove();
-    await flush_mutations();
+    await flushMutations();
     dispose();
 
     expect(cleanups).toBe(1);

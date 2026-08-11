@@ -6,7 +6,7 @@ text, transform, link, data, accessibility, lifecycle, and event attributes;
 misspellings fail type checking.
 
 Available helpers include `svg`, `g`, `path`, `rect`, `circle`, `ellipse`,
-`line`, `polyline`, `polygon`, `defs`, `text_el`, `title_el`, and `use_el`.
+`line`, `polyline`, `polygon`, `defs`, `textEl`, `titleEl`, and `useEl`.
 
 ```ts
 import { circle, sig, svg } from "@vaakx-dev/vrui";

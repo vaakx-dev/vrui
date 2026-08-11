@@ -3,7 +3,7 @@
 // ============================================================
 
 import { sig, Sig } from "./core";
-import { register_in_scope } from "./scope";
+import { registerInScope } from "./scope";
 
 /* ---------- store ---------- */
 
@@ -53,23 +53,23 @@ export function resource<T>(
   let token = 0;
   let disposed = false;
 
-  const is_current = (request: number): boolean => request === token && !disposed;
+  const isCurrent = (request: number): boolean => request === token && !disposed;
 
-  const abort_current = () => {
+  const abortCurrent = () => {
     if (!controller) return;
     controller.abort();
     controller = null;
   };
 
-  const finish_request = (request: number, current: AbortController) => {
+  const finishRequest = (request: number, current: AbortController) => {
     if (controller === current) controller = null;
-    if (!is_current(request)) return;
+    if (!isCurrent(request)) return;
     loading.set(false);
   };
 
-  const fail_sync = (request: number, current: AbortController, thrown: unknown) => {
+  const failSync = (request: number, current: AbortController, thrown: unknown) => {
     if (controller === current) controller = null;
-    if (!is_current(request)) return;
+    if (!isCurrent(request)) return;
 
     error.set(thrown);
     loading.set(false);
@@ -77,7 +77,7 @@ export function resource<T>(
 
   function load() {
     if (disposed) return;
-    abort_current();
+    abortCurrent();
     const current = new AbortController();
     controller = current;
     const my = ++token;
@@ -89,33 +89,33 @@ export function resource<T>(
     try {
       promise = Promise.resolve(fetcher(current.signal));
     } catch (e) {
-      fail_sync(my, current, e);
+      failSync(my, current, e);
       return;
     }
 
     promise
       .then((v) => {
-        if (!is_current(my)) return;
+        if (!isCurrent(my)) return;
         data.set(v);
       })
       .catch((e) => {
-        if (!is_current(my)) return;
+        if (!isCurrent(my)) return;
         error.set(e);
       })
-      .finally(() => finish_request(my, current));
+      .finally(() => finishRequest(my, current));
   }
 
   function dispose() {
     if (disposed) return;
     disposed = true;
     token++;
-    abort_current();
+    abortCurrent();
     data.dispose();
     loading.dispose();
     error.dispose();
   }
 
   if (!options?.lazy) load();
-  register_in_scope(dispose);
+  registerInScope(dispose);
   return { data, loading, error, refetch: load, dispose };
 }

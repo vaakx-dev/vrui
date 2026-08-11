@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { Cleanup } from "./core";
-import { has_scope, once, scoped } from "./scope";
+import { hasScope, once, scoped } from "./scope";
 
 type DisconnectRegistration = {
   callback: () => void;
@@ -25,16 +25,16 @@ type LifecycleState = {
 const lifecycles = new WeakMap<Node, LifecycleState>();
 let observer: MutationObserver | undefined;
 
-function is_connected(node: Node): boolean {
+function isConnected(node: Node): boolean {
   return node.isConnected;
 }
 
-function state_for(node: Node): LifecycleState {
+function stateFor(node: Node): LifecycleState {
   const existing = lifecycles.get(node);
   if (existing) return existing;
 
   const state: LifecycleState = {
-    connected: is_connected(node),
+    connected: isConnected(node),
     disconnects: new Set(),
     mounts: new Set(),
   };
@@ -47,7 +47,7 @@ function prune(node: Node, state: LifecycleState): void {
   if (lifecycles.get(node) === state) lifecycles.delete(node);
 }
 
-function collect_registered(root: Node, found: Set<Node>): void {
+function collectRegistered(root: Node, found: Set<Node>): void {
   const pending = [root];
   while (pending.length) {
     const node = pending.pop()!;
@@ -59,7 +59,7 @@ function collect_registered(root: Node, found: Set<Node>): void {
   }
 }
 
-function run_mount(
+function runMount(
   node: Node,
   state: LifecycleState,
   registration: MountRegistration,
@@ -92,13 +92,13 @@ function connect(node: Node, state: LifecycleState): void {
   const errors: unknown[] = [];
   for (const registration of [...state.mounts]) {
     try {
-      run_mount(node, state, registration);
+      runMount(node, state, registration);
     } catch (error) {
       errors.push(error);
     }
   }
 
-  throw_errors(errors);
+  throwErrors(errors);
 }
 
 function disconnect(node: Node, state: LifecycleState): void {
@@ -127,10 +127,10 @@ function disconnect(node: Node, state: LifecycleState): void {
     }
   }
 
-  throw_errors(errors);
+  throwErrors(errors);
 }
 
-function throw_errors(errors: unknown[]): void {
+function throwErrors(errors: unknown[]): void {
   if (errors.length === 0) return;
   if (errors.length === 1) throw errors[0];
   throw new AggregateError(errors, "vrui: multiple lifecycle callbacks failed");
@@ -142,11 +142,11 @@ function flush(mutations: MutationRecord[]): void {
 
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
-      collect_registered(node, added);
-      collect_registered(node, affected);
+      collectRegistered(node, added);
+      collectRegistered(node, affected);
     }
     for (const node of mutation.removedNodes) {
-      collect_registered(node, affected);
+      collectRegistered(node, affected);
     }
   }
 
@@ -155,7 +155,7 @@ function flush(mutations: MutationRecord[]): void {
     const state = lifecycles.get(node);
     if (!state) continue;
 
-    if (is_connected(node)) {
+    if (isConnected(node)) {
       if (!state.connected) {
         try {
           connect(node, state);
@@ -175,10 +175,10 @@ function flush(mutations: MutationRecord[]): void {
     }
   }
 
-  throw_errors(errors);
+  throwErrors(errors);
 }
 
-function ensure_observer(): void {
+function ensureObserver(): void {
   if (observer || typeof document === "undefined" || typeof MutationObserver === "undefined") {
     return;
   }
@@ -191,33 +191,33 @@ function ensure_observer(): void {
  * Run a callback once the node has been connected and is later disconnected.
  * The returned function cancels the pending registration without running it.
  */
-export function on_disconnect(node: Node, callback: () => void): () => void {
-  ensure_observer();
-  const state = state_for(node);
+export function onDisconnect(node: Node, callback: () => void): () => void {
+  ensureObserver();
+  const state = stateFor(node);
 
-  let tracked_node: Node | undefined = node;
-  let tracked_state: LifecycleState | undefined = state;
-  let tracked_registration: DisconnectRegistration | undefined;
+  let trackedNode: Node | undefined = node;
+  let trackedState: LifecycleState | undefined = state;
+  let trackedRegistration: DisconnectRegistration | undefined;
 
   const release = () => {
-    tracked_node = undefined;
-    tracked_state = undefined;
-    tracked_registration = undefined;
+    trackedNode = undefined;
+    trackedState = undefined;
+    trackedRegistration = undefined;
   };
 
   const registration: DisconnectRegistration = { callback, release };
-  tracked_registration = registration;
+  trackedRegistration = registration;
   state.disconnects.add(registration);
 
   const cancel = once(() => {
-    const current_node = tracked_node;
-    const current_state = tracked_state;
-    const current_registration = tracked_registration;
+    const currentNode = trackedNode;
+    const currentState = trackedState;
+    const currentRegistration = trackedRegistration;
     release();
-    if (!current_node || !current_state || !current_registration) return;
+    if (!currentNode || !currentState || !currentRegistration) return;
 
-    current_state.disconnects.delete(current_registration);
-    prune(current_node, current_state);
+    currentState.disconnects.delete(currentRegistration);
+    prune(currentNode, currentState);
   });
 
   return scoped(cancel);
@@ -227,39 +227,39 @@ export function on_disconnect(node: Node, callback: () => void): () => void {
  * Run a callback once the node is connected. A returned cleanup runs when the
  * node disconnects or when the returned disposer is called.
  */
-export function on_mount(node: Node, callback: (node: Node) => Cleanup): () => void {
-  ensure_observer();
-  const state = state_for(node);
+export function onMount(node: Node, callback: (node: Node) => Cleanup): () => void {
+  ensureObserver();
+  const state = stateFor(node);
 
-  let tracked_node: Node | undefined = node;
-  let tracked_state: LifecycleState | undefined = state;
-  let tracked_registration: MountRegistration | undefined;
+  let trackedNode: Node | undefined = node;
+  let trackedState: LifecycleState | undefined = state;
+  let trackedRegistration: MountRegistration | undefined;
 
   const release = () => {
-    tracked_node = undefined;
-    tracked_state = undefined;
-    tracked_registration = undefined;
+    trackedNode = undefined;
+    trackedState = undefined;
+    trackedRegistration = undefined;
   };
 
   const registration: MountRegistration = { callback, release };
-  tracked_registration = registration;
+  trackedRegistration = registration;
   state.mounts.add(registration);
 
   const dispose = once(() => {
-    const current_node = tracked_node;
-    const current_state = tracked_state;
-    const current_registration = tracked_registration;
+    const currentNode = trackedNode;
+    const currentState = trackedState;
+    const currentRegistration = trackedRegistration;
     release();
-    if (!current_node || !current_state || !current_registration) return;
+    if (!currentNode || !currentState || !currentRegistration) return;
 
-    current_state.mounts.delete(current_registration);
-    prune(current_node, current_state);
-    current_registration.cleanup?.();
+    currentState.mounts.delete(currentRegistration);
+    prune(currentNode, currentState);
+    currentRegistration.cleanup?.();
   });
 
-  if (is_connected(node)) {
+  if (isConnected(node)) {
     if (state.connected) {
-      run_mount(node, state, registration);
+      runMount(node, state, registration);
     } else {
       connect(node, state);
     }
@@ -269,14 +269,14 @@ export function on_mount(node: Node, callback: (node: Node) => Cleanup): () => v
 }
 
 /** Tie cleanup to the active scope, or to the node's mounted lifetime. */
-export function auto_dispose(node: Node, cleanup: () => void): () => void {
-  const run_cleanup = once(cleanup);
-  if (has_scope()) return scoped(run_cleanup);
+export function autoDispose(node: Node, cleanup: () => void): () => void {
+  const runCleanup = once(cleanup);
+  if (hasScope()) return scoped(runCleanup);
 
-  const cancel_disconnect = on_disconnect(node, run_cleanup);
+  const cancelDisconnect = onDisconnect(node, runCleanup);
   return once(() => {
-    cancel_disconnect();
-    run_cleanup();
+    cancelDisconnect();
+    runCleanup();
   });
 }
 
@@ -290,7 +290,7 @@ export function listen(
   return scoped(once(() => target.removeEventListener(event, handler, options)));
 }
 
-export function on_target(
+export function onTarget(
   owner: Node,
   target: EventTarget,
   event: string,
@@ -298,28 +298,28 @@ export function on_target(
   options?: boolean | AddEventListenerOptions,
 ): () => void {
   const stop = listen(target, event, handler, options);
-  const cancel_disconnect = on_disconnect(owner, stop);
+  const cancelDisconnect = onDisconnect(owner, stop);
 
   return once(() => {
-    cancel_disconnect();
+    cancelDisconnect();
     stop();
   });
 }
 
-export function on_window(
+export function onWindow(
   owner: Node,
   event: string,
   handler: EventListener,
   options?: boolean | AddEventListenerOptions,
 ): () => void {
-  return on_target(owner, window, event, handler, options);
+  return onTarget(owner, window, event, handler, options);
 }
 
-export function on_document(
+export function onDocument(
   owner: Node,
   event: string,
   handler: EventListener,
   options?: boolean | AddEventListenerOptions,
 ): () => void {
-  return on_target(owner, document, event, handler, options);
+  return onTarget(owner, document, event, handler, options);
 }

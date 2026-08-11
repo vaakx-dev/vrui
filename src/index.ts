@@ -15,13 +15,13 @@ export {
 export type { Cleanup, ReactiveValue } from "./core";
 
 export {
-  collect_scope,
-  dispose_all,
-  enter_scope,
-  exit_scope,
-  has_scope,
+  collectScope,
+  disposeAll,
+  enterScope,
+  exitScope,
+  hasScope,
   once,
-  register_in_scope,
+  registerInScope,
   scoped,
 } from "./scope";
 export type { Disposer, ScopedValue } from "./scope";
@@ -30,10 +30,10 @@ export { resource, store } from "./store";
 export type { Resource, Store } from "./store";
 
 export {
-  append_child,
-  class_str,
+  appendChild,
+  classStr,
   el,
-  safe_str,
+  safeStr,
 } from "./dom";
 export {
   Fragment,
@@ -87,16 +87,16 @@ export {
   ul,
 } from "./elements";
 export {
-  auto_dispose,
+  autoDispose,
   listen,
-  on_disconnect,
-  on_document,
-  on_mount,
-  on_target,
-  on_window,
+  onDisconnect,
+  onDocument,
+  onMount,
+  onTarget,
+  onWindow,
 } from "./lifecycle";
-export { by_id, mount, replace } from "./mount";
-export { set_style } from "./style";
+export { byId, mount, replace } from "./mount";
+export { setStyle } from "./style";
 export type {
   Child,
   ClassValue,
@@ -109,15 +109,15 @@ export type {
   StyleShape,
   StyleValue,
   WritableSignal,
-} from "./dom_types";
+} from "./domTypes";
 
 export {
   event,
   keys,
   prevent,
-  prevent_then,
+  preventThen,
   stop,
-  stop_then,
+  stopThen,
 } from "./events";
 export type {
   EventHandler,
@@ -131,17 +131,17 @@ export type {
 } from "./events";
 
 export {
-  intersection_observer,
-  on_interval,
-  on_media,
-  on_raf,
-  on_resize,
-  on_timeout,
-  resize_observer,
+  intersectionObserver,
+  onInterval,
+  onMedia,
+  onRaf,
+  onResize,
+  onTimeout,
+  resizeObserver,
 } from "./browser";
 export type { MediaHandler } from "./browser";
 
-export { dynamic_child, keep, list, show } from "./flow";
+export { dynamicChild, keep, list, show } from "./flow";
 
 export { portal } from "./portal";
 
@@ -156,12 +156,12 @@ export {
   polyline,
   rect,
   svg,
-  svg_el,
-  text_el,
-  title_el,
-  use_el,
+  svgEl,
+  textEl,
+  titleEl,
+  useEl,
 } from "./svg";
-export type { SvgAttribute, SvgProps } from "./svg_types";
+export type { SvgAttribute, SvgProps } from "./svgTypes";
 
 export { icon } from "./icons";
 export type { IconNode } from "./icons";

@@ -1,18 +1,18 @@
 # Flow Helpers
 
-VRUI provides `dynamic_child`, `show`, `keep`, and `list` for dynamic UI.
+VRUI provides `dynamicChild`, `show`, `keep`, and `list` for dynamic UI.
 
-## dynamic_child
+## dynamicChild
 
-`dynamic_child(value, factory)` replaces one child when its driving value
+`dynamicChild(value, factory)` replaces one child when its driving value
 changes.
 
 ```ts
-import { div, dynamic_child, sig } from "@vaakx-dev/vrui";
+import { div, dynamicChild, sig } from "@vaakx-dev/vrui";
 
 const mode = sig("summary");
 
-const view = dynamic_child(mode, (value) => div(value));
+const view = dynamicChild(mode, (value) => div(value));
 ```
 
 The factory is built without tracking incidental signal reads. Reading a local
@@ -40,6 +40,6 @@ subscription.
 
 ## list
 
-`list(data, key_fn, factory, container?)` renders keyed arrays and reuses rows
+`list(data, keyFn, factory, container?)` renders keyed arrays and reuses rows
 by key. The row factory receives an item signal and index signal, so reused rows
 update without recreating their local scope.

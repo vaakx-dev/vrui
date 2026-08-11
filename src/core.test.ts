@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { batch, derive, effect, is_reactive, resolve, sig, untrack } from "./core";
-import { enter_scope, exit_scope, has_scope, register_in_scope } from "./scope";
+import { batch, derive, effect, isReactive, resolve, sig, untrack } from "./core";
+import { enterScope, exitScope, hasScope, registerInScope } from "./scope";
 
 describe("core helpers", () => {
   it("resolves plain, signal, derive, and function values", () => {
@@ -12,10 +12,10 @@ describe("core helpers", () => {
     expect(resolve(doubled)).toBe(4);
     expect(resolve(() => 5)).toBe(5);
 
-    expect(is_reactive(source)).toBe(true);
-    expect(is_reactive(doubled)).toBe(true);
-    expect(is_reactive(() => 5)).toBe(true);
-    expect(is_reactive(5)).toBe(false);
+    expect(isReactive(source)).toBe(true);
+    expect(isReactive(doubled)).toBe(true);
+    expect(isReactive(() => 5)).toBe(true);
+    expect(isReactive(5)).toBe(false);
 
     doubled.dispose();
   });
@@ -99,11 +99,11 @@ describe("core helpers", () => {
     const doubled = derive(() => mirrored.get() * 2);
     const seen: [number, number, number][] = [];
 
-    const stop_mirror = effect(() => {
+    const stopMirror = effect(() => {
       const value = source.get();
       if (value) mirrored.set(value);
     });
-    const stop_observer = effect(() => {
+    const stopObserver = effect(() => {
       seen.push([source.get(), mirrored.get(), doubled.get()]);
     });
 
@@ -114,8 +114,8 @@ describe("core helpers", () => {
       [2, 2, 4],
     ]);
 
-    stop_observer();
-    stop_mirror();
+    stopObserver();
+    stopMirror();
     doubled.dispose();
   });
 
@@ -124,7 +124,7 @@ describe("core helpers", () => {
     const calls: string[] = [];
     let fail = true;
 
-    const stop_failing = effect(() => {
+    const stopFailing = effect(() => {
       const value = source.get();
       if (value === 1 && fail) {
         fail = false;
@@ -133,7 +133,7 @@ describe("core helpers", () => {
       }
       calls.push(`failing:${value}`);
     });
-    const stop_healthy = effect(() => {
+    const stopHealthy = effect(() => {
       calls.push(`healthy:${source.get()}`);
     });
 
@@ -148,8 +148,8 @@ describe("core helpers", () => {
     source.set(2);
     expect(calls.slice(-2)).toEqual(["failing:2", "healthy:2"]);
 
-    stop_healthy();
-    stop_failing();
+    stopHealthy();
+    stopFailing();
   });
 
   it("propagates derive failures instead of exposing stale computed values", () => {
@@ -212,7 +212,7 @@ describe("core helpers", () => {
     const calls: string[] = [];
     const stop = effect(() => {
       source.get();
-      register_in_scope(() => {
+      registerInScope(() => {
         calls.push("scoped");
         throw new Error("scoped failure");
       });
@@ -276,7 +276,7 @@ describe("core helpers", () => {
     expect(() => gate.set(true)).toThrow("boom");
     expect(innerRuns).toBe(1);
     expect(innerCleanups).toBe(1);
-    expect(has_scope()).toBe(false);
+    expect(hasScope()).toBe(false);
 
     source.set(1);
     expect(innerRuns).toBe(1);
@@ -309,7 +309,7 @@ describe("core helpers", () => {
     const inputValue = sig("");
     const input = document.createElement("input");
     input.value = "typed";
-    inputValue.from_input()({ target: input } as unknown as Event);
+    inputValue.fromInput()({ target: input } as unknown as Event);
     expect(inputValue.get()).toBe("typed");
 
     const user = sig({ id: 7, label: null as string | null });
@@ -340,10 +340,10 @@ describe("core helpers", () => {
   it("creates conditions from signal equality checks", () => {
     const mode = sig("view");
 
-    enter_scope();
+    enterScope();
     const condition = mode.eq("edit");
     const label = condition.select("editing", "viewing");
-    const disposers = exit_scope();
+    const disposers = exitScope();
 
     expect(condition.get()).toBe(false);
     expect(label.get()).toBe("viewing");

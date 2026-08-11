@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { effect, sig } from "./core";
 import { div, span } from "./elements";
 import { portal } from "./portal";
-import { enter_scope, exit_scope } from "./scope";
+import { enterScope, exitScope } from "./scope";
 
-const flush_mutation_observer = async () => {
+const flushMutationObserver = async () => {
   await Promise.resolve();
   await new Promise((resolve) => setTimeout(resolve, 0));
 };
@@ -26,7 +26,7 @@ describe("portal", () => {
     let runs = 0;
     let cleanups = 0;
 
-    enter_scope();
+    enterScope();
     portal(target, () => {
       effect(() => {
         source.get();
@@ -37,7 +37,7 @@ describe("portal", () => {
       });
       return span({ id: "portaled" });
     });
-    const disposers = exit_scope();
+    const disposers = exitScope();
 
     expect(target.querySelector("#portaled")).not.toBeNull();
     expect(runs).toBe(1);
@@ -60,7 +60,7 @@ describe("portal", () => {
     const target = div({ id: "vrui-portal-target" });
 
     document.body.appendChild(target);
-    await flush_mutation_observer();
+    await flushMutationObserver();
 
     expect(marker.nodeType).toBe(Node.COMMENT_NODE);
     expect(target.textContent).toBe("portaled");
@@ -87,11 +87,11 @@ describe("portal", () => {
     document.body.appendChild(host);
 
     host.remove();
-    await flush_mutation_observer();
+    await flushMutationObserver();
 
     const target = div({ id: "vrui-cancelled-portal-target" });
     document.body.appendChild(target);
-    await flush_mutation_observer();
+    await flushMutationObserver();
 
     expect(target.textContent).toBe("");
 
@@ -110,7 +110,7 @@ describe("portal", () => {
     expect(child.parentNode).toBe(target);
 
     host.remove();
-    await flush_mutation_observer();
+    await flushMutationObserver();
 
     expect(child.parentNode).toBeNull();
 
@@ -140,7 +140,7 @@ describe("portal", () => {
     expect(runs).toBe(1);
 
     target.remove();
-    await flush_mutation_observer();
+    await flushMutationObserver();
 
     expect(cleanups).toBe(1);
 
@@ -148,7 +148,7 @@ describe("portal", () => {
     expect(runs).toBe(1);
 
     host.remove();
-    await flush_mutation_observer();
+    await flushMutationObserver();
     expect(cleanups).toBe(1);
   });
 
@@ -173,7 +173,7 @@ describe("portal", () => {
     expect(runs).toBe(1);
 
     target.firstChild?.remove();
-    await flush_mutation_observer();
+    await flushMutationObserver();
 
     expect(cleanups).toBe(1);
 

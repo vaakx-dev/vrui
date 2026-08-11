@@ -33,12 +33,12 @@ Props can be plain values or reactive values. Supported patterns include:
 - `role`
 - `value` on inputs
 - normal DOM properties such as `disabled`
-- event props such as `on_click`
-- lifecycle props such as `ref` and `on_mount`
+- event props such as `onClick`
+- lifecycle props such as `ref` and `onMount`
 
 Props are element-specific and closed: DOM property values retain their browser
 types, form bindings are only accepted on compatible controls, and misspelled
-properties or events fail type checking. Use `ref`, `on_mount`, or `listen` for
+properties or events fail type checking. Use `ref`, `onMount`, or `listen` for
 custom browser and third-party integration work.
 
 ## Children
@@ -69,4 +69,4 @@ const stop = mount("app", div("Hello"));
 stop();
 ```
 
-`by_id(id)` returns a required element or throws.
+`byId(id)` returns a required element or throws.

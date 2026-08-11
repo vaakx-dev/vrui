@@ -4,7 +4,7 @@
 
 import {
   effect,
-  is_reactive,
+  isReactive,
   resolve,
   type Cleanup,
 } from "./core";
@@ -14,29 +14,29 @@ import type {
   Props,
   StyleValue,
   WritableSignal,
-} from "./dom_types";
-import { event_name_from_prop } from "./events";
+} from "./domTypes";
+import { eventNameFromProp } from "./events";
 import {
-  auto_dispose,
-  on_mount,
-  on_target,
+  autoDispose,
+  onMount,
+  onTarget,
 } from "./lifecycle";
-import { set_style } from "./style";
+import { setStyle } from "./style";
 
 /* ---------- string + class helpers ---------- */
 
-export function safe_str(v: unknown): string {
+export function safeStr(v: unknown): string {
   return v == null ? "" : String(v);
 }
 
-function is_node(v: unknown): v is Node {
+function isNode(v: unknown): v is Node {
   return typeof Node !== "undefined" && v instanceof Node;
 }
 
-export function class_str(v: ClassValue): string {
-  if (Array.isArray(v)) return v.map(class_str).filter(Boolean).join(" ");
+export function classStr(v: ClassValue): string {
+  if (Array.isArray(v)) return v.map(classStr).filter(Boolean).join(" ");
   if (v == null || v === false) return "";
-  if (typeof v === "object" && !is_node(v)) {
+  if (typeof v === "object" && !isNode(v)) {
     return Object.entries(v as Record<string, unknown>)
       .filter(([, enabled]) => !!resolve(enabled))
       .map(([name]) => name)
@@ -45,34 +45,34 @@ export function class_str(v: ClassValue): string {
   return String(resolve(v));
 }
 
-function has_reactive_part(value: unknown): boolean {
-  if (is_reactive(value)) return true;
-  if (Array.isArray(value)) return value.some(has_reactive_part);
-  if (value && typeof value === "object" && !is_node(value)) {
-    return Object.values(value as Record<string, unknown>).some(has_reactive_part);
+function hasReactivePart(value: unknown): boolean {
+  if (isReactive(value)) return true;
+  if (Array.isArray(value)) return value.some(hasReactivePart);
+  if (value && typeof value === "object" && !isNode(value)) {
+    return Object.values(value as Record<string, unknown>).some(hasReactivePart);
   }
   return false;
 }
 
-function set_class(el: HTMLElement, value: unknown): void {
-  if (has_reactive_part(value)) {
+function setClass(el: HTMLElement, value: unknown): void {
+  if (hasReactivePart(value)) {
     const dispose = effect(() => {
-      el.className = class_str(resolve(value) as ClassValue);
+      el.className = classStr(resolve(value) as ClassValue);
     });
-    auto_dispose(el, dispose);
+    autoDispose(el, dispose);
     return;
   }
-  el.className = class_str(value as ClassValue);
+  el.className = classStr(value as ClassValue);
 }
 
-function is_writable_signal(value: unknown): value is WritableSignal<unknown> {
+function isWritableSignal(value: unknown): value is WritableSignal<unknown> {
   return !!value &&
     typeof value === "object" &&
     typeof (value as WritableSignal<unknown>).get === "function" &&
     typeof (value as WritableSignal<unknown>).set === "function";
 }
 
-function is_value_element(
+function isValueElement(
   el: HTMLElement,
 ): el is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
   return el instanceof HTMLInputElement ||
@@ -80,68 +80,72 @@ function is_value_element(
     el instanceof HTMLSelectElement;
 }
 
-function bind_value(el: HTMLElement, value: unknown): void {
-  if (!is_writable_signal(value)) {
-    throw new Error("vrui: bind_value expects a writable signal");
+function bindValue(el: HTMLElement, value: unknown): void {
+  if (!isWritableSignal(value)) {
+    throw new Error("vrui: bindValue expects a writable signal");
   }
-  if (!is_value_element(el)) {
-    throw new Error("vrui: bind_value can only be used on input, textarea, or select");
+  if (!isValueElement(el)) {
+    throw new Error("vrui: bindValue can only be used on input, textarea, or select");
   }
 
   const dispose = effect(() => {
-    const next = safe_str(value.get());
+    const next = safeStr(value.get());
     if (el.value !== next) el.value = next;
   });
-  auto_dispose(el, dispose);
+  autoDispose(el, dispose);
 
   const event = el instanceof HTMLSelectElement ? "change" : "input";
   const handler = () => value.set(el.value);
-  on_target(el, el, event, handler);
+  onTarget(el, el, event, handler);
 }
 
-function bind_checked(el: HTMLElement, value: unknown): void {
-  if (!is_writable_signal(value)) {
-    throw new Error("vrui: bind_checked expects a writable boolean signal");
+function bindChecked(el: HTMLElement, value: unknown): void {
+  if (!isWritableSignal(value)) {
+    throw new Error("vrui: bindChecked expects a writable boolean signal");
   }
   if (!(el instanceof HTMLInputElement)) {
-    throw new Error("vrui: bind_checked can only be used on input");
+    throw new Error("vrui: bindChecked can only be used on input");
   }
 
   const dispose = effect(() => {
     const next = !!value.get();
     if (el.checked !== next) el.checked = next;
   });
-  auto_dispose(el, dispose);
+  autoDispose(el, dispose);
 
   const handler = () => value.set(el.checked);
-  on_target(el, el, "change", handler);
+  onTarget(el, el, "change", handler);
 }
 
 type DomPropSetter = (el: HTMLElement, value: unknown) => void;
 
-function set_text(el: HTMLElement, value: unknown): void {
-  if (!is_reactive(value)) {
-    el.textContent = safe_str(value);
+function setText(el: HTMLElement, value: unknown): void {
+  if (!isReactive(value)) {
+    el.textContent = safeStr(value);
     return;
   }
 
   const dispose = effect(() => {
-    el.textContent = safe_str(resolve(value));
+    el.textContent = safeStr(resolve(value));
   });
-  auto_dispose(el, dispose);
+  autoDispose(el, dispose);
 }
 
-function set_event_prop(el: HTMLElement, key: string, value: unknown): void {
-  const event = event_name_from_prop(key);
+function setEventProp(el: HTMLElement, key: string, value: unknown): void {
+  const event = eventNameFromProp(key);
   const handler = value as EventListener;
-  on_target(el, el, event, handler);
+  onTarget(el, el, event, handler);
 }
 
-function is_attribute_prop(key: string): boolean {
+function isEventProp(key: string): boolean {
+  return key.length > 2 && key.startsWith("on") && /[A-Z]/.test(key[2]!);
+}
+
+function isAttributeProp(key: string): boolean {
   return key.startsWith("data-") || key.startsWith("aria-") || key === "role";
 }
 
-function write_attribute(el: HTMLElement, key: string, value: unknown): void {
+function writeAttribute(el: HTMLElement, key: string, value: unknown): void {
   if (value == null) {
     el.removeAttribute(key);
     return;
@@ -150,37 +154,37 @@ function write_attribute(el: HTMLElement, key: string, value: unknown): void {
   el.setAttribute(key, String(value));
 }
 
-function set_attribute_prop(el: HTMLElement, key: string, value: unknown): void {
-  if (!is_reactive(value)) {
-    write_attribute(el, key, value);
+function setAttributeProp(el: HTMLElement, key: string, value: unknown): void {
+  if (!isReactive(value)) {
+    writeAttribute(el, key, value);
     return;
   }
 
-  const dispose = effect(() => write_attribute(el, key, resolve(value)));
-  auto_dispose(el, dispose);
+  const dispose = effect(() => writeAttribute(el, key, resolve(value)));
+  autoDispose(el, dispose);
 }
 
-function set_input_value_prop(el: HTMLInputElement, value: unknown): void {
-  if (!is_reactive(value)) {
-    el.value = safe_str(value);
+function setInputValueProp(el: HTMLInputElement, value: unknown): void {
+  if (!isReactive(value)) {
+    el.value = safeStr(value);
     return;
   }
 
   const dispose = effect(() => {
-    const next = safe_str(resolve(value));
+    const next = safeStr(resolve(value));
     if (el.value !== next) el.value = next;
   });
-  auto_dispose(el, dispose);
+  autoDispose(el, dispose);
 }
 
-function maybe_set_input_value_prop(el: HTMLElement, key: string, value: unknown): boolean {
+function maybeSetInputValueProp(el: HTMLElement, key: string, value: unknown): boolean {
   if (key !== "value" || !(el instanceof HTMLInputElement)) return false;
-  set_input_value_prop(el, value);
+  setInputValueProp(el, value);
   return true;
 }
 
-function set_dom_property(el: HTMLElement, key: string, value: unknown): void {
-  if (!is_reactive(value)) {
+function setDomProperty(el: HTMLElement, key: string, value: unknown): void {
+  if (!isReactive(value)) {
     Reflect.set(el, key, value);
     return;
   }
@@ -188,72 +192,72 @@ function set_dom_property(el: HTMLElement, key: string, value: unknown): void {
   const dispose = effect(() => {
     Reflect.set(el, key, resolve(value));
   });
-  auto_dispose(el, dispose);
+  autoDispose(el, dispose);
 }
 
 const DOM_PROP_SETTERS: Record<string, DomPropSetter> = {
   ref: (el, value) => (value as (el: HTMLElement) => void)(el),
-  on_mount: (el, value) => on_mount(el, value as (el: Node) => Cleanup),
-  bind_value,
-  bind_checked,
-  class: set_class,
-  style: (el, value) => set_style(el, value as StyleValue),
-  text: set_text,
+  onMount: (el, value) => onMount(el, value as (el: Node) => Cleanup),
+  bindValue,
+  bindChecked,
+  class: setClass,
+  style: (el, value) => setStyle(el, value as StyleValue),
+  text: setText,
 };
 
-function set_prop(el: HTMLElement, key: string, value: unknown): void {
+function setProp(el: HTMLElement, key: string, value: unknown): void {
   const setter = DOM_PROP_SETTERS[key];
   if (setter) {
     setter(el, value);
     return;
   }
 
-  if (key.startsWith("on_")) {
-    set_event_prop(el, key, value);
+  if (isEventProp(key)) {
+    setEventProp(el, key, value);
     return;
   }
 
-  if (is_attribute_prop(key)) {
-    set_attribute_prop(el, key, value);
+  if (isAttributeProp(key)) {
+    setAttributeProp(el, key, value);
     return;
   }
 
-  if (maybe_set_input_value_prop(el, key, value)) return;
-  set_dom_property(el, key, value);
+  if (maybeSetInputValueProp(el, key, value)) return;
+  setDomProperty(el, key, value);
 }
 
-export function append_child(parent: Node, child: Child): void {
+export function appendChild(parent: Node, child: Child): void {
   if (child == null || child === false || child === true) return;
 
   if (Array.isArray(child)) {
-    for (const c of child) append_child(parent, c);
+    for (const c of child) appendChild(parent, c);
     return;
   }
 
-  if (is_node(child)) {
+  if (isNode(child)) {
     parent.appendChild(child);
     return;
   }
 
-  if (is_reactive(child)) {
+  if (isReactive(child)) {
     const text = document.createTextNode("");
     const dispose = effect(() => {
-      text.textContent = safe_str(resolve(child));
+      text.textContent = safeStr(resolve(child));
     });
-    auto_dispose(text, dispose);
+    autoDispose(text, dispose);
     parent.appendChild(text);
     return;
   }
 
-  parent.appendChild(document.createTextNode(safe_str(child)));
+  parent.appendChild(document.createTextNode(safeStr(child)));
 }
 
-function is_child_argument(value: unknown): value is Child {
+function isChildArgument(value: unknown): value is Child {
   return value != null &&
     (typeof value !== "object" ||
-      is_node(value) ||
+      isNode(value) ||
       Array.isArray(value) ||
-      is_reactive(value));
+      isReactive(value));
 }
 
 export function el<K extends keyof HTMLElementTagNameMap>(
@@ -265,29 +269,29 @@ export function el(tag: string, props?: Props | Child, ...children: Child[]): HT
 export function el(tag: string, props?: unknown, ...children: Child[]): HTMLElement {
   const node = document.createElement(tag);
 
-  if (is_child_argument(props)) {
+  if (isChildArgument(props)) {
     children.unshift(props);
     props = undefined;
   }
 
-  const deferred_props: [string, unknown][] = [];
+  const deferredProps: [string, unknown][] = [];
   if (props) {
     for (const [key, value] of Object.entries(props as Props)) {
-      if (key === "bind_value" || key === "bind_checked") {
-        deferred_props.push([key, value]);
+      if (key === "bindValue" || key === "bindChecked") {
+        deferredProps.push([key, value]);
         continue;
       }
 
-      set_prop(node, key, value);
+      setProp(node, key, value);
     }
   }
 
   for (const child of children) {
-    append_child(node, child);
+    appendChild(node, child);
   }
 
-  for (const [key, value] of deferred_props) {
-    set_prop(node, key, value);
+  for (const [key, value] of deferredProps) {
+    setProp(node, key, value);
   }
 
   return node;

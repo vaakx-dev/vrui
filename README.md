@@ -41,7 +41,7 @@ const count = sig(0);
 
 const app = div(
   { class: "counter" },
-  button({ on_click: () => count.update((n) => n + 1) }, "Add"),
+  button({ onClick: () => count.update((n) => n + 1) }, "Add"),
   " Count: ",
   count,
 );
@@ -62,12 +62,12 @@ const open = sig(false);
 
 const palette = div(
   {
-    on_click: stop,
-    on_keydown: keys({
+    onClick: stop,
+    onKeyDown: keys({
       Escape: open.setter(false),
-      Enter: run_selected,
-      ArrowDown: () => move_selection(1),
-      ArrowUp: () => move_selection(-1),
+      Enter: runSelected,
+      ArrowDown: () => moveSelection(1),
+      ArrowUp: () => moveSelection(-1),
     }),
   },
   "Commands",
@@ -83,38 +83,38 @@ third-party widget, canvas renderer, measurement, or another real escape hatch.
 | --- | --- |
 | `div` | DOM factory for `HTMLDivElement` |
 | `button` | DOM factory with reactive props and event props |
-| `input` | DOM factory with `value`, `bind_value`, and `bind_checked` support |
+| `input` | DOM factory with `value`, `bindValue`, and `bindChecked` support |
 | `img` | DOM factory for `HTMLImageElement` |
-| `canvas` | DOM factory for canvas escape hatches through `ref` and `on_mount` |
-| `dynamic_child` | Replaces one child when its driving reactive value changes |
+| `canvas` | DOM factory for canvas escape hatches through `ref` and `onMount` |
+| `dynamicChild` | Replaces one child when its driving reactive value changes |
 | `sig` | Mutable signal with helpers such as `set`, `update`, `map`, and `toggle` |
 | `icon` | Lucide icon wrapper for explicitly imported icon nodes |
 
 ## Event and lifecycle props
 
-Event props use `on_event_name`. Underscores after `on_` are removed when the
+Event props use `onEventName`. Underscores after `on` are removed when the
 browser listener is registered.
 
 Common event prop names:
 
-- `on_click`
-- `on_pointer_down`
-- `on_pointer_move`
-- `on_pointer_up`
-- `on_pointer_cancel`
+- `onClick`
+- `onPointerDown`
+- `onPointerMove`
+- `onPointerUp`
+- `onPointerCancel`
 
 Common lifecycle prop names:
 
-- `on_mount`
+- `onMount`
 
 ```ts
 import { canvas } from "@vaakx-dev/vrui";
 
 const pad = canvas({
-  on_pointer_down: start_stroke,
-  on_pointer_move: move_stroke,
-  on_pointer_up: end_stroke,
-  on_pointer_cancel: end_stroke,
+  onPointerDown: startStroke,
+  onPointerMove: moveStroke,
+  onPointerUp: endStroke,
+  onPointerCancel: endStroke,
 });
 ```
 
@@ -126,11 +126,11 @@ Signal-driven disabled button:
 import { button, div, input, sig } from "@vaakx-dev/vrui";
 
 const name = sig("");
-const can_save = name.map((value) => value.trim().length > 0);
+const canSave = name.map((value) => value.trim().length > 0);
 
 const form = div(
-  input({ bind_value: name, placeholder: "Name" }),
-  button({ disabled: can_save.map((value) => !value), on_click: save }, "Save"),
+  input({ bindValue: name, placeholder: "Name" }),
+  button({ disabled: canSave.map((value) => !value), onClick: save }, "Save"),
 );
 ```
 
@@ -142,13 +142,13 @@ import { form, input, label, sig } from "@vaakx-dev/vrui";
 const email = sig("");
 
 const profile = form(
-  label("Email", input({ type: "email", bind_value: email })),
+  label("Email", input({ type: "email", bindValue: email })),
 );
 ```
 
 ## Detailed docs
 
-- [DOM factories](docs/dom_factories.md)
+- [DOM factories](docs/domFactories.md)
 - [Events](docs/events.md)
 - [Reactivity](docs/reactivity.md)
 - [Flow helpers](docs/flow.md)
@@ -156,7 +156,7 @@ const profile = form(
 - [Lifecycle and cleanup](docs/lifecycle.md)
 - [Canvas](docs/canvas.md)
 - [Icons](docs/icons.md)
-- [Store and resources](docs/store_resource.md)
+- [Store and resources](docs/storeResource.md)
 - [Portal](docs/portal.md)
 - [SVG](docs/svg.md)
 
