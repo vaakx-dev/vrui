@@ -96,6 +96,7 @@ export {
   onWindow,
 } from "./lifecycle";
 export { byId, mount, replace } from "./mount";
+export type { MountOptions } from "./mount";
 export { setStyle } from "./style";
 export type {
   Child,
@@ -165,3 +166,44 @@ export type { SvgAttribute, SvgProps } from "./svgTypes";
 
 export { icon } from "./icons";
 export type { IconNode } from "./icons";
+
+export { PALETTE } from "./utilities/colors";
+export type { PaletteName, Shade } from "./utilities/colors";
+export {
+  BREAKPOINT,
+  RADIUS,
+  SHADOW,
+  SPACE,
+  TEXT,
+} from "./utilities/scales";
+export type {
+  Breakpoint,
+  Radius,
+  Shadow,
+  Space,
+  TextSize,
+} from "./utilities/scales";
+export { theme, themes } from "./utilities/theme";
+export type {
+  ColorMode,
+  ColorScale,
+  ColorTheme,
+  ColorThemeInput,
+} from "./utilities/theme";
+export {
+  checkPatterns,
+  checkUtilities,
+  findPatterns,
+  patterns,
+} from "./utilities/patterns";
+export type {
+  PatternClasses,
+  PatternDefinition,
+  PatternInfo,
+  PatternIssue,
+  RepeatedUtilitiesIssue,
+  SimilarUtilitiesIssue,
+  UnknownClassesIssue,
+  UtilityCheckOptions,
+  UtilityIssue,
+} from "./utilities/patterns";

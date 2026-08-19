@@ -1,6 +1,16 @@
 import { appendChild } from "./dom";
 import type { Child } from "./domTypes";
 import { collectScope, disposeAll, once, scoped } from "./scope";
+import {
+  applyTheme,
+  type ColorMode,
+  type ColorTheme,
+} from "./utilities/theme";
+
+export type MountOptions = {
+  mode?: ColorMode;
+  theme?: ColorTheme;
+};
 
 export function byId<T extends Element = HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -8,20 +18,35 @@ export function byId<T extends Element = HTMLElement>(id: string): T {
   return el as unknown as T;
 }
 
-function mountChildren(parent: Node, children: Child[]): () => void {
+function mountChildren(
+  parent: Node,
+  children: Child[],
+  options?: MountOptions,
+): () => void {
   const fragment = document.createDocumentFragment();
   const { scope } = collectScope(() => {
     for (const child of children) appendChild(fragment, child);
   });
 
   const mounted = Array.from(fragment.childNodes);
+  let stopTheme: (() => void) | undefined;
+  if (options) {
+    if (!(parent instanceof HTMLElement)) {
+      throw new Error("vrui: mount theme options require an HTML element target");
+    }
+    stopTheme = applyTheme(parent, options.theme, options.mode);
+  }
   parent.appendChild(fragment);
 
   const dispose = once(() => {
     for (const node of mounted) {
       if (node.parentNode === parent) parent.removeChild(node);
     }
-    disposeAll(scope);
+    try {
+      disposeAll(scope);
+    } finally {
+      stopTheme?.();
+    }
   });
 
   return scoped(dispose);
@@ -31,7 +56,11 @@ function observerRoot(): Node {
   return document.documentElement ?? document.body ?? document;
 }
 
-function mountWhenAvailable(targetId: string, children: Child[]): () => void {
+function mountWhenAvailable(
+  targetId: string,
+  children: Child[],
+  options?: MountOptions,
+): () => void {
   let stopMount: (() => void) | undefined;
   let disposed = false;
   let observer: MutationObserver | undefined;
@@ -42,7 +71,7 @@ function mountWhenAvailable(targetId: string, children: Child[]): () => void {
     if (!parent) return;
     observer?.disconnect();
     observer = undefined;
-    stopMount = mountChildren(parent, children);
+    stopMount = mountChildren(parent, children, options);
   }
 
   observer = new MutationObserver(tryMount);
@@ -58,12 +87,35 @@ function mountWhenAvailable(targetId: string, children: Child[]): () => void {
   return scoped(dispose);
 }
 
-export function mount(target: Node | string, ...children: Child[]): () => void {
-  if (typeof target !== "string") return mountChildren(target, children);
+function isMountOptions(value: Child | MountOptions): value is MountOptions {
+  return !!value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    !(value instanceof Node) &&
+    ("theme" in value || "mode" in value);
+}
+
+export function mount(
+  target: Node | string,
+  options: MountOptions,
+  ...children: Child[]
+): () => void;
+export function mount(target: Node | string, ...children: Child[]): () => void;
+export function mount(
+  target: Node | string,
+  ...values: (Child | MountOptions)[]
+): () => void {
+  const first = values[0];
+  const options = first !== undefined && isMountOptions(first)
+    ? first
+    : undefined;
+  const children = (options ? values.slice(1) : values) as Child[];
+
+  if (typeof target !== "string") return mountChildren(target, children, options);
 
   const parent = document.getElementById(target);
-  if (parent) return mountChildren(parent, children);
-  return mountWhenAvailable(target, children);
+  if (parent) return mountChildren(parent, children, options);
+  return mountWhenAvailable(target, children, options);
 }
 
 const replacements = new WeakMap<Node, () => void>();

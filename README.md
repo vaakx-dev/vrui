@@ -1,7 +1,8 @@
 # VRUI
 
 Small DOM UI toolkit with signals, derived values, scoped cleanup, DOM/SVG
-factories, flow helpers, resources, portals, and Lucide icons.
+factories, runtime utilities, color themes, flow helpers, resources, portals,
+and Lucide icons.
 
 ## Overview
 
@@ -77,6 +78,35 @@ const palette = div(
 Avoid app-level raw DOM listeners unless you are integrating a browser API,
 third-party widget, canvas renderer, measurement, or another real escape hatch.
 
+## Runtime utilities
+
+Known class names generate CSS rules at runtime. VRUI uses fixed scales, keeps
+unknown external classes, rejects arbitrary utility values, and inserts each
+generated rule once. No project CSS file or CSS build step is required.
+
+```ts
+import { button, mount, themes } from "@vaakx-dev/vrui";
+
+const save = button(
+  {
+    class: [
+      "inline-flex items-center gap-2 rounded-md px-4 py-2",
+      "bg-accent-600 text-sm font-semibold text-white",
+      "hover:bg-accent-700 disabled:opacity-50",
+    ],
+    onClick: saveProject,
+  },
+  "Save",
+);
+
+mount("app", { theme: themes.indigo }, save);
+```
+
+Color themes only assign color roles. Spacing, sizing, typography, radii,
+shadows, and breakpoints are stable built-in scales. Named `patterns` provide
+searchable project standards, while `checkPatterns` and `checkUtilities`
+report duplicated or drifting combinations.
+
 ## Core support
 
 | Item | Support |
@@ -149,6 +179,7 @@ const profile = form(
 ## Detailed docs
 
 - [DOM factories](docs/domFactories.md)
+- [Runtime utilities](docs/utilities.md)
 - [Events](docs/events.md)
 - [Reactivity](docs/reactivity.md)
 - [Flow helpers](docs/flow.md)

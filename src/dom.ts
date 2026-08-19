@@ -22,6 +22,7 @@ import {
   onTarget,
 } from "./lifecycle";
 import { setStyle } from "./style";
+import { ensureUtilities } from "./utilities/registry";
 
 /* ---------- string + class helpers ---------- */
 
@@ -57,12 +58,14 @@ function hasReactivePart(value: unknown): boolean {
 function setClass(el: HTMLElement, value: unknown): void {
   if (hasReactivePart(value)) {
     const dispose = effect(() => {
-      el.className = classStr(resolve(value) as ClassValue);
+      const next = classStr(resolve(value) as ClassValue);
+      el.className = ensureUtilities(el, next);
     });
     autoDispose(el, dispose);
     return;
   }
-  el.className = classStr(value as ClassValue);
+  const next = classStr(value as ClassValue);
+  el.className = ensureUtilities(el, next);
 }
 
 function isWritableSignal(value: unknown): value is WritableSignal<unknown> {

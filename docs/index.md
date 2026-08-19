@@ -7,6 +7,7 @@ flow helpers, resources, portals, and Lucide icons.
 Use these pages as the reference material behind the README:
 
 - [DOM factories](domFactories.md)
+- [Runtime utilities](utilities.md)
 - [Events](events.md)
 - [Reactivity](reactivity.md)
 - [Flow helpers](flow.md)
