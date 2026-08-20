@@ -2,12 +2,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { sig } from "./core";
 import { button, div } from "./elements";
 import { mount } from "./mount";
-import {
-  checkPatterns,
-  checkUtilities,
-  findPatterns,
-  patterns,
-} from "./utilities/patterns";
 import { theme, themes } from "./utilities/theme";
 
 function utilityCss(): string {
@@ -45,6 +39,29 @@ describe("runtime utilities", () => {
       ".dark\\:bg-blue-700:where([data-vrui-mode=\"dark\"], [data-vrui-mode=\"dark\"] *)",
     );
     expect(utilityCss()).toContain("@media (min-width:48rem){.md\\:px-6");
+  });
+
+  it("supports layered application surfaces", () => {
+    div({ class: "fixed inset-0 z-50 items-baseline bg-black/50" });
+
+    expect(utilityCss()).toContain(".z-50{z-index:50}");
+    expect(utilityCss()).toContain(".items-baseline{align-items:baseline}");
+    expect(utilityCss()).toContain(".bg-black\\/50{background-color:rgb(0 0 0 / 0.5)}");
+  });
+
+  it("supports application shell and layout utilities", () => {
+    div({
+      class: "fixed inset-0 box-border flex flex-1 w-64 max-w-3xl mx-auto border-b border-solid accent-blue-600 font-sans list-none whitespace-nowrap",
+    });
+
+    expect(utilityCss()).toContain(".inset-0{inset:0px}");
+    expect(utilityCss()).toContain(".flex-1{flex:1 1 0%}");
+    expect(utilityCss()).toContain(".border-b{border-bottom-width:1px}");
+    expect(utilityCss()).toContain(".accent-blue-600{accent-color:#2563eb}");
+    expect(utilityCss()).toContain(".w-64{width:16rem}");
+    expect(utilityCss()).toContain(".max-w-3xl{max-width:48rem}");
+    expect(utilityCss()).toContain(".mx-auto{margin-inline:auto}");
+    expect(utilityCss()).toContain(".font-sans{font-family:ui-sans-serif");
   });
 
   it("registers utilities introduced by reactive classes", () => {
@@ -100,107 +117,5 @@ describe("color themes", () => {
     expect(themes.indigo.colors.accent["600"]).toBe("#4f46e5");
     expect(themes.blue.colors.neutral["900"]).toBe("#0f172a");
     expect(themes.violet.colors.danger["500"]).toBe("#ef4444");
-  });
-});
-
-describe("utility patterns", () => {
-  it("registers searchable nested patterns and expands them on elements", () => {
-    const ui = patterns({
-      testAction: {
-        primary: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-white",
-      },
-    });
-
-    const node = button({ class: ui.testAction.primary }, "Save");
-    const found = findPatterns("testAction");
-
-    expect(node.className).toContain("vrui-pattern:testAction.primary");
-    expect(node.className).toContain("bg-blue-600");
-    expect(found).toEqual([
-      {
-        classes: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-white",
-        name: "testAction.primary",
-        token: "vrui-pattern:testAction.primary",
-      },
-    ]);
-  });
-
-  it("rejects unknown utilities inside patterns", () => {
-    expect(() => patterns({ brokenTestPattern: "p-4 typo-class" })).toThrow(
-      "vrui: unknown utility in pattern brokenTestPattern: typo-class",
-    );
-    expect(() => patterns({ brokenColorPattern: "bg-blu-600" })).toThrow(
-      "vrui: unknown utility in pattern brokenColorPattern: bg-blu-600",
-    );
-  });
-
-  it("reports repeated raw utility combinations", () => {
-    const root = div(
-      button({ class: "inline-flex rounded-md px-4 py-2" }, "One"),
-      button({ class: "inline-flex rounded-md px-4 py-2" }, "Two"),
-    );
-
-    expect(checkUtilities(root)).toEqual([
-      expect.objectContaining({
-        count: 2,
-        kind: "repeated-utilities",
-        tag: "button",
-      }),
-    ]);
-  });
-
-  it("does not report repeated registered patterns as raw one-offs", () => {
-    const ui = patterns({
-      auditAction: "inline-flex rounded-md bg-blue-600 px-4 py-2 text-white",
-    });
-    const root = div(
-      button({ class: ui.auditAction }, "One"),
-      button({ class: ui.auditAction }, "Two"),
-    );
-
-    expect(checkUtilities(root)).toEqual([]);
-  });
-
-  it("reports raw combinations that drift by one utility", () => {
-    const root = div(
-      button({ class: "inline-flex items-center rounded-md px-4 py-2" }, "One"),
-      button({ class: "inline-flex items-center rounded-md px-3 py-2" }, "Two"),
-    );
-
-    expect(checkUtilities(root)).toEqual([
-      expect.objectContaining({
-        kind: "similar-utilities",
-        tag: "button",
-      }),
-    ]);
-  });
-
-  it("reports unknown classes only in strict mode", () => {
-    const root = div({ class: "project-card" });
-
-    expect(checkUtilities(root)).toEqual([]);
-    expect(checkUtilities(root, { strict: true })).toEqual([
-      expect.objectContaining({
-        classes: "project-card",
-        kind: "unknown-classes",
-        tag: "div",
-      }),
-    ]);
-  });
-
-  it("finds duplicate pattern definitions", () => {
-    patterns({
-      duplicateTest: {
-        first: "flex items-center gap-2",
-        second: "flex items-center gap-2",
-      },
-    });
-
-    expect(checkPatterns()).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        kind: "duplicate-patterns",
-        patterns: ["duplicateTest.first", "duplicateTest.second"],
-      }),
-    ]));
   });
 });

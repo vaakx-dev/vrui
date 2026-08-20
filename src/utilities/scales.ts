@@ -12,6 +12,25 @@ export const SPACE = {
   "16": "4rem",
   "20": "5rem",
   "24": "6rem",
+  "32": "8rem",
+  "40": "10rem",
+  "48": "12rem",
+  "64": "16rem",
+  "80": "20rem",
+  "96": "24rem",
+} as const;
+
+export const MAX_WIDTH = {
+  sm: "24rem",
+  md: "28rem",
+  lg: "32rem",
+  xl: "36rem",
+  "2xl": "42rem",
+  "3xl": "48rem",
+  "4xl": "56rem",
+  "5xl": "64rem",
+  "6xl": "72rem",
+  "7xl": "80rem",
 } as const;
 
 export const TEXT = {
@@ -51,6 +70,7 @@ export const BREAKPOINT = {
 } as const;
 
 export type Space = keyof typeof SPACE;
+export type MaxWidth = keyof typeof MAX_WIDTH;
 export type TextSize = keyof typeof TEXT;
 export type Radius = keyof typeof RADIUS;
 export type Shadow = keyof typeof SHADOW;

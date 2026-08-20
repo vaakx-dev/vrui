@@ -171,6 +171,7 @@ export { PALETTE } from "./utilities/colors";
 export type { PaletteName, Shade } from "./utilities/colors";
 export {
   BREAKPOINT,
+  MAX_WIDTH,
   RADIUS,
   SHADOW,
   SPACE,
@@ -178,6 +179,7 @@ export {
 } from "./utilities/scales";
 export type {
   Breakpoint,
+  MaxWidth,
   Radius,
   Shadow,
   Space,
@@ -190,20 +192,3 @@ export type {
   ColorTheme,
   ColorThemeInput,
 } from "./utilities/theme";
-export {
-  checkPatterns,
-  checkUtilities,
-  findPatterns,
-  patterns,
-} from "./utilities/patterns";
-export type {
-  PatternClasses,
-  PatternDefinition,
-  PatternInfo,
-  PatternIssue,
-  RepeatedUtilitiesIssue,
-  SimilarUtilitiesIssue,
-  UnknownClassesIssue,
-  UtilityCheckOptions,
-  UtilityIssue,
-} from "./utilities/patterns";

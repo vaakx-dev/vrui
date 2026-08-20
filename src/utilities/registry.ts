@@ -1,5 +1,4 @@
 import { compileUtility, type CompiledUtility } from "./compiler";
-import { expandPatterns } from "./patterns";
 
 type Registry = {
   rules: Map<string, CompiledUtility>;
@@ -38,8 +37,7 @@ function render(current: Registry): void {
 }
 
 export function ensureUtilities(element: Element, className: string): string {
-  const expanded = expandPatterns(className);
-  const tokens = expanded.split(/\s+/).filter(Boolean);
+  const tokens = className.split(/\s+/).filter(Boolean);
   for (const token of tokens) {
     if (token.includes("[") || token.includes("]")) {
       throw new Error(`vrui: arbitrary utility values are not supported: ${token}`);
@@ -49,7 +47,7 @@ export function ensureUtilities(element: Element, className: string): string {
   const compiled = tokens
     .map(compileUtility)
     .filter((rule): rule is CompiledUtility => !!rule);
-  if (!compiled.length) return expanded;
+  if (!compiled.length) return className;
 
   const current = registry(element.ownerDocument);
   let changed = false;
@@ -59,5 +57,5 @@ export function ensureUtilities(element: Element, className: string): string {
     changed = true;
   }
   if (changed) render(current);
-  return expanded;
+  return className;
 }

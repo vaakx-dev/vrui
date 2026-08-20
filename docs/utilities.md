@@ -31,9 +31,12 @@ real dynamic or platform-specific value.
 
 ## Built-in scales
 
-Spacing utilities use `0`, `1`, `2`, `3`, `4`, `5`, `6`, `8`, `10`, `12`,
-`16`, `20`, and `24`. Examples include `p-4`, `px-6`, `mt-2`, `gap-4`,
-`w-24`, and `h-full`.
+Spacing and fixed-size utilities use `0`, `1`, `2`, `3`, `4`, `5`, `6`, `8`,
+`10`, `12`, `16`, `20`, `24`, `32`, `40`, `48`, `64`, `80`, and `96`.
+Examples include `p-4`, `px-6`, `mt-2`, `gap-4`, `w-64`, and `h-full`.
+
+Named maximum widths run from `max-w-sm` through `max-w-7xl`. They provide
+stable content widths without treating a page width as an arbitrary value.
 
 Text sizes are `xs`, `sm`, `base`, `lg`, `xl`, `2xl`, and `3xl`. Radius
 values are `none`, `sm`, `md`, `lg`, `xl`, `2xl`, and `full`. Shadows are
@@ -46,9 +49,9 @@ The first utility set covers:
 - flex direction, wrapping, alignment, and distribution
 - grid columns
 - padding, margin, gap, width, and height
-- text size, weight, alignment, color, and truncation
+- text family, size, weight, alignment, decoration, color, and truncation
 - backgrounds, borders, radii, rings, shadows, and opacity
-- pointer, cursor, appearance, and transitions
+- pointer, cursor, appearance, selection, accent color, and transitions
 
 State variants include `hover`, `focus`, `focus-visible`, `active`,
 `disabled`, `checked`, `first`, and `last`. Responsive variants use `sm`,
@@ -95,39 +98,40 @@ Semantic color utilities use the selected role, such as `bg-accent-600` and
 `text-neutral-50`. Direct palette utilities such as `bg-blue-600` work without
 a theme. The `dark` variant checks the explicit mount mode.
 
-## Named patterns
+## Application components
 
-Patterns give repeated utility combinations one project-owned name.
-
-```ts
-import { patterns } from "@vaakx-dev/vrui";
-
-export const ui = patterns({
-  button: {
-    primary: [
-      "inline-flex items-center gap-2 rounded-md px-4 py-2",
-      "bg-accent-600 text-sm font-semibold text-white",
-      "hover:bg-accent-700 disabled:opacity-50",
-    ].join(" "),
-  },
-});
-```
+When a utility composition represents a repeated UI shape, put it in the
+component that owns the element and behavior:
 
 ```ts
-button({ class: ui.button.primary, onClick: saveProject }, "Save");
+import { button, type Child, type Props } from "@vaakx-dev/vrui";
+
+export function primary_action(
+  props: Props<HTMLButtonElement>,
+  ...children: Child[]
+) {
+  const { class: class_name, ...button_props } = props;
+
+  return button(
+    {
+      ...button_props,
+      class: [
+        "inline-flex items-center gap-2 rounded-md px-4 py-2",
+        "bg-accent-600 text-sm font-semibold text-white",
+        "hover:bg-accent-700 disabled:opacity-50",
+        class_name,
+      ],
+    },
+    ...children,
+  );
+}
 ```
 
-Pattern definitions accept only known utilities and previously registered
-patterns. `findPatterns("button")` returns the searchable catalog.
+This gives the application one searchable, typed component instead of a
+separate registry of class-name strings.
 
-Use the audits against a rendered project surface:
-
-```ts
-const patternIssues = checkPatterns();
-const viewIssues = checkUtilities(document, { strict: true });
-```
-
-`checkPatterns` reports duplicate and near-duplicate pattern definitions.
-`checkUtilities` reports repeated or near-duplicate raw utility combinations.
-Strict mode also reports unknown classes. The view audit covers elements that
-exist under the supplied root; it is not a source-code scan.
+Within this repository, `npm run examples:style` checks example source for
+arbitrary values and repeated or near-repeated utility shapes. It points to the
+first matching source location so the shape can be extracted into the nearest
+application component. The source check is a repository convention, not a
+runtime requirement for applications using VRUI.

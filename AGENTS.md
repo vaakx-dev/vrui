@@ -1,33 +1,91 @@
-# VRUI Codegen Conventions
+# VRUI Application Conventions
 
-Write application code as VRUI code first. Raw DOM APIs are escape hatches, not
-the normal style.
+Write application interfaces as VRUI code. Use `examples/tasks` as the small
+application reference and `examples/workshop` as the multi-feature reference.
 
-Prefer:
+## Start small
 
-- factories such as `div`, `button`, `input`, `form`, `label`, `select`,
-  `option`, `dialog`, `table`, and `svg`
-- reactive props and children with `sig`, `derive`, and `effect`
-- `bindValue` and `bindChecked` for common form state
-- event props such as `onClick`, `onInput`, and `onKeyDown`
-- event helpers such as `stop`, `prevent`, `preventThen`, `stopThen`, and
-  `keys`
-- flow helpers such as `show`, `keep`, `list`, `portal`, `mount`, and
-  `replace`
-- cleanup-aware helpers such as `listen`, `onWindow`, `onDocument`, and
-  `onTarget`
-- browser side-effect helpers such as `onTimeout`, `onInterval`, `onRaf`,
-  `onResize`, `onMedia`, `resizeObserver`, and `intersectionObserver`
+A small application normally needs:
 
-Avoid in app code unless there is a real integration need:
+```text
+feature/
+  main.ts
+  model.ts
+  view.ts
+```
 
-- `document.createElement`
-- element-level `addEventListener`
-- manual `appendChild` or `removeChild`
-- manual `textContent`, `className`, or `style.*` updates for reactive UI
-- unmanaged timers, observers, or global event listeners
+- `model.ts` owns state, derived values, and domain actions.
+- `view.ts` owns elements, bindings, flow, events, and lifecycle.
+- `main.ts` composes the application, selects the color theme, and mounts it.
 
-Acceptable escape hatches include canvas rendering, third-party widgets,
-measurement/layout reads, unsupported platform APIs, and custom elements that
-need direct imperative setup. Use `ref`, `onMount`, and cleanup-aware helpers
-around those boundaries.
+One cohesive `view.ts` is preferable while the interface remains easy to
+understand as a whole.
+
+## Grow by ownership
+
+Create a feature folder when it owns a model and view of its own. Create a
+component when a real UI shape or behavior is reused.
+
+```text
+application/
+  components/
+    action.ts
+    field.ts
+    panel.ts
+  orders/
+    editor.ts
+    model.ts
+    row.ts
+    view.ts
+  main.ts
+  model.ts
+  view.ts
+```
+
+Components are functions that return VRUI elements. Keep their utility classes
+inside the component that owns the shape. Do not build a separate catalog of
+class-name strings.
+
+Keep actions in models and route view events to those actions. Keep theme
+selection at the mount boundary. Themes assign colors; spacing, sizing, type,
+radii, shadows, and breakpoints come from the built-in utility scales.
+
+## UI routes
+
+Choose the VRUI path that matches the application intent:
+
+| Intent | Route |
+| --- | --- |
+| Elements | typed factories such as `div`, `button`, `input`, `form`, `table`, and `svg` |
+| Reactive state and props | `sig`, `derive`, `effect`, reactive children, and reactive props |
+| Forms | `bindValue`, `bindChecked`, `onSubmit`, and `preventThen` |
+| Element interaction | typed event props and `keys`, `event`, `stopThen`, or `preventThen` |
+| Conditional and repeated UI | `show`, `keep`, `dynamicChild`, and keyed `list` |
+| Window or document interaction | `onWindow` and `onDocument` |
+| Target or custom interaction | `onTarget` and `listen` |
+| Delayed browser work | `onTimeout`, `onInterval`, and `onRaf` |
+| Browser observation | `onResize`, `onMedia`, `resizeObserver`, and `intersectionObserver` |
+| Imperative integration | `ref` or `onMount`, returning cleanup |
+
+Every browser side effect belongs to a VRUI element or active scope. Keep setup
+and cleanup together at that ownership boundary.
+
+Canvas, measurement, custom-element, and third-party widget code belongs in a
+focused `integrations` module. Expose a small VRUI-facing function and keep the
+native platform contract inside that boundary.
+
+## Utilities
+
+Compose UI from known runtime utilities. Reuse the built-in scales and variants
+instead of introducing one-off values. When a utility shape repeats, extract
+the actual element into the nearest application `components` folder.
+
+## Verification
+
+Run `npm run examples:style` while writing application code. It checks browser
+ownership, arbitrary utility values, and repeated utility shapes. Run
+`npm run examples:check` for type checking, application checks, and production
+builds of both examples.
+
+Read `docs/application-patterns.md` when choosing a project boundary, event,
+lifecycle, flow, or integration shape.

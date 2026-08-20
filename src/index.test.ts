@@ -37,11 +37,9 @@ describe("public index exports", () => {
     expect(typeof vrui.disposeAll).toBe("function");
     expect(typeof vrui.once).toBe("function");
     expect(typeof vrui.untrack).toBe("function");
-    expect(typeof vrui.patterns).toBe("function");
-    expect(typeof vrui.findPatterns).toBe("function");
-    expect(typeof vrui.checkUtilities).toBe("function");
     expect(typeof vrui.theme).toBe("function");
     expect(vrui.SPACE["4"]).toBe("1rem");
+    expect(vrui.MAX_WIDTH["3xl"]).toBe("48rem");
     expect(vrui.themes.indigo.colors.accent["600"]).toBe("#4f46e5");
 
     doubled.dispose();

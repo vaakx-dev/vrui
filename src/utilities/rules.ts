@@ -1,5 +1,5 @@
 import { colorValue } from "./colors";
-import { RADIUS, SHADOW, SPACE, TEXT } from "./scales";
+import { MAX_WIDTH, RADIUS, SHADOW, SPACE, TEXT } from "./scales";
 
 export type Declaration = readonly [property: string, value: string];
 
@@ -20,6 +20,7 @@ function add(
 }
 
 add(100, {
+  "box-border": [["box-sizing", "border-box"]],
   block: [["display", "block"]],
   "inline-block": [["display", "inline-block"]],
   inline: [["display", "inline"]],
@@ -36,6 +37,13 @@ add(110, {
   absolute: [["position", "absolute"]],
   relative: [["position", "relative"]],
   sticky: [["position", "sticky"]],
+  "inset-0": [["inset", "0px"]],
+  "z-0": [["z-index", "0"]],
+  "z-10": [["z-index", "10"]],
+  "z-20": [["z-index", "20"]],
+  "z-30": [["z-index", "30"]],
+  "z-40": [["z-index", "40"]],
+  "z-50": [["z-index", "50"]],
 });
 
 add(200, {
@@ -43,6 +51,7 @@ add(200, {
   "flex-col": [["flex-direction", "column"]],
   "flex-wrap": [["flex-wrap", "wrap"]],
   "flex-nowrap": [["flex-wrap", "nowrap"]],
+  "flex-1": [["flex", "1 1 0%"]],
   grow: [["flex-grow", "1"]],
   "grow-0": [["flex-grow", "0"]],
   shrink: [["flex-shrink", "1"]],
@@ -51,6 +60,7 @@ add(200, {
   "items-center": [["align-items", "center"]],
   "items-end": [["align-items", "flex-end"]],
   "items-stretch": [["align-items", "stretch"]],
+  "items-baseline": [["align-items", "baseline"]],
   "justify-start": [["justify-content", "flex-start"]],
   "justify-center": [["justify-content", "center"]],
   "justify-end": [["justify-content", "flex-end"]],
@@ -72,9 +82,21 @@ add(300, {
   "pointer-events-none": [["pointer-events", "none"]],
   "pointer-events-auto": [["pointer-events", "auto"]],
   "appearance-none": [["appearance", "none"]],
+  "select-none": [["user-select", "none"]],
+});
+
+add(400, {
+  "m-auto": [["margin", "auto"]],
+  "mx-auto": [["margin-inline", "auto"]],
+  "my-auto": [["margin-block", "auto"]],
+  "mt-auto": [["margin-top", "auto"]],
+  "mr-auto": [["margin-right", "auto"]],
+  "mb-auto": [["margin-bottom", "auto"]],
+  "ml-auto": [["margin-left", "auto"]],
 });
 
 add(600, {
+  "font-sans": [["font-family", "ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji"]],
   "text-left": [["text-align", "left"]],
   "text-center": [["text-align", "center"]],
   "text-right": [["text-align", "right"]],
@@ -84,6 +106,8 @@ add(600, {
   "font-bold": [["font-weight", "700"]],
   "italic": [["font-style", "italic"]],
   "not-italic": [["font-style", "normal"]],
+  "list-none": [["list-style-type", "none"]],
+  "whitespace-nowrap": [["white-space", "nowrap"]],
   "uppercase": [["text-transform", "uppercase"]],
   "lowercase": [["text-transform", "lowercase"]],
   "truncate": [
@@ -91,13 +115,20 @@ add(600, {
     ["text-overflow", "ellipsis"],
     ["white-space", "nowrap"],
   ],
+  "no-underline": [["text-decoration-line", "none"]],
+  underline: [["text-decoration-line", "underline"]],
 });
 
 add(700, {
   "border-0": [["border-width", "0px"]],
   border: [["border-width", "1px"]],
   "border-2": [["border-width", "2px"]],
+  "border-t": [["border-top-width", "1px"]],
+  "border-r": [["border-right-width", "1px"]],
+  "border-b": [["border-bottom-width", "1px"]],
+  "border-l": [["border-left-width", "1px"]],
   "border-solid": [["border-style", "solid"]],
+  "outline-none": [["outline", "2px solid transparent"], ["outline-offset", "2px"]],
   "shadow-none": [["--vrui-shadow", "0 0 #0000"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
   "ring-0": [["--vrui-ring-shadow", "0 0 0 0px var(--vrui-ring-color, currentColor)"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
   "ring-1": [["--vrui-ring-shadow", "0 0 0 1px var(--vrui-ring-color, currentColor)"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
@@ -147,7 +178,9 @@ function size(token: string): ResolvedUtility | undefined {
     auto: "auto", full: "100%", screen: kind.includes("w") ? "100vw" : "100vh",
     min: "min-content", max: "max-content", fit: "fit-content",
   };
-  const value = SPACE[key as keyof typeof SPACE] ?? named[key];
+  const value = SPACE[key as keyof typeof SPACE] ??
+    (kind === "max-w" ? MAX_WIDTH[key as keyof typeof MAX_WIDTH] : undefined) ??
+    named[key];
   if (!value) return;
   return { declarations: [[property, value]], order: 500 };
 }
@@ -200,12 +233,13 @@ function shadow(token: string): ResolvedUtility | undefined {
 }
 
 function color(token: string): ResolvedUtility | undefined {
-  const match = /^(bg|text|border|ring)-([a-z][a-z0-9-]*)-(\d+)$/.exec(token);
+  const match = /^(accent|bg|text|border|ring)-([a-z][a-z0-9-]*)-(\d+)$/.exec(token);
   if (!match) return;
   const [, kind, name, shade] = match;
   const value = colorValue(name, shade);
   if (!value) return;
   const property = {
+    accent: "accent-color",
     bg: "background-color",
     text: "color",
     border: "border-color",
@@ -215,10 +249,16 @@ function color(token: string): ResolvedUtility | undefined {
 }
 
 function simpleColor(token: string): ResolvedUtility | undefined {
-  const match = /^(bg|text|border)-(transparent|black|white|current)$/.exec(token);
+  const match = /^(bg|text|border)-(transparent|black|white|current)(?:\/(25|50|75))?$/.exec(token);
   if (!match) return;
-  const [, kind, name] = match;
-  const value = { transparent: "transparent", black: "#000", white: "#fff", current: "currentColor" }[name]!;
+  const [, kind, name, opacity] = match;
+  if (opacity && name !== "black" && name !== "white") return;
+  const alpha = opacity ? Number(opacity) / 100 : undefined;
+  const value = alpha === undefined
+    ? { transparent: "transparent", black: "#000", white: "#fff", current: "currentColor" }[name]!
+    : name === "black"
+      ? `rgb(0 0 0 / ${alpha})`
+      : `rgb(255 255 255 / ${alpha})`;
   const property = { bg: "background-color", text: "color", border: "border-color" }[kind]!;
   return { declarations: [[property, value]], order: 750 };
 }
