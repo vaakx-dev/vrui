@@ -137,7 +137,7 @@ type EventFor<
 export type EventProps<E extends Element = Element> = {
   [P in EventPropName]?: EventHandler<
     EventFor<E, EventNameFromProp<P>>
-  >;
+  > | undefined;
 };
 
 export function eventNameFromProp(key: string): string {

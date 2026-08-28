@@ -53,8 +53,10 @@ type AriaProps = {
 };
 
 export type CommonProps<E extends Element> = {
-  ref?: (el: E) => void;
-  onMount?: (el: E) => Cleanup;
+  // Optional props accept undefined so wrappers can forward destructured
+  // optionals under exactOptionalPropertyTypes.
+  ref?: ((el: E) => void) | undefined;
+  onMount?: ((el: E) => Cleanup) | undefined;
   class?: ClassValue;
   style?: StyleValue;
   text?: MaybeReactive<unknown>;
