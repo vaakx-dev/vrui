@@ -19,7 +19,7 @@ describe("runtime utilities", () => {
 
   it("generates rules from fixed utility scales", () => {
     const node = button({
-      class: "inline-flex h-px w-px items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold",
+      class: "inline-flex h-px w-px items-center gap-2 rounded-md border-b px-4 py-2 text-sm font-semibold",
     });
 
     expect(node.className).toContain("px-4");
@@ -28,6 +28,7 @@ describe("runtime utilities", () => {
     expect(utilityCss()).toContain(".px-4{padding-inline:1rem}");
     expect(utilityCss()).toContain(".h-px{height:1px}");
     expect(utilityCss()).toContain(".w-px{width:1px}");
+    expect(utilityCss()).toContain(".border-b{border-width:0px;border-bottom-width:1px}");
     expect(utilityCss()).toContain(".rounded-md{border-radius:0.375rem}");
     expect(utilityCss()).toContain(".text-sm{font-size:0.875rem;line-height:1.25rem}");
   });
@@ -58,7 +59,7 @@ describe("runtime utilities", () => {
 
     expect(utilityCss()).toContain(".inset-0{inset:0px}");
     expect(utilityCss()).toContain(".flex-1{flex:1 1 0%}");
-    expect(utilityCss()).toContain(".border-b{border-bottom-width:1px}");
+    expect(utilityCss()).toContain(".border-b{border-width:0px;border-bottom-width:1px}");
     expect(utilityCss()).toContain(".accent-blue-600{accent-color:#2563eb}");
     expect(utilityCss()).toContain(".w-64{width:16rem}");
     expect(utilityCss()).toContain(".max-w-3xl{max-width:48rem}");

@@ -123,10 +123,12 @@ add(700, {
   "border-0": [["border-width", "0px"]],
   border: [["border-width", "1px"]],
   "border-2": [["border-width", "2px"]],
-  "border-t": [["border-top-width", "1px"]],
-  "border-r": [["border-right-width", "1px"]],
-  "border-b": [["border-bottom-width", "1px"]],
-  "border-l": [["border-left-width", "1px"]],
+  // Side widths zero the remaining sides so border-solid does not expose the
+  // UA initial `medium` width on them.
+  "border-t": [["border-width", "0px"], ["border-top-width", "1px"]],
+  "border-r": [["border-width", "0px"], ["border-right-width", "1px"]],
+  "border-b": [["border-width", "0px"], ["border-bottom-width", "1px"]],
+  "border-l": [["border-width", "0px"], ["border-left-width", "1px"]],
   "border-solid": [["border-style", "solid"]],
   "outline-none": [["outline", "2px solid transparent"], ["outline-offset", "2px"]],
   "shadow-none": [["--vrui-shadow", "0 0 #0000"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
