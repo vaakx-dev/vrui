@@ -19,13 +19,15 @@ describe("runtime utilities", () => {
 
   it("generates rules from fixed utility scales", () => {
     const node = button({
-      class: "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold",
+      class: "inline-flex h-px w-px items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold",
     });
 
     expect(node.className).toContain("px-4");
     expect(utilityCss()).toContain(".inline-flex{display:inline-flex}");
     expect(utilityCss()).toContain(".gap-2{gap:0.5rem}");
     expect(utilityCss()).toContain(".px-4{padding-inline:1rem}");
+    expect(utilityCss()).toContain(".h-px{height:1px}");
+    expect(utilityCss()).toContain(".w-px{width:1px}");
     expect(utilityCss()).toContain(".rounded-md{border-radius:0.375rem}");
     expect(utilityCss()).toContain(".text-sm{font-size:0.875rem;line-height:1.25rem}");
   });
