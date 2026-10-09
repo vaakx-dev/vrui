@@ -244,12 +244,13 @@ application's other checks:
 "vrui": {
   "check": ["src"],
   "classes": ["markdown"],
+  "roles": ["sky"],
   "ui": ["@vaakx-dev/vrui"]
 }
 ```
 
 `check` lists the folders to scan. `classes` lists class names the application
-defines itself. `ui` lists the modules that mark a file as view code; browser
+defines itself, and `roles` lists extra color roles its theme registers. `ui` lists the modules that mark a file as view code; browser
 work is only reported in those files.
 
 The check works on source, so it catches drift in rarely rendered branches as

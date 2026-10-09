@@ -9,6 +9,7 @@
 //   "vrui": {
 //     "check": ["src"],             folders or files to scan
 //     "classes": ["markdown"],      app-defined class names that are not utilities
+//     "roles": ["sky"],             extra color roles the app's theme registers
 //     "ui": ["@vaakx-dev/vrui"]     a file is UI code when it imports one of these
 //   }
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -69,6 +70,8 @@ const args = process.argv.slice(2);
 const roots = (args.length ? args : config.check ?? ["src"]).map((path) => resolve(cwd, path));
 const allowed = new Set(config.classes ?? []);
 const uiModules = config.ui ?? ["@vaakx-dev/vrui"];
+// Themes register their roles at runtime; register the app's extra roles the same way.
+for (const role of config.roles ?? []) vrui.theme({ [role]: "slate" });
 
 // ---------------------------------------------------------------- files
 
@@ -309,7 +312,7 @@ function suggestion(name) {
     return "use a shade from 50, 100, 200, ... 900, 950";
   }
   if (color) {
-    return `"${color[2]}" is not a color role; use accent, neutral, success, warning or danger, and choose palettes in the theme`;
+    return `"${color[2]}" is not a color role; use accent, neutral, success, warning or danger, or list a role the app's theme adds in package.json "vrui.roles"`;
   }
   if (name.includes(":")) return "that variant or utility doesn't exist; see docs/utilities.md, or list an app class in package.json \"vrui.classes\"";
   return "use a VRUI utility (docs/utilities.md), or list an app-defined class in package.json \"vrui.classes\"";
