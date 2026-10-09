@@ -19,3 +19,4 @@ Use these pages as the reference material behind the README:
 - [Store and resources](storeResource.md)
 - [Portal](portal.md)
 - [SVG](svg.md)
+- [Working on VRUI](development.md)

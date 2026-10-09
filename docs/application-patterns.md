@@ -234,3 +234,22 @@ rendered page. It reports:
 When a repeated shape is reported, extract the actual VRUI element into the
 nearest feature or application component. Focused `integrations` folders are
 treated as explicit native-platform boundaries.
+
+Run it as `npx vrui-check src` or `bunx vrui-check src`, and add it to the
+application's other checks. With no paths, it reads its settings from the
+`vrui` field in the application's `package.json`:
+
+```json
+"vrui": {
+  "check": ["src"],
+  "classes": ["markdown"],
+  "roles": ["sky"],
+  "ui": ["@vaakx-dev/vrui"]
+}
+```
+
+- `check` lists the folders to scan.
+- `classes` lists class names the application defines in its own CSS.
+- `roles` lists extra color roles the application's theme registers.
+- `ui` lists the modules that mark a file as view code. The check only reports
+  browser operations in files that import one of them.
