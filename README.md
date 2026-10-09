@@ -39,7 +39,8 @@ bun add github:vaakx-dev/vrui lucide
 import { button, div, mount, sig } from "@vaakx-dev/vrui";
 ```
 
-VRUI builds ESM to `dist/index.js` with declarations in `dist/index.d.ts`.
+npm installs build ESM to `dist/index.js`. Bun and TypeScript use the
+TypeScript source in `src/` directly, so Bun installs need no build step.
 
 ## Examples
 

@@ -12,10 +12,11 @@
   },
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
+      "bun": "./src/index.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
@@ -26,8 +27,11 @@
   "files": [
     "dist/index.js",
     "dist/index.d.ts",
+    "src",
+    "!src/**/*.test.ts",
     "scripts/check.mjs",
     "docs",
+    "AGENTS.md",
     "README.md"
   ],
   "scripts": {
