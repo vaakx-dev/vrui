@@ -79,6 +79,8 @@ describe("runtime utilities", () => {
     expect(utilityCss()).toContain(".inset-x-4{left:1rem;right:1rem}");
     expect(utilityCss()).toContain(".inset-y-0{top:0px;bottom:0px}");
     expect(isUtility("top-7")).toBe(false);
+    expect(isUtility("py-px")).toBe(true);
+    expect(isUtility("gap-x-px")).toBe(true);
     expect(isUtility("md:hover:top-2")).toBe(true);
   });
 

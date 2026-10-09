@@ -304,7 +304,7 @@ function suggestion(name) {
   if (/^-?(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y|w|h|top|right|bottom|left|inset|inset-x|inset-y)-/.test(utility)) {
     return `use a step on the spacing scale (${SCALE})`;
   }
-  const color = /^(bg|text|border|ring|accent)-([a-z]+)-\d+$/.exec(utility);
+  const color = /^(bg|text|border|ring|accent)-([a-z]{2,})-\d+$/.exec(utility);
   if (color && /^(accent|neutral|success|warning|danger)$/.test(color[2])) {
     return "use a shade from 50, 100, 200, ... 900, 950";
   }

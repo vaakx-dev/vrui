@@ -148,7 +148,7 @@ add(800, {
 });
 
 function spacing(token: string): ResolvedUtility | undefined {
-  const match = /^(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+)$/.exec(token);
+  const match = /^(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+|px)$/.exec(token);
   if (!match) return;
   const [, kind, key] = match as unknown as [string, string, string];
   const value = SPACE[key as keyof typeof SPACE];
