@@ -30,7 +30,7 @@ Read [Application structure](docs/application-patterns.md) first. It shows how t
 
 ## Versions
 
-VRUI is in alpha, and the API can change between releases. Each GitHub release, such as `v0.1.0-alpha.1`, never changes. The `nightly` tag points to the newest commit on `main` that passed the checks, and moves at most once a day. `main` has every change as soon as it's pushed.
+VRUI is in alpha, and the API can change between releases. Each GitHub release, such as `v0.1.0-alpha.1`, never changes. `main` has every change as soon as it's pushed.
 
 ## Docs
 
