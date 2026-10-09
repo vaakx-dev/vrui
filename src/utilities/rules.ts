@@ -37,7 +37,6 @@ add(110, {
   absolute: [["position", "absolute"]],
   relative: [["position", "relative"]],
   sticky: [["position", "sticky"]],
-  "inset-0": [["inset", "0px"]],
   "z-0": [["z-index", "0"]],
   "z-10": [["z-index", "10"]],
   "z-20": [["z-index", "20"]],
@@ -168,6 +167,23 @@ function spacing(token: string): ResolvedUtility | undefined {
   };
 }
 
+function position(token: string): ResolvedUtility | undefined {
+  const match = /^(top|right|bottom|left|inset-x|inset-y|inset)-(.+)$/.exec(token);
+  if (!match) return;
+  const [, kind, key] = match as unknown as [string, string, string];
+  const value = SPACE[key as keyof typeof SPACE] ??
+    ({ full: "100%", auto: "auto" } as Record<string, string>)[key];
+  if (!value) return;
+  const properties: Record<string, string[]> = {
+    top: ["top"], right: ["right"], bottom: ["bottom"], left: ["left"],
+    inset: ["inset"], "inset-x": ["left", "right"], "inset-y": ["top", "bottom"],
+  };
+  return {
+    declarations: properties[kind]!.map((property) => [property, value]),
+    order: 120,
+  };
+}
+
 function size(token: string): ResolvedUtility | undefined {
   const match = /^(w|h|min-w|min-h|max-w|max-h)-(.+)$/.exec(token);
   if (!match) return;
@@ -265,7 +281,7 @@ function simpleColor(token: string): ResolvedUtility | undefined {
   return { declarations: [[property, value]], order: 750 };
 }
 
-const resolvers = [spacing, size, columns, textSize, rounded, shadow, color, simpleColor];
+const resolvers = [position, spacing, size, columns, textSize, rounded, shadow, color, simpleColor];
 
 export function resolveUtility(token: string): ResolvedUtility | undefined {
   const known = exact[token];

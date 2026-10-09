@@ -67,6 +67,19 @@ describe("runtime utilities", () => {
     expect(utilityCss()).toContain(".font-sans{font-family:ui-sans-serif");
   });
 
+  it("places positioned elements with the spacing scale", () => {
+    div({ class: "absolute top-0 right-2 bottom-px left-auto top-full inset-x-4 inset-y-0" });
+
+    expect(utilityCss()).toContain(".top-0{top:0px}");
+    expect(utilityCss()).toContain(".right-2{right:0.5rem}");
+    expect(utilityCss()).toContain(".bottom-px{bottom:1px}");
+    expect(utilityCss()).toContain(".left-auto{left:auto}");
+    expect(utilityCss()).toContain(".top-full{top:100%}");
+    expect(utilityCss()).toContain(".inset-x-4{left:1rem;right:1rem}");
+    expect(utilityCss()).toContain(".inset-y-0{top:0px;bottom:0px}");
+    expect(utilityCss()).not.toContain(".top-7");
+  });
+
   it("registers utilities introduced by reactive classes", () => {
     const classes = sig("p-2");
     const node = div({ class: classes });
