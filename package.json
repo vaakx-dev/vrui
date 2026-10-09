@@ -20,9 +20,13 @@
       "default": "./dist/index.js"
     }
   },
+  "bin": {
+    "vrui-check": "./scripts/check.mjs"
+  },
   "files": [
     "dist/index.js",
     "dist/index.d.ts",
+    "scripts/check.mjs",
     "docs",
     "README.md"
   ],
@@ -36,11 +40,16 @@
     "example:workshop:build": "vite build examples/workshop --config examples/vite.config.mjs --outDir ../../.examples-dist/workshop",
     "examples:build": "npm run example:tasks:build && npm run example:workshop:build",
     "examples:check": "npm run examples:typecheck && npm run examples:style && npm run examples:build",
-    "examples:style": "node scripts/check_application_style.mjs",
+    "examples:style": "node scripts/check.mjs examples",
     "examples:typecheck": "tsc -p tsconfig.examples.json",
     "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
+  },
+  "vrui": {
+    "check": [
+      "examples"
+    ]
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^16.0.3",

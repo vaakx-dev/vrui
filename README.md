@@ -31,6 +31,8 @@ rejected. Themes map color roles only; they never change layout or sizing.
 
 ```sh
 npm install github:vaakx-dev/vrui lucide
+# or
+bun add github:vaakx-dev/vrui lucide
 ```
 
 ```ts
@@ -222,12 +224,32 @@ Read [Runtime utilities](docs/utilities.md) for scales, variants, and themes.
 
 ## Keeping application code coherent
 
-`npm run examples:style` checks example source for three kinds of drift:
+`vrui-check` checks application source for four kinds of drift:
 
-- browser work that has not been routed through a VRUI event or lifecycle API
+- class names that VRUI does not generate, which silently do nothing
 - arbitrary utility values outside the fixed scale
+- browser work that has not been routed through a VRUI event or lifecycle API
 - repeated or near-repeated utility shapes that should become an application
   component
+
+```sh
+npx vrui-check src       # or: bunx vrui-check src
+```
+
+Configure it in the application's `package.json`, and run it with the
+application's other checks:
+
+```json
+"vrui": {
+  "check": ["src"],
+  "classes": ["markdown"],
+  "ui": ["@vaakx-dev/vrui"]
+}
+```
+
+`check` lists the folders to scan. `classes` lists class names the application
+defines itself. `ui` lists the modules that mark a file as view code; browser
+work is only reported in those files.
 
 The check works on source, so it catches drift in rarely rendered branches as
 well as the current page. Integration modules remain explicit escape hatches
@@ -253,7 +275,7 @@ for canvas, third-party widgets, measurements, and unsupported platform APIs.
 
 ```sh
 npm run check
-npm run examples:style
+npm run examples:style   # vrui-check on the examples
 npm run examples:check
 ```
 

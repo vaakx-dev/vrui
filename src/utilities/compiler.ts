@@ -69,3 +69,8 @@ export function compileUtility(token: string): CompiledUtility | undefined {
     token,
   };
 }
+
+/** Whether VRUI generates CSS for this class name, including its variants. */
+export function isUtility(token: string): boolean {
+  return compileUtility(token) !== undefined;
+}

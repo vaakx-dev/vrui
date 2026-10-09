@@ -82,10 +82,11 @@ the actual element into the nearest application `components` folder.
 
 ## Verification
 
-Run `npm run examples:style` while writing application code. It checks browser
-ownership, arbitrary utility values, and repeated utility shapes. Run
-`npm run examples:check` for type checking, application checks, and production
-builds of both examples.
+Run `vrui-check` (`npm run examples:style` in this repository) while writing
+application code, and fix everything it reports. It rejects class names VRUI
+does not generate, arbitrary utility values, browser work outside VRUI, and
+repeated utility shapes. Unknown classes are not harmless: they render nothing.
+Run `npm run check` before reporting.
 
 Read `docs/application-patterns.md` when choosing a project boundary, event,
 lifecycle, flow, or integration shape.

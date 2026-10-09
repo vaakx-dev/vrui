@@ -223,9 +223,10 @@ The view remains VRUI-shaped while the integration keeps its native contract.
 
 ## Source checks
 
-`npm run examples:style` checks the complete example source rather than only
-the rendered page. It reports:
+`vrui-check` checks the complete application source rather than only the
+rendered page. It reports:
 
+- class names VRUI does not generate
 - browser operations that bypass the application routes above
 - arbitrary utility values outside the built-in scale
 - exact and near-duplicate utility shapes within an application

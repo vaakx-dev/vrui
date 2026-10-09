@@ -29,7 +29,7 @@ export function navigation(page: Sig<Page>): HTMLElement {
       class: [
         "box-border flex shrink-0 flex-col gap-4 border-b border-solid",
         "border-neutral-800 bg-neutral-950 p-4 text-white",
-        "lg:w-64 lg:border-r lg:border-b-0 lg:p-5",
+        "lg:w-64 lg:border-r lg:p-5",
       ],
     },
     div(

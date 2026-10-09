@@ -25,15 +25,22 @@ once into `style[data-vrui-utilities]` and sorts rules independently of element
 creation order. Reactive class values register new rules before updating the
 element.
 
-Unknown class names remain available for external integrations. Arbitrary
-utility values such as `w-[13px]` throw. Use the existing `style` prop for a
+Unknown class names stay on the element for external stylesheets, but VRUI
+generates nothing for them, so a misspelt or unsupported utility silently does
+nothing. `vrui-check` reports them. Arbitrary utility values such as
+`w-[13px]` throw. Use the existing `style` prop for a
 real dynamic or platform-specific value.
 
 ## Built-in scales
 
 Spacing and fixed-size utilities use `0`, `1`, `2`, `3`, `4`, `5`, `6`, `8`,
 `10`, `12`, `16`, `20`, `24`, `32`, `40`, `48`, `64`, `80`, and `96`.
-Examples include `p-4`, `px-6`, `mt-2`, `gap-4`, `w-64`, and `h-full`.
+`px` is a 1px step. Examples include `p-4`, `px-6`, `mt-2`, `gap-4`, `w-64`, and
+`h-full`.
+
+Position offsets use the same scale plus `full` and `auto`: `top-*`,
+`right-*`, `bottom-*`, `left-*`, `inset-*`, `inset-x-*`, and `inset-y-*`, for
+example `absolute top-0 right-2` or `absolute inset-x-0 top-full`.
 
 Named maximum widths run from `max-w-sm` through `max-w-7xl`. They provide
 stable content widths without treating a page width as an arbitrary value.
@@ -45,7 +52,7 @@ values are `none`, `sm`, `md`, `lg`, `xl`, `2xl`, and `full`. Shadows are
 The first utility set covers:
 
 - block, inline, flex, and grid display
-- position and overflow
+- position, offsets, and overflow
 - flex direction, wrapping, alignment, and distribution
 - grid columns
 - padding, margin, gap, width, and height
@@ -130,8 +137,6 @@ export function primary_action(
 This gives the application one searchable, typed component instead of a
 separate registry of class-name strings.
 
-Within this repository, `npm run examples:style` checks example source for
-arbitrary values and repeated or near-repeated utility shapes. It points to the
-first matching source location so the shape can be extracted into the nearest
-application component. The source check is a repository convention, not a
-runtime requirement for applications using VRUI.
+`vrui-check` reports arbitrary values, unknown class names, and repeated or
+near-repeated utility shapes. It points to the first matching source location
+so the shape can be extracted into the nearest application component.

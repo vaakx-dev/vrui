@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { sig } from "./core";
 import { button, div } from "./elements";
 import { mount } from "./mount";
+import { isUtility } from "./utilities/compiler";
 import { theme, themes } from "./utilities/theme";
 
 function utilityCss(): string {
@@ -77,7 +78,8 @@ describe("runtime utilities", () => {
     expect(utilityCss()).toContain(".top-full{top:100%}");
     expect(utilityCss()).toContain(".inset-x-4{left:1rem;right:1rem}");
     expect(utilityCss()).toContain(".inset-y-0{top:0px;bottom:0px}");
-    expect(utilityCss()).not.toContain(".top-7");
+    expect(isUtility("top-7")).toBe(false);
+    expect(isUtility("md:hover:top-2")).toBe(true);
   });
 
   it("registers utilities introduced by reactive classes", () => {
