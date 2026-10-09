@@ -90,21 +90,21 @@ describe("resource", () => {
 
     state.refetch();
     expect(fetcher).toHaveBeenCalledTimes(2);
-    expect(signals[0].aborted).toBe(true);
+    expect(signals[0]!.aborted).toBe(true);
 
-    resolves[0]("stale");
+    resolves[0]!("stale");
     await flush();
     expect(state.data.get()).toBeUndefined();
     expect(state.loading.get()).toBe(true);
 
-    resolves[1]("fresh");
+    resolves[1]!("fresh");
     await flush();
     expect(state.data.get()).toBe("fresh");
     expect(state.error.get()).toBeUndefined();
     expect(state.loading.get()).toBe(false);
 
     state.dispose();
-    expect(signals[1].aborted).toBe(false);
+    expect(signals[1]!.aborted).toBe(false);
   });
 
   it("records fetch errors", async () => {
@@ -159,7 +159,7 @@ describe("resource", () => {
     expect(state.loading.get()).toBe(true);
 
     expect(() => state.refetch()).not.toThrow();
-    expect(signals[0].aborted).toBe(true);
+    expect(signals[0]!.aborted).toBe(true);
     expect(state.error.get()).toBe(error);
     expect(state.loading.get()).toBe(false);
 

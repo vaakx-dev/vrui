@@ -144,7 +144,7 @@ export function list<T, K>(
     }
 
     for (let i = 0; i < items.length; i++) {
-      const val = items[i];
+      const val = items[i]!;
       const key = keyFn(val);
       newRows.push(reuseOrCreateRow(pool, val, i, key, factory));
     }
@@ -156,7 +156,7 @@ export function list<T, K>(
     disposePool(pool);
 
     for (let i = 0; i < newRows.length; i++) {
-      const row = newRows[i];
+      const row = newRows[i]!;
       if (node.children[i] !== row.el) {
         node.insertBefore(row.el, node.children[i] ?? null);
       }

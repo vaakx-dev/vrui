@@ -40,7 +40,7 @@ describe("public index exports", () => {
     expect(typeof vrui.theme).toBe("function");
     expect(vrui.SPACE["4"]).toBe("1rem");
     expect(vrui.MAX_WIDTH["3xl"]).toBe("48rem");
-    expect(vrui.themes.indigo.colors.accent["600"]).toBe("#4f46e5");
+    expect(vrui.themes.indigo.colors.accent!["600"]).toBe("#4f46e5");
 
     doubled.dispose();
   });

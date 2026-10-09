@@ -117,8 +117,8 @@ describe("color themes", () => {
   });
 
   it("provides explicit built-in color themes", () => {
-    expect(themes.indigo.colors.accent["600"]).toBe("#4f46e5");
-    expect(themes.blue.colors.neutral["900"]).toBe("#0f172a");
-    expect(themes.violet.colors.danger["500"]).toBe("#ef4444");
+    expect(themes.indigo.colors.accent!["600"]).toBe("#4f46e5");
+    expect(themes.blue.colors.neutral!["900"]).toBe("#0f172a");
+    expect(themes.violet.colors.danger!["500"]).toBe("#ef4444");
   });
 });

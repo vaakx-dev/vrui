@@ -151,7 +151,7 @@ add(800, {
 function spacing(token: string): ResolvedUtility | undefined {
   const match = /^(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+)$/.exec(token);
   if (!match) return;
-  const [, kind, key] = match;
+  const [, kind, key] = match as unknown as [string, string, string];
   const value = SPACE[key as keyof typeof SPACE];
   if (!value) return;
 
@@ -171,7 +171,7 @@ function spacing(token: string): ResolvedUtility | undefined {
 function size(token: string): ResolvedUtility | undefined {
   const match = /^(w|h|min-w|min-h|max-w|max-h)-(.+)$/.exec(token);
   if (!match) return;
-  const [, kind, key] = match;
+  const [, kind, key] = match as unknown as [string, string, string];
   const property = {
     w: "width", h: "height", "min-w": "min-width", "min-h": "min-height",
     "max-w": "max-width", "max-h": "max-height",
@@ -237,7 +237,7 @@ function shadow(token: string): ResolvedUtility | undefined {
 function color(token: string): ResolvedUtility | undefined {
   const match = /^(accent|bg|text|border|ring)-([a-z][a-z0-9-]*)-(\d+)$/.exec(token);
   if (!match) return;
-  const [, kind, name, shade] = match;
+  const [, kind, name, shade] = match as unknown as [string, string, string, string];
   const value = colorValue(name, shade);
   if (!value) return;
   const property = {
@@ -253,7 +253,7 @@ function color(token: string): ResolvedUtility | undefined {
 function simpleColor(token: string): ResolvedUtility | undefined {
   const match = /^(bg|text|border)-(transparent|black|white|current)(?:\/(25|50|75))?$/.exec(token);
   if (!match) return;
-  const [, kind, name, opacity] = match;
+  const [, kind, name, opacity] = match as unknown as [string, string, string, string | undefined];
   if (opacity && name !== "black" && name !== "white") return;
   const alpha = opacity ? Number(opacity) / 100 : undefined;
   const value = alpha === undefined

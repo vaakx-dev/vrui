@@ -428,33 +428,33 @@ export class Derive<T> extends Sig<T> {
     registerInScope(() => this.dispose());
   }
 
-  get(): T {
+  override get(): T {
     const value = super.get();
     if (this._error !== NO_DERIVE_ERROR) throw this._error;
     return value;
   }
 
-  set(_v: T): never {
+  override set(_v: T): never {
     throw new Error("derive is read-only");
   }
 
-  update(_fn: (v: T) => T): never {
+  override update(_fn: (v: T) => T): never {
     throw new Error("derive is read-only");
   }
 
-  toggle(this: Sig<boolean>): never {
+  override toggle(this: Sig<boolean>): never {
     throw new Error("derive is read-only");
   }
 
-  setter(_v: T | ReactiveValue<T>): never {
+  override setter(_v: T | ReactiveValue<T>): never {
     throw new Error("derive is read-only");
   }
 
-  fromInput(): never {
+  override fromInput(): never {
     throw new Error("derive is read-only");
   }
 
-  dispose(): void {
+  override dispose(): void {
     this._effect.dispose();
     super.dispose();
   }

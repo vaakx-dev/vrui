@@ -16,7 +16,7 @@ describe("dynamicChild", () => {
     expect(root).toBe(container);
     expect(root.className).toBe("slot");
     expect(root.children.length).toBe(1);
-    expect(root.children[0].tagName).toBe("DIV");
+    expect(root.children[0]!.tagName).toBe("DIV");
     expect(root.textContent).toBe("a");
   });
 
@@ -71,7 +71,7 @@ describe("dynamicChild", () => {
       );
     });
 
-    const first = root.children[0];
+    const first = root.children[0]!;
     first.querySelector("button")?.dispatchEvent(new MouseEvent("click"));
     expect(first.textContent).toContain("Count: 1");
 

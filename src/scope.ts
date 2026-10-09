@@ -22,7 +22,7 @@ export function exitScope(): Disposer[] {
 }
 
 export function registerInScope(dispose: Disposer): void {
-  if (scopeStack.length) scopeStack[scopeStack.length - 1].push(dispose);
+  if (scopeStack.length) scopeStack[scopeStack.length - 1]!.push(dispose);
 }
 
 export function hasScope(): boolean {
