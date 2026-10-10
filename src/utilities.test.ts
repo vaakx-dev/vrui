@@ -85,6 +85,37 @@ describe("runtime utilities", () => {
     expect(isUtility("md:hover:top-2")).toBe(true);
   });
 
+  it("supports text, scrolling, transform and animation utilities", () => {
+    div({
+      class: "font-mono tabular-nums whitespace-pre-wrap wrap-anywhere break-words line-clamp-2 resize-none overscroll-contain overflow-x-auto overflow-y-hidden scrollbar-none rotate-90 -rotate-90 rounded-t-lg rounded-b animate-spin",
+    });
+
+    expect(utilityCss()).toContain(".font-mono{font-family:ui-monospace");
+    expect(utilityCss()).toContain(".tabular-nums{font-variant-numeric:tabular-nums}");
+    expect(utilityCss()).toContain(".whitespace-pre-wrap{white-space:pre-wrap}");
+    expect(utilityCss()).toContain(".wrap-anywhere{overflow-wrap:anywhere}");
+    expect(utilityCss()).toContain(".line-clamp-2{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}");
+    expect(utilityCss()).toContain(".overflow-x-auto{overflow-x:auto}");
+    expect(utilityCss()).toContain(".scrollbar-none{scrollbar-width:none}.scrollbar-none::-webkit-scrollbar{display:none}");
+    expect(utilityCss()).toContain(".-rotate-90{rotate:-90deg}");
+    expect(utilityCss()).toContain(".rounded-t-lg{border-top-left-radius:0.5rem;border-top-right-radius:0.5rem}");
+    expect(utilityCss()).toContain(".rounded-b{border-bottom-right-radius:0.375rem;border-bottom-left-radius:0.375rem}");
+    expect(utilityCss()).toContain("@keyframes vrui-spin{to{transform:rotate(360deg)}}.animate-spin{animation:vrui-spin 1s linear infinite}");
+    expect(isUtility("rounded-tl")).toBe(false);
+    expect(isUtility("line-clamp-7")).toBe(false);
+  });
+
+  it("supports group variants", () => {
+    div({ class: "group" }, div({ class: "hidden group-hover:flex group-focus-within:opacity-100 focus-within:ring-2" }));
+
+    expect(utilityCss()).toContain(".group:hover .group-hover\\:flex{display:flex}");
+    expect(utilityCss()).toContain(".group:focus-within .group-focus-within\\:opacity-100{opacity:1}");
+    expect(utilityCss()).toContain(".focus-within\\:ring-2:focus-within");
+    expect(isUtility("group")).toBe(true);
+    expect(isUtility("group-hover:group-focus:flex")).toBe(false);
+    expect(isUtility("group-wobble:flex")).toBe(false);
+  });
+
   it("registers utilities introduced by reactive classes", () => {
     const classes = sig("p-2");
     const node = div({ class: classes });

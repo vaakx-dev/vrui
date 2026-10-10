@@ -6,6 +6,10 @@ export type Declaration = readonly [property: string, value: string];
 export type ResolvedUtility = {
   declarations: readonly Declaration[];
   order: number;
+  /** Extra rules on the same selector plus a suffix, such as a pseudo-element. */
+  nested?: readonly (readonly [suffix: string, declarations: readonly Declaration[]])[];
+  /** A complete `@keyframes` block the utility's animation uses. */
+  keyframes?: string;
 };
 
 const exact: Record<string, ResolvedUtility> = {};
@@ -82,7 +86,27 @@ add(300, {
   "pointer-events-auto": [["pointer-events", "auto"]],
   "appearance-none": [["appearance", "none"]],
   "select-none": [["user-select", "none"]],
+  "resize-none": [["resize", "none"]],
+  resize: [["resize", "both"]],
+  "resize-x": [["resize", "horizontal"]],
+  "resize-y": [["resize", "vertical"]],
+  "overscroll-auto": [["overscroll-behavior", "auto"]],
+  "overscroll-contain": [["overscroll-behavior", "contain"]],
+  "overscroll-none": [["overscroll-behavior", "none"]],
+  group: [],
 });
+
+for (const axis of ["x", "y"]) {
+  add(300, Object.fromEntries(
+    ["auto", "hidden", "visible", "scroll"].map((value) => [`overflow-${axis}-${value}`, [[`overflow-${axis}`, value]]]),
+  ));
+}
+
+exact["scrollbar-none"] = {
+  declarations: [["scrollbar-width", "none"]],
+  nested: [["::-webkit-scrollbar", [["display", "none"]]]],
+  order: 300,
+};
 
 add(400, {
   "m-auto": [["margin", "auto"]],
@@ -96,6 +120,16 @@ add(400, {
 
 add(600, {
   "font-sans": [["font-family", "ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji"]],
+  "font-mono": [["font-family", "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace"]],
+  "tabular-nums": [["font-variant-numeric", "tabular-nums"]],
+  "whitespace-normal": [["white-space", "normal"]],
+  "whitespace-pre": [["white-space", "pre"]],
+  "whitespace-pre-line": [["white-space", "pre-line"]],
+  "whitespace-pre-wrap": [["white-space", "pre-wrap"]],
+  "whitespace-break-spaces": [["white-space", "break-spaces"]],
+  "break-words": [["overflow-wrap", "break-word"]],
+  "break-all": [["word-break", "break-all"]],
+  "wrap-anywhere": [["overflow-wrap", "anywhere"]],
   "text-left": [["text-align", "left"]],
   "text-center": [["text-align", "center"]],
   "text-right": [["text-align", "right"]],
@@ -146,6 +180,30 @@ add(800, {
   "transition": [["transition-property", "color, background-color, border-color, box-shadow, opacity, transform"], ["transition-duration", "150ms"]],
   "transition-colors": [["transition-property", "color, background-color, border-color"], ["transition-duration", "150ms"]],
 });
+
+for (const degrees of ["0", "45", "90", "180"]) {
+  add(820, { [`rotate-${degrees}`]: [["rotate", `${degrees}deg`]] });
+  if (degrees !== "0") add(820, { [`-rotate-${degrees}`]: [["rotate", `-${degrees}deg`]] });
+}
+
+exact["animate-spin"] = {
+  declarations: [["animation", "vrui-spin 1s linear infinite"]],
+  keyframes: "@keyframes vrui-spin{to{transform:rotate(360deg)}}",
+  order: 830,
+};
+add(830, { "animate-none": [["animation", "none"]] });
+
+add(610, { "line-clamp-none": [["overflow", "visible"], ["display", "block"], ["-webkit-box-orient", "horizontal"], ["-webkit-line-clamp", "unset"]] });
+for (const lines of ["1", "2", "3", "4", "5", "6"]) {
+  add(610, {
+    [`line-clamp-${lines}`]: [
+      ["overflow", "hidden"],
+      ["display", "-webkit-box"],
+      ["-webkit-box-orient", "vertical"],
+      ["-webkit-line-clamp", lines],
+    ],
+  });
+}
 
 function spacing(token: string): ResolvedUtility | undefined {
   const match = /^(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+|px)$/.exec(token);
@@ -225,15 +283,24 @@ function textSize(token: string): ResolvedUtility | undefined {
   };
 }
 
+const CORNERS: Record<string, readonly string[]> = {
+  "": ["border-radius"],
+  t: ["border-top-left-radius", "border-top-right-radius"],
+  r: ["border-top-right-radius", "border-bottom-right-radius"],
+  b: ["border-bottom-right-radius", "border-bottom-left-radius"],
+  l: ["border-top-left-radius", "border-bottom-left-radius"],
+};
+
 function rounded(token: string): ResolvedUtility | undefined {
-  if (token === "rounded") {
-    return { declarations: [["border-radius", RADIUS.md]], order: 710 };
-  }
-  if (!token.startsWith("rounded-")) return;
-  const key = token.slice(8) as keyof typeof RADIUS;
-  const value = RADIUS[key];
+  const match = /^rounded(?:-([trbl]))?(?:-(.+))?$/.exec(token);
+  if (!match) return;
+  const [, side = "", key = "md"] = match;
+  const value = RADIUS[key as keyof typeof RADIUS];
   if (!value) return;
-  return { declarations: [["border-radius", value]], order: 710 };
+  return {
+    declarations: CORNERS[side]!.map((property) => [property, value]),
+    order: side ? 711 : 710,
+  };
 }
 
 function shadow(token: string): ResolvedUtility | undefined {
