@@ -65,13 +65,13 @@ export function compileUtility(token: string): CompiledUtility | undefined {
   if (group) selector = `${group}${selector}`;
 
   let css = [
-    utility.keyframes ?? "",
     `${selector}{${declarations(utility.declarations)}}`,
     ...(utility.nested ?? []).map(([suffix, nested]) => `${selector}${suffix}{${declarations(nested)}}`),
   ].join("");
   if (breakpoint) {
     css = `@media (min-width:${BREAKPOINT[breakpoint]}){${css}}`;
   }
+  css = `${utility.prelude ?? ""}${css}`;
 
   const breakpointOrder = breakpoint
     ? Object.keys(BREAKPOINT).indexOf(breakpoint) + 1

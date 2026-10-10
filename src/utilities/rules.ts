@@ -1,5 +1,5 @@
 import { colorValue } from "./colors";
-import { MAX_WIDTH, RADIUS, SHADOW, SPACE, TEXT } from "./scales";
+import { ALPHA, BLUR, DURATION, EASE, FRACTION, LEADING, MAX_WIDTH, RADIUS, SHADOW, SPACE, TEXT, TRACKING } from "./scales";
 
 export type Declaration = readonly [property: string, value: string];
 
@@ -8,9 +8,16 @@ export type ResolvedUtility = {
   order: number;
   /** Extra rules on the same selector plus a suffix, such as a pseudo-element. */
   nested?: readonly (readonly [suffix: string, declarations: readonly Declaration[]])[];
-  /** A complete `@keyframes` block the utility's animation uses. */
-  keyframes?: string;
+  /** Complete at-rules the utility needs, such as `@keyframes` or `@property`. */
+  prelude?: string;
 };
+
+/** Registers a custom property that does not inherit, so a parent's value never leaks into a child. */
+const local = (name: string) => `@property ${name}{syntax:"*";inherits:false}`;
+
+const negate = (value: string) => (value === "0px" ? value : `-${value}`);
+
+const alpha = (key: string | undefined) => (key !== undefined && ALPHA.includes(key) ? Number(key) : undefined);
 
 const exact: Record<string, ResolvedUtility> = {};
 
@@ -33,6 +40,17 @@ add(100, {
   grid: [["display", "grid"]],
   hidden: [["display", "none"]],
   contents: [["display", "contents"]],
+});
+
+add(105, {
+  "sr-only": [
+    ["position", "absolute"], ["width", "1px"], ["height", "1px"], ["padding", "0"], ["margin", "-1px"],
+    ["overflow", "hidden"], ["clip", "rect(0, 0, 0, 0)"], ["white-space", "nowrap"], ["border-width", "0"],
+  ],
+  "not-sr-only": [
+    ["position", "static"], ["width", "auto"], ["height", "auto"], ["padding", "0"], ["margin", "0"],
+    ["overflow", "visible"], ["clip", "auto"], ["white-space", "normal"],
+  ],
 });
 
 add(110, {
@@ -79,9 +97,6 @@ add(300, {
   "overflow-hidden": [["overflow", "hidden"]],
   "overflow-visible": [["overflow", "visible"]],
   "overflow-scroll": [["overflow", "scroll"]],
-  "cursor-auto": [["cursor", "auto"]],
-  "cursor-default": [["cursor", "default"]],
-  "cursor-pointer": [["cursor", "pointer"]],
   "pointer-events-none": [["pointer-events", "none"]],
   "pointer-events-auto": [["pointer-events", "auto"]],
   "appearance-none": [["appearance", "none"]],
@@ -102,6 +117,15 @@ for (const axis of ["x", "y"]) {
   ));
 }
 
+const CURSORS = [
+  "auto", "default", "pointer", "wait", "text", "move", "help", "not-allowed", "none", "context-menu",
+  "progress", "cell", "crosshair", "vertical-text", "alias", "copy", "no-drop", "grab", "grabbing",
+  "all-scroll", "col-resize", "row-resize", "n-resize", "e-resize", "s-resize", "w-resize", "ne-resize",
+  "nw-resize", "se-resize", "sw-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize",
+  "zoom-in", "zoom-out",
+];
+add(300, Object.fromEntries(CURSORS.map((cursor) => [`cursor-${cursor}`, [["cursor", cursor]]])));
+
 exact["scrollbar-none"] = {
   declarations: [["scrollbar-width", "none"]],
   nested: [["::-webkit-scrollbar", [["display", "none"]]]],
@@ -116,6 +140,19 @@ add(400, {
   "mr-auto": [["margin-right", "auto"]],
   "mb-auto": [["margin-bottom", "auto"]],
   "ml-auto": [["margin-left", "auto"]],
+});
+
+add(510, {
+  "aspect-auto": [["aspect-ratio", "auto"]],
+  "aspect-square": [["aspect-ratio", "1 / 1"]],
+  "aspect-video": [["aspect-ratio", "16 / 9"]],
+  ...Object.fromEntries(
+    ["contain", "cover", "fill", "none", "scale-down"].map((fit) => [`object-${fit}`, [["object-fit", fit]]]),
+  ),
+  ...Object.fromEntries(
+    ["center", "top", "bottom", "left", "right", "top-left", "top-right", "bottom-left", "bottom-right"]
+      .map((place) => [`object-${place}`, [["object-position", place.replace("-", " ")]]]),
+  ),
 });
 
 add(600, {
@@ -150,7 +187,10 @@ add(600, {
   ],
   "no-underline": [["text-decoration-line", "none"]],
   underline: [["text-decoration-line", "underline"]],
+  ...Object.fromEntries(Object.entries(TRACKING).map(([name, value]) => [`tracking-${name}`, [["letter-spacing", value]]])),
 });
+
+add(620, Object.fromEntries(Object.entries(LEADING).map(([name, value]) => [`leading-${name}`, [["line-height", value]]])));
 
 add(700, {
   "border-0": [["border-width", "0px"]],
@@ -165,20 +205,37 @@ add(700, {
   "border-solid": [["border-style", "solid"]],
   "outline-none": [["outline", "2px solid transparent"], ["outline-offset", "2px"]],
   "shadow-none": [["--vrui-shadow", "0 0 #0000"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
-  "ring-0": [["--vrui-ring-shadow", "0 0 0 0px var(--vrui-ring-color, currentColor)"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
-  "ring-1": [["--vrui-ring-shadow", "0 0 0 1px var(--vrui-ring-color, currentColor)"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
-  "ring-2": [["--vrui-ring-shadow", "0 0 0 2px var(--vrui-ring-color, currentColor)"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
-  "ring-4": [["--vrui-ring-shadow", "0 0 0 4px var(--vrui-ring-color, currentColor)"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
+  ...Object.fromEntries(["0", "1", "2", "4"].map((width) => [`ring-${width}`, [
+    ["--vrui-ring-shadow", `var(--vrui-ring-inset,) 0 0 0 ${width}px var(--vrui-ring-color, currentColor)`],
+    ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"],
+  ]])),
 });
 
-add(800, {
-  "opacity-0": [["opacity", "0"]],
-  "opacity-25": [["opacity", "0.25"]],
-  "opacity-50": [["opacity", "0.5"]],
-  "opacity-75": [["opacity", "0.75"]],
-  "opacity-100": [["opacity", "1"]],
-  "transition": [["transition-property", "color, background-color, border-color, box-shadow, opacity, transform, rotate"], ["transition-duration", "150ms"]],
-  "transition-colors": [["transition-property", "color, background-color, border-color"], ["transition-duration", "150ms"]],
+exact["ring-inset"] = {
+  declarations: [["--vrui-ring-inset", "inset"]],
+  prelude: local("--vrui-ring-inset"),
+  order: 700,
+};
+
+add(800, Object.fromEntries(ALPHA.map((step) => [`opacity-${step}`, [["opacity", String(Number(step) / 100)]]])));
+
+const TRANSITIONS: Record<string, string> = {
+  "": "color, background-color, border-color, box-shadow, opacity, transform, translate, rotate",
+  all: "all",
+  colors: "color, background-color, border-color",
+  opacity: "opacity",
+  shadow: "box-shadow",
+  transform: "transform, translate, rotate",
+};
+for (const [name, properties] of Object.entries(TRANSITIONS)) {
+  add(800, { [name ? `transition-${name}` : "transition"]: [["transition-property", properties], ["transition-duration", "150ms"]] });
+}
+add(800, { "transition-none": [["transition-property", "none"]] });
+
+add(810, {
+  ...Object.fromEntries(DURATION.map((ms) => [`duration-${ms}`, [["transition-duration", `${ms}ms`]]])),
+  ...Object.fromEntries(DURATION.map((ms) => [`delay-${ms}`, [["transition-delay", `${ms}ms`]]])),
+  ...Object.fromEntries(Object.entries(EASE).map(([name, curve]) => [`ease-${name}`, [["transition-timing-function", curve]]])),
 });
 
 for (const degrees of ["0", "45", "90", "180"]) {
@@ -186,9 +243,15 @@ for (const degrees of ["0", "45", "90", "180"]) {
   if (degrees !== "0") add(820, { [`-rotate-${degrees}`]: [["rotate", `-${degrees}deg`]] });
 }
 
+const backdrop = (filter: string): readonly Declaration[] => [["-webkit-backdrop-filter", filter], ["backdrop-filter", filter]];
+add(840, {
+  "backdrop-blur": backdrop(BLUR.sm),
+  ...Object.fromEntries(Object.entries(BLUR).map(([name, filter]) => [`backdrop-blur-${name}`, backdrop(filter)])),
+});
+
 exact["animate-spin"] = {
   declarations: [["animation", "vrui-spin 1s linear infinite"]],
-  keyframes: "@keyframes vrui-spin{to{transform:rotate(360deg)}}",
+  prelude: "@keyframes vrui-spin{to{transform:rotate(360deg)}}",
   order: 830,
 };
 add(830, { "animate-none": [["animation", "none"]] });
@@ -206,11 +269,13 @@ for (const lines of ["1", "2", "3", "4", "5", "6"]) {
 }
 
 function spacing(token: string): ResolvedUtility | undefined {
-  const match = /^(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+|px)$/.exec(token);
+  const match = /^(-?)(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+|px)$/.exec(token);
   if (!match) return;
-  const [, kind, key] = match as unknown as [string, string, string];
-  const value = SPACE[key as keyof typeof SPACE];
-  if (!value) return;
+  const [, minus, kind, key] = match as unknown as [string, string, string, string];
+  if (minus && !kind.startsWith("m")) return;
+  const space = SPACE[key as keyof typeof SPACE];
+  if (!space) return;
+  const value = minus ? negate(space) : space;
 
   const properties: Record<string, string[]> = {
     p: ["padding"], px: ["padding-inline"], py: ["padding-block"],
@@ -226,11 +291,11 @@ function spacing(token: string): ResolvedUtility | undefined {
 }
 
 function position(token: string): ResolvedUtility | undefined {
-  const match = /^(top|right|bottom|left|inset-x|inset-y|inset)-(.+)$/.exec(token);
+  const match = /^(-?)(top|right|bottom|left|inset-x|inset-y|inset)-(.+)$/.exec(token);
   if (!match) return;
-  const [, kind, key] = match as unknown as [string, string, string];
-  const value = SPACE[key as keyof typeof SPACE] ??
-    ({ full: "100%", auto: "auto" } as Record<string, string>)[key];
+  const [, minus, kind, key] = match as unknown as [string, string, string, string];
+  const offset = SPACE[key as keyof typeof SPACE] ?? FRACTION[key as keyof typeof FRACTION];
+  const value = minus ? offset && negate(offset) : offset ?? (key === "auto" ? "auto" : undefined);
   if (!value) return;
   const properties: Record<string, string[]> = {
     top: ["top"], right: ["right"], bottom: ["bottom"], left: ["left"],
@@ -251,14 +316,32 @@ function size(token: string): ResolvedUtility | undefined {
     "max-w": "max-width", "max-h": "max-height",
   }[kind]!;
   const named: Record<string, string> = {
-    auto: "auto", full: "100%", screen: kind.includes("w") ? "100vw" : "100vh",
+    auto: "auto", screen: kind.includes("w") ? "100vw" : "100vh",
     min: "min-content", max: "max-content", fit: "fit-content",
   };
   const value = SPACE[key as keyof typeof SPACE] ??
+    FRACTION[key as keyof typeof FRACTION] ??
     (kind === "max-w" ? MAX_WIDTH[key as keyof typeof MAX_WIDTH] : undefined) ??
     named[key];
   if (!value) return;
   return { declarations: [[property, value]], order: 500 };
+}
+
+function translate(token: string): ResolvedUtility | undefined {
+  const match = /^(-?)translate-([xy])-(.+)$/.exec(token);
+  if (!match) return;
+  const [, minus, axis, key] = match as unknown as [string, string, string, string];
+  const offset = SPACE[key as keyof typeof SPACE] ?? FRACTION[key as keyof typeof FRACTION];
+  if (!offset) return;
+  const variable = `--vrui-translate-${axis}`;
+  return {
+    declarations: [
+      [variable, minus ? negate(offset) : offset],
+      ["translate", "var(--vrui-translate-x, 0) var(--vrui-translate-y, 0)"],
+    ],
+    prelude: local(variable),
+    order: 820,
+  };
 }
 
 function columns(token: string): ResolvedUtility | undefined {
@@ -317,38 +400,38 @@ function shadow(token: string): ResolvedUtility | undefined {
   };
 }
 
+const COLOR_PROPERTY: Record<string, string> = {
+  accent: "accent-color",
+  bg: "background-color",
+  text: "color",
+  border: "border-color",
+  ring: "--vrui-ring-color",
+};
+
 function color(token: string): ResolvedUtility | undefined {
-  const match = /^(accent|bg|text|border|ring)-([a-z][a-z0-9-]*)-(\d+)$/.exec(token);
+  const match = /^(accent|bg|text|border|ring)-([a-z][a-z0-9-]*)-(\d+)(?:\/(\d+))?$/.exec(token);
   if (!match) return;
-  const [, kind, name, shade] = match as unknown as [string, string, string, string];
-  const value = colorValue(name, shade);
-  if (!value) return;
-  const property = {
-    accent: "accent-color",
-    bg: "background-color",
-    text: "color",
-    border: "border-color",
-    ring: "--vrui-ring-color",
-  }[kind]!;
-  return { declarations: [[property, value]], order: 750 };
+  const [, kind, name, shade, opacity] = match as unknown as [string, string, string, string, string | undefined];
+  const base = colorValue(name, shade);
+  const percent = alpha(opacity);
+  if (!base || (opacity !== undefined && percent === undefined)) return;
+  const value = percent === undefined ? base : `color-mix(in srgb, ${base} ${percent}%, transparent)`;
+  return { declarations: [[COLOR_PROPERTY[kind]!, value]], order: 750 };
 }
 
 function simpleColor(token: string): ResolvedUtility | undefined {
-  const match = /^(bg|text|border)-(transparent|black|white|current)(?:\/(25|50|75))?$/.exec(token);
+  const match = /^(bg|text|border|ring)-(transparent|black|white|current)(?:\/(\d+))?$/.exec(token);
   if (!match) return;
   const [, kind, name, opacity] = match as unknown as [string, string, string, string | undefined];
-  if (opacity && name !== "black" && name !== "white") return;
-  const alpha = opacity ? Number(opacity) / 100 : undefined;
-  const value = alpha === undefined
+  const percent = alpha(opacity);
+  if (opacity !== undefined && (percent === undefined || (name !== "black" && name !== "white"))) return;
+  const value = percent === undefined
     ? { transparent: "transparent", black: "#000", white: "#fff", current: "currentColor" }[name]!
-    : name === "black"
-      ? `rgb(0 0 0 / ${alpha})`
-      : `rgb(255 255 255 / ${alpha})`;
-  const property = { bg: "background-color", text: "color", border: "border-color" }[kind]!;
-  return { declarations: [[property, value]], order: 750 };
+    : `rgb(${name === "black" ? "0 0 0" : "255 255 255"} / ${percent / 100})`;
+  return { declarations: [[COLOR_PROPERTY[kind]!, value]], order: 750 };
 }
 
-const resolvers = [position, spacing, size, columns, textSize, rounded, shadow, color, simpleColor];
+const resolvers = [position, spacing, size, translate, columns, textSize, rounded, shadow, color, simpleColor];
 
 export function resolveUtility(token: string): ResolvedUtility | undefined {
   const known = exact[token];

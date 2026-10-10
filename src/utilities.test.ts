@@ -105,6 +105,79 @@ describe("runtime utilities", () => {
     expect(isUtility("line-clamp-7")).toBe(false);
   });
 
+  it("places and sizes with fractions and negative offsets", () => {
+    div({ class: "absolute top-1/2 -left-1 max-w-1/2 w-2/3 -mt-1 -mx-px aspect-square object-cover object-top-left" });
+
+    expect(utilityCss()).toContain(".top-1\\/2{top:50%}");
+    expect(utilityCss()).toContain(".-left-1{left:-0.25rem}");
+    expect(utilityCss()).toContain(".max-w-1\\/2{max-width:50%}");
+    expect(utilityCss()).toContain(".w-2\\/3{width:66.666667%}");
+    expect(utilityCss()).toContain(".-mt-1{margin-top:-0.25rem}");
+    expect(utilityCss()).toContain(".-mx-px{margin-inline:-1px}");
+    expect(utilityCss()).toContain(".aspect-square{aspect-ratio:1 / 1}");
+    expect(utilityCss()).toContain(".object-cover{object-fit:cover}");
+    expect(utilityCss()).toContain(".object-top-left{object-position:top left}");
+    expect(isUtility("-p-1")).toBe(false);
+    expect(isUtility("-top-auto")).toBe(false);
+    expect(isUtility("w-1/5")).toBe(false);
+  });
+
+  it("translates on its own property so translate composes with rotate", () => {
+    div({ class: "translate-x-1/2 -translate-y-1/2 rotate-45 md:-translate-x-4" });
+
+    expect(utilityCss()).toContain(
+      "@property --vrui-translate-x{syntax:\"*\";inherits:false}.translate-x-1\\/2{--vrui-translate-x:50%;translate:var(--vrui-translate-x, 0) var(--vrui-translate-y, 0)}",
+    );
+    expect(utilityCss()).toContain(".-translate-y-1\\/2{--vrui-translate-y:-50%;");
+    expect(utilityCss()).toContain("@property --vrui-translate-x{syntax:\"*\";inherits:false}@media (min-width:48rem){.md\\:-translate-x-4{--vrui-translate-x:-1rem;");
+    expect(utilityCss()).toContain(".rotate-45{rotate:45deg}");
+  });
+
+  it("supports type, cursor, ring, blur and accessibility utilities", () => {
+    div({ class: "leading-none leading-6 tracking-wide cursor-grabbing ring-inset ring-2 backdrop-blur sr-only md:not-sr-only" });
+
+    expect(utilityCss()).toContain(".leading-none{line-height:1}");
+    expect(utilityCss()).toContain(".leading-6{line-height:1.5rem}");
+    expect(utilityCss()).toContain(".tracking-wide{letter-spacing:0.025em}");
+    expect(utilityCss()).toContain(".cursor-grabbing{cursor:grabbing}");
+    expect(utilityCss()).toContain(".ring-inset{--vrui-ring-inset:inset}");
+    expect(utilityCss()).toContain(".ring-2{--vrui-ring-shadow:var(--vrui-ring-inset,) 0 0 0 2px var(--vrui-ring-color, currentColor);");
+    expect(utilityCss()).toContain(".backdrop-blur{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}");
+    expect(utilityCss()).toContain(".sr-only{position:absolute;width:1px;height:1px;");
+    expect(utilityCss()).toContain(".md\\:not-sr-only{position:static;");
+  });
+
+  it("lets leading override the line height a text size sets", () => {
+    div({ class: "leading-6 text-sm" });
+
+    expect(utilityCss().indexOf(".leading-6{")).toBeGreaterThan(utilityCss().indexOf(".text-sm{"));
+  });
+
+  it("fades colors and elements on the step-5 alpha scale", () => {
+    div({ class: "opacity-60 bg-accent-500/20 text-neutral-400/5 border-blue-600/100 bg-white/10 ring-black/40" });
+
+    expect(utilityCss()).toContain(".opacity-60{opacity:0.6}");
+    expect(utilityCss()).toContain(".bg-accent-500\\/20{background-color:color-mix(in srgb, var(--vrui-color-accent-500) 20%, transparent)}");
+    expect(utilityCss()).toContain(".text-neutral-400\\/5{color:color-mix(in srgb, var(--vrui-color-neutral-400) 5%, transparent)}");
+    expect(utilityCss()).toContain(".border-blue-600\\/100{border-color:color-mix(in srgb, #2563eb 100%, transparent)}");
+    expect(utilityCss()).toContain(".bg-white\\/10{background-color:rgb(255 255 255 / 0.1)}");
+    expect(utilityCss()).toContain(".ring-black\\/40{--vrui-ring-color:rgb(0 0 0 / 0.4)}");
+    expect(isUtility("opacity-7")).toBe(false);
+    expect(isUtility("bg-accent-500/7")).toBe(false);
+    expect(isUtility("bg-current/50")).toBe(false);
+  });
+
+  it("tunes transitions after the transition utility", () => {
+    div({ class: "transition transition-transform duration-200 ease-out delay-75" });
+
+    const css = utilityCss();
+    expect(css).toContain(".transition{transition-property:color, background-color, border-color, box-shadow, opacity, transform, translate, rotate;transition-duration:150ms}");
+    expect(css).toContain(".transition-transform{transition-property:transform, translate, rotate;transition-duration:150ms}");
+    expect(css).toContain(".ease-out{transition-timing-function:cubic-bezier(0, 0, 0.2, 1)}");
+    expect(css).toContain(".delay-75{transition-delay:75ms}");
+    expect(css.indexOf(".duration-200{transition-duration:200ms}")).toBeGreaterThan(css.indexOf(".transition-transform{"));
+  });
+
   it("supports group variants", () => {
     div({ class: "group" }, div({ class: "hidden group-hover:flex group-focus-within:opacity-100 focus-within:ring-2" }));
 

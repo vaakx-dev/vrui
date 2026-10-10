@@ -120,6 +120,11 @@ describe("vrui-check styles", () => {
     ]);
     expect(rules("src/a.ts", `div({ style: { top: "3px", transform: "none" } });`)).toEqual([]);
   });
+
+  it("flags cursor, object fit, line height and opacity steps", () => {
+    const found = messages("src/a.ts", `div({ style: { cursor: "grab", objectFit: "cover", lineHeight: 1, opacity: 0.6 } });`);
+    expect(found.map((message) => /"([^"]+)" utility/.exec(message)?.[1])).toEqual(["cursor-grab", "object-cover", "leading-none", "opacity-60"]);
+  });
 });
 
 describe("vrui-check shapes", () => {

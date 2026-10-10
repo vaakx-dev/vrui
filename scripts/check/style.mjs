@@ -20,7 +20,9 @@ for (const [property, prefix] of [["width", "w"], ["height", "h"]]) {
   table.set(`${property}:auto`, `${prefix}-auto`);
 }
 same("overflow", ["auto", "hidden", "visible", "scroll"], "overflow-");
-same("cursor", ["auto", "default", "pointer"], "cursor-");
+same("cursor", ["auto", "default", "pointer", "wait", "text", "move", "help", "not-allowed", "none", "grab", "grabbing", "col-resize", "row-resize", "ew-resize", "ns-resize", "crosshair", "zoom-in", "zoom-out"], "cursor-");
+same("object-fit", ["contain", "cover", "fill", "none", "scale-down"], "object-");
+for (const [value, name] of [["1", "none"], ["1.25", "tight"], ["1.375", "snug"], ["1.5", "normal"], ["1.625", "relaxed"], ["2", "loose"]]) table.set(`line-height:${value}`, `leading-${name}`);
 same("pointer-events", ["none", "auto"], "pointer-events-");
 same("white-space", ["nowrap", "pre", "pre-wrap"], "whitespace-");
 same("text-align", ["left", "center", "right"], "text-");
@@ -35,7 +37,7 @@ table.set("box-sizing:border-box", "box-border");
 table.set("align-items:center", "items-center");
 table.set("justify-content:center", "justify-center");
 table.set("justify-content:space-between", "justify-between");
-for (const [value, name] of [["0", "0"], ["0.25", "25"], ["0.5", "50"], ["0.75", "75"], ["1", "100"]]) table.set(`opacity:${value}`, `opacity-${name}`);
+for (let step = 0; step <= 100; step += 5) table.set(`opacity:${step / 100}`, `opacity-${step}`);
 for (const level of ["0", "10", "20", "30", "40", "50"]) table.set(`z-index:${level}`, `z-${level}`);
 for (const [weight, name] of [["400", "normal"], ["500", "medium"], ["600", "semibold"], ["700", "bold"]]) table.set(`font-weight:${weight}`, `font-${name}`);
 

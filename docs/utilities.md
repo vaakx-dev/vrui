@@ -38,9 +38,21 @@ Spacing and fixed-size utilities use `0`, `1`, `2`, `3`, `4`, `5`, `6`, `8`,
 `px` is a 1px step. Examples include `p-4`, `px-6`, `mt-2`, `gap-4`, `w-64`, and
 `h-full`.
 
-Position offsets use the same scale plus `full` and `auto`: `top-*`,
+Fractions `1/2`, `1/3`, `2/3`, `1/4`, `3/4`, and `full` work for widths,
+heights, offsets, and translation, such as `w-1/3` or `max-w-1/2`.
+
+Position offsets use the spacing scale, fractions, and `auto`: `top-*`,
 `right-*`, `bottom-*`, `left-*`, `inset-*`, `inset-x-*`, and `inset-y-*`, for
-example `absolute top-0 right-2` or `absolute inset-x-0 top-full`.
+example `absolute top-0 right-2` or `absolute inset-x-0 top-full`. A leading
+`-` negates an offset or margin, as in `-top-1`, `-mt-1`, or `-mx-px`.
+
+`translate-x-*` and `translate-y-*` take the spacing scale or a fraction and a
+leading `-`, so `absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2`
+centers an element. They set the `translate` property, so they combine with
+`rotate-*`, and `transition` animates both.
+
+Opacity (`opacity-60`) and color alpha (`bg-accent-500/20`,
+`text-neutral-400/60`, `ring-white/10`) use steps of 5 from 0 to 100.
 
 Named maximum widths run from `max-w-sm` through `max-w-7xl`. They provide
 stable content widths without treating a page width as an arbitrary value.
@@ -58,6 +70,9 @@ The first utility set covers:
 - padding, margin, gap, width, and height
 - text family (`font-sans`, `font-mono`), size, weight, alignment,
   decoration, color, `tabular-nums`, and truncation
+- line height (`leading-none`, `-tight`, `-snug`, `-normal`, `-relaxed`,
+  `-loose`, and `leading-3` through `leading-10`) and letter spacing
+  (`tracking-tighter` through `tracking-widest`)
 - white space (`whitespace-normal`, `-nowrap`, `-pre`, `-pre-line`,
   `-pre-wrap`, `-break-spaces`), wrapping (`break-words`, `break-all`,
   `wrap-anywhere`), and `line-clamp-1` through `line-clamp-6` or
@@ -67,8 +82,17 @@ The first utility set covers:
 - `rotate-0`, `rotate-45`, `rotate-90`, `rotate-180`, and their negatives such
   as `-rotate-90`
 - `animate-spin` and `animate-none`
-- pointer, cursor, appearance, selection, `resize-*`, `overscroll-*`,
-  `scrollbar-none`, accent color, and transitions
+- `ring-inset`, `backdrop-blur` (`-none`, `-xs`, `-sm`, `-md`, `-lg`, `-xl`),
+  `aspect-auto`, `aspect-square`, `aspect-video`, `object-contain`, `-cover`,
+  `-fill`, `-none`, `-scale-down`, and positions such as `object-top-left`
+- `sr-only` and `not-sr-only`
+- pointer, the common CSS cursors (`cursor-grab`, `cursor-not-allowed`,
+  `cursor-col-resize`, …), appearance, selection, `resize-*`, `overscroll-*`,
+  `scrollbar-none`, and accent color
+- transitions: `transition`, `transition-none`, `-all`, `-colors`, `-opacity`,
+  `-shadow`, `-transform`, then `duration-*` and `delay-*` (`0`, `75`, `100`,
+  `150`, `200`, `300`, `500`, `700`, `1000`) and `ease-linear`, `-in`, `-out`,
+  `-in-out`
 
 State variants include `hover`, `focus`, `focus-visible`, `focus-within`,
 `active`, `disabled`, `checked`, `first`, and `last`. Responsive variants use

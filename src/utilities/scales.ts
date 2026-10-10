@@ -21,6 +21,15 @@ export const SPACE = {
   "96": "24rem",
 } as const;
 
+export const FRACTION = {
+  "1/2": "50%",
+  "1/3": "33.333333%",
+  "2/3": "66.666667%",
+  "1/4": "25%",
+  "3/4": "75%",
+  full: "100%",
+} as const;
+
 export const MAX_WIDTH = {
   sm: "24rem",
   md: "28rem",
@@ -44,6 +53,32 @@ export const TEXT = {
   "3xl": ["1.875rem", "2.25rem"],
 } as const;
 
+export const LEADING = {
+  none: "1",
+  tight: "1.25",
+  snug: "1.375",
+  normal: "1.5",
+  relaxed: "1.625",
+  loose: "2",
+  "3": "0.75rem",
+  "4": "1rem",
+  "5": "1.25rem",
+  "6": "1.5rem",
+  "7": "1.75rem",
+  "8": "2rem",
+  "9": "2.25rem",
+  "10": "2.5rem",
+} as const;
+
+export const TRACKING = {
+  tighter: "-0.05em",
+  tight: "-0.025em",
+  normal: "0em",
+  wide: "0.025em",
+  wider: "0.05em",
+  widest: "0.1em",
+} as const;
+
 export const RADIUS = {
   none: "0px",
   sm: "0.25rem",
@@ -61,6 +96,27 @@ export const SHADOW = {
   lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
   xl: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
 } as const;
+
+export const BLUR = {
+  none: "none",
+  xs: "blur(4px)",
+  sm: "blur(8px)",
+  md: "blur(12px)",
+  lg: "blur(16px)",
+  xl: "blur(24px)",
+} as const;
+
+export const DURATION = ["0", "75", "100", "150", "200", "300", "500", "700", "1000"] as const;
+
+export const EASE = {
+  linear: "linear",
+  in: "cubic-bezier(0.4, 0, 1, 1)",
+  out: "cubic-bezier(0, 0, 0.2, 1)",
+  "in-out": "cubic-bezier(0.4, 0, 0.2, 1)",
+} as const;
+
+/** Opacity and color alpha steps: 0, 5, 10, … 100. */
+export const ALPHA = Array.from({ length: 21 }, (_, step) => String(step * 5));
 
 export const BREAKPOINT = {
   sm: "40rem",
