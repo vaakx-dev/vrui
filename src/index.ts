@@ -9,6 +9,7 @@ export {
   batch,
   derive,
   effect,
+  read,
   sig,
   untrack,
 } from "./core";
@@ -142,7 +143,11 @@ export {
 } from "./browser";
 export type { MediaHandler } from "./browser";
 
+export { clock, media, stored } from "./browserState";
+export type { StoredValidator } from "./browserState";
+
 export { dynamicChild, keep, list, show } from "./flow";
+export type { FlowCondition, FlowNode } from "./flow";
 
 export { portal } from "./portal";
 
@@ -168,7 +173,7 @@ export { icon } from "./icons";
 export type { IconNode } from "./icons";
 
 export { isUtility } from "./utilities/compiler";
-export { PALETTE } from "./utilities/colors";
+export { PALETTE, colorValue, colorVar } from "./utilities/colors";
 export type { PaletteName, Shade } from "./utilities/colors";
 export {
   BREAKPOINT,

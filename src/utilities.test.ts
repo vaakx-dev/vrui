@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { sig } from "./core";
 import { button, div } from "./elements";
 import { mount } from "./mount";
+import { colorValue, colorVar } from "./utilities/colors";
 import { isUtility } from "./utilities/compiler";
 import { theme, themes } from "./utilities/theme";
 
@@ -131,6 +132,13 @@ describe("color themes", () => {
 
     expect(target.style.getPropertyValue("--vrui-color-accent-600")).toBe("");
     expect(target.hasAttribute("data-vrui-mode")).toBe(false);
+  });
+
+  it("exposes color values and role variables", () => {
+    expect(colorVar("neutral", 900)).toBe("var(--vrui-color-neutral-900)");
+    expect(colorValue("accent", 500)).toBe("var(--vrui-color-accent-500)");
+    expect(colorValue("slate", "50")).toBe("#f8fafc");
+    expect(colorValue("plum", 500)).toBeUndefined();
   });
 
   it("provides explicit built-in color themes", () => {

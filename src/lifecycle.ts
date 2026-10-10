@@ -280,21 +280,28 @@ export function autoDispose(node: Node, cleanup: () => void): () => void {
   });
 }
 
-export function listen(
+/**
+ * Listen to any EventTarget, such as an element, a WebSocket, a MediaQueryList,
+ * or an AbortSignal. Annotate the handler's event type for typed access, for
+ * example `(event: MessageEvent) => ...`. The listener is removed when the
+ * active scope is disposed or the returned disposer is called.
+ */
+export function listen<E extends Event = Event>(
   target: EventTarget,
   event: string,
-  handler: EventListener,
+  handler: (event: E) => void,
   options?: boolean | AddEventListenerOptions,
 ): () => void {
-  target.addEventListener(event, handler, options);
-  return scoped(once(() => target.removeEventListener(event, handler, options)));
+  const listener = handler as EventListener;
+  target.addEventListener(event, listener, options);
+  return scoped(once(() => target.removeEventListener(event, listener, options)));
 }
 
-export function onTarget(
+export function onTarget<E extends Event = Event>(
   owner: Node,
   target: EventTarget,
   event: string,
-  handler: EventListener,
+  handler: (event: E) => void,
   options?: boolean | AddEventListenerOptions,
 ): () => void {
   const stop = listen(target, event, handler, options);
@@ -306,19 +313,19 @@ export function onTarget(
   });
 }
 
-export function onWindow(
+export function onWindow<E extends Event = Event>(
   owner: Node,
   event: string,
-  handler: EventListener,
+  handler: (event: E) => void,
   options?: boolean | AddEventListenerOptions,
 ): () => void {
   return onTarget(owner, window, event, handler, options);
 }
 
-export function onDocument(
+export function onDocument<E extends Event = Event>(
   owner: Node,
   event: string,
-  handler: EventListener,
+  handler: (event: E) => void,
   options?: boolean | AddEventListenerOptions,
 ): () => void {
   return onTarget(owner, document, event, handler, options);

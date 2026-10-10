@@ -276,6 +276,56 @@ describe("show", () => {
     source.set(1);
     expect(runs).toBe(1);
   });
+
+  it("accepts a getter condition and a factory that renders nothing", () => {
+    const count = sig(0);
+    let builds = 0;
+    let cleanups = 0;
+
+    const wrapper = show(() => count.get() > 0, () => {
+      builds++;
+      effect(() => () => {
+        cleanups++;
+      });
+      return count.get() > 1 ? div({ text: "many" }) : null;
+    });
+
+    expect(wrapper.childNodes.length).toBe(0);
+    count.set(1);
+    expect(builds).toBe(1);
+    expect(wrapper.childNodes.length).toBe(0);
+
+    count.set(2);
+    expect(builds).toBe(1);
+
+    count.set(0);
+    expect(cleanups).toBe(1);
+    count.set(2);
+    expect(builds).toBe(2);
+    expect(wrapper.textContent).toBe("many");
+  });
+});
+
+describe("dynamicChild without a node", () => {
+  it("renders nothing for a null factory result and disposes its scope", () => {
+    const current = sig<string | null>(null);
+    let cleanups = 0;
+
+    const root = dynamicChild(current, (value) => {
+      effect(() => () => {
+        cleanups++;
+      });
+      return value ? div({ text: value }) : undefined;
+    });
+
+    expect(root.childNodes.length).toBe(0);
+    current.set("a");
+    expect(root.textContent).toBe("a");
+    expect(cleanups).toBe(1);
+    current.set(null);
+    expect(root.childNodes.length).toBe(0);
+    expect(cleanups).toBe(2);
+  });
 });
 /* keep -- node stays mounted, display toggles */
 
@@ -329,5 +379,21 @@ describe("keep", () => {
 
     source.set(1);
     expect(runs).toBe(1);
+  });
+
+  it("builds a factory that renders nothing only once", () => {
+    const visible = sig(true);
+    let builds = 0;
+
+    const wrapper = keep(() => visible.get(), () => {
+      builds++;
+      return null;
+    });
+
+    visible.set(false);
+    visible.set(true);
+
+    expect(builds).toBe(1);
+    expect(wrapper.childNodes.length).toBe(0);
   });
 });

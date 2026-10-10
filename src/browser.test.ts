@@ -41,6 +41,36 @@ describe("cleanup-aware browser helpers", () => {
     expect(calls).toBe(0);
   });
 
+  it("cancels owned timers when the owner disconnects", async () => {
+    vi.useFakeTimers();
+    const owner = div();
+    let calls = 0;
+
+    document.body.appendChild(owner);
+    onTimeout(() => calls++, 10, owner);
+    onInterval(() => calls++, 10, owner);
+    await Promise.resolve();
+
+    owner.remove();
+    await Promise.resolve();
+    vi.advanceTimersByTime(30);
+
+    expect(calls).toBe(0);
+  });
+
+  it("runs owned timers while the owner stays connected", async () => {
+    vi.useFakeTimers();
+    const owner = div();
+    let calls = 0;
+
+    document.body.appendChild(owner);
+    onTimeout(() => calls++, 10, owner);
+
+    vi.advanceTimersByTime(10);
+    expect(calls).toBe(1);
+    owner.remove();
+  });
+
   it("ties resize listeners to an owner node", async () => {
     const owner = div();
     let calls = 0;

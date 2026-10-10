@@ -159,4 +159,40 @@ describe("keys", () => {
     expect(handled).toBe(1);
     expect(stopSpy).toHaveBeenCalledOnce();
   });
+
+  it("matches modifier chords exactly and before plain keys", () => {
+    const seen: string[] = [];
+    const handler = keys({
+      Enter: () => seen.push("enter"),
+      "shift+Enter": () => seen.push("shift+enter"),
+      "ctrl+alt+k": () => seen.push("ctrl+alt+k"),
+    });
+    const press = (init: KeyboardEventInit) => handler(new KeyboardEvent("keydown", { cancelable: true, ...init }));
+
+    press({ key: "Enter" });
+    press({ key: "Enter", shiftKey: true });
+    press({ key: "˚", code: "KeyK", ctrlKey: true, altKey: true });
+    press({ key: "k", code: "KeyK", ctrlKey: true });
+    press({ key: "Enter", ctrlKey: true });
+
+    expect(seen).toEqual(["enter", "shift+enter", "ctrl+alt+k", "enter"]);
+  });
+
+  it("maps mod to Meta on Apple platforms and Control elsewhere", () => {
+    const platform = vi.spyOn(navigator, "platform", "get");
+    const run = (init: KeyboardEventInit) => {
+      let handled = 0;
+      keys({ "mod+k": () => handled++ })(new KeyboardEvent("keydown", { key: "k", code: "KeyK", ...init }));
+      return handled;
+    };
+
+    platform.mockReturnValue("MacIntel");
+    expect(run({ metaKey: true })).toBe(1);
+    expect(run({ ctrlKey: true })).toBe(0);
+
+    platform.mockReturnValue("Win32");
+    expect(run({ ctrlKey: true })).toBe(1);
+    expect(run({ metaKey: true })).toBe(0);
+    platform.mockRestore();
+  });
 });

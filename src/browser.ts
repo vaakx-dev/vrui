@@ -2,25 +2,50 @@
 // vrui - cleanup-aware browser helpers
 // ============================================================
 
-import { autoDispose, listen, onWindow } from "./lifecycle";
+import { autoDispose, listen, onDisconnect, onWindow } from "./lifecycle";
 import { once, scoped } from "./scope";
 
-export function onTimeout(fn: () => void, ms?: number): () => void {
-  const id = window.setTimeout(fn, ms);
+/**
+ * Tie a stop function to the active scope and, when given, to an owner node's
+ * mounted lifetime, like `onTarget`. The returned disposer stops early.
+ */
+function owned(stop: () => void, owner?: Node): () => void {
+  const dispose = scoped(once(stop));
+  if (!owner) return dispose;
 
-  return scoped(once(() => window.clearTimeout(id)));
+  const cancelDisconnect = onDisconnect(owner, dispose);
+  return once(() => {
+    cancelDisconnect();
+    dispose();
+  });
 }
 
-export function onInterval(fn: () => void, ms?: number): () => void {
+export function onTimeout(fn: () => void, ms?: number, owner?: Node): () => void {
+  let id: number | undefined;
+  const dispose = owned(() => window.clearTimeout(id), owner);
+  id = window.setTimeout(() => {
+    dispose();
+    fn();
+  }, ms);
+  return dispose;
+}
+
+export function onInterval(fn: () => void, ms?: number, owner?: Node): () => void {
   const id = window.setInterval(fn, ms);
 
-  return scoped(once(() => window.clearInterval(id)));
+  return owned(() => window.clearInterval(id), owner);
 }
 
-export function onRaf(fn: FrameRequestCallback): () => void {
-  const id = window.requestAnimationFrame(fn);
-
-  return scoped(once(() => window.cancelAnimationFrame(id)));
+export function onRaf(fn: FrameRequestCallback, owner?: Node): () => void {
+  let id: number | undefined;
+  const dispose = owned(() => {
+    if (id !== undefined) window.cancelAnimationFrame(id);
+  }, owner);
+  id = window.requestAnimationFrame((time) => {
+    dispose();
+    fn(time);
+  });
+  return dispose;
 }
 
 export function onResize(

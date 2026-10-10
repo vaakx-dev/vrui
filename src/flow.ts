@@ -2,21 +2,27 @@
 // vrui - flow control (list, show)
 // ============================================================
 
-import { batch, Condition, Derive, effect, resolve, sig, Sig, untrack } from "./core";
+import { batch, Condition, Derive, effect, read, sig, Sig, untrack } from "./core";
 import { autoDispose } from "./lifecycle";
 import { collectScope, disposeAll, type Disposer } from "./scope";
+
+/** A flow factory result; `null` or `undefined` renders nothing. */
+export type FlowNode = HTMLElement | null | undefined;
+
+/** A visibility source for `show` and `keep`. */
+export type FlowCondition = Sig<boolean> | Derive<boolean> | Condition | (() => boolean);
 
 /* ---------- dynamicChild ---------- */
 
 type DynamicChildValue<T> = Sig<T> | Derive<T> | Condition | (() => T);
 
 function resolveDynamicChild<T>(value: DynamicChildValue<T>): T {
-  return value instanceof Condition ? value.get() as T : resolve(value);
+  return value instanceof Condition ? value.get() as T : read(value);
 }
 
 export function dynamicChild<T>(
   value: DynamicChildValue<T>,
-  factory: (value: T) => HTMLElement,
+  factory: (value: T) => FlowNode,
   container?: HTMLElement,
 ): HTMLElement {
   const node = container ?? document.createElement("div");
@@ -28,9 +34,9 @@ export function dynamicChild<T>(
   const disposeEff = effect(() => {
     const next = resolveDynamicChild(value);
     const created = untrack(() => collectScope(() => factory(next)));
-    child = created.value;
+    child = created.value ?? null;
     childScope = created.scope;
-    node.appendChild(child);
+    if (child) node.appendChild(child);
 
     return () => {
       if (child?.parentNode === node) node.removeChild(child);
@@ -177,12 +183,13 @@ export function list<T, K>(
 /* ---------- show ---------- */
 
 export function show(
-  condition: Sig<boolean> | Derive<boolean> | Condition,
-  factory: () => HTMLElement
+  condition: FlowCondition,
+  factory: () => FlowNode
 ): HTMLElement {
   const wrapper = document.createElement("div");
   wrapper.style.display = "contents";
 
+  let built = false;
   let node: HTMLElement | null = null;
   let scope: Disposer[] = [];
 
@@ -191,26 +198,27 @@ export function show(
     disposeAll(scope);
     scope = [];
     node = null;
+    built = false;
   };
 
   const ensureChild = () => {
-    if (node) return;
+    if (built) return;
 
     const created = collectScope(factory);
-    node = created.value;
+    node = created.value ?? null;
     scope = created.scope;
+    built = true;
   };
 
   const disposeEff = effect(() => {
-    const visible = resolve(condition instanceof Condition ? () => condition.get() : condition);
-    if (!visible) {
+    if (!read(condition)) {
       disposeChild();
       return;
     }
 
-    ensureChild();
-    if (node!.parentNode === wrapper) return;
-    wrapper.appendChild(node!);
+    untrack(ensureChild);
+    if (!node || node.parentNode === wrapper) return;
+    wrapper.appendChild(node);
   });
 
   autoDispose(wrapper, () => {
@@ -238,22 +246,24 @@ export function show(
  * a CSS class if the factory needs a specific display mode.
  */
 export function keep(
-  condition: Sig<boolean> | Derive<boolean> | Condition,
-  factory: () => HTMLElement
+  condition: FlowCondition,
+  factory: () => FlowNode
 ): HTMLElement {
   const wrapper = document.createElement("div");
   wrapper.style.display = "contents";
 
+  let built = false;
   let node: HTMLElement | null = null;
   let scope: Disposer[] = [];
 
   const ensureChild = () => {
-    if (node) return;
+    if (built) return;
 
     const created = collectScope(factory);
-    node = created.value;
+    node = created.value ?? null;
     scope = created.scope;
-    wrapper.appendChild(node);
+    built = true;
+    if (node) wrapper.appendChild(node);
   };
 
   const disposeChild = () => {
@@ -261,18 +271,17 @@ export function keep(
     disposeAll(scope);
     scope = [];
     node = null;
+    built = false;
   };
 
   const disposeEff = effect(() => {
-    const visible = resolve(condition instanceof Condition ? () => condition.get() : condition);
-    if (!visible) {
-      if (!node) return;
-      node.style.display = "none";
+    if (!read(condition)) {
+      if (node) node.style.display = "none";
       return;
     }
 
-    ensureChild();
-    node!.style.display = "";
+    untrack(ensureChild);
+    if (node) node.style.display = "";
   });
 
   autoDispose(wrapper, () => {

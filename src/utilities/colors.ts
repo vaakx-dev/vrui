@@ -58,11 +58,22 @@ export function registerColorRole(name: string): void {
   roles.add(name);
 }
 
-export function colorValue(name: string, shade: string): string | undefined {
+/** The CSS variable a theme sets for a color role shade, such as `var(--vrui-color-accent-500)`. */
+export function colorVar(role: string, shade: string | number): string {
+  return `var(--vrui-color-${role}-${shade})`;
+}
+
+/**
+ * The CSS color for a palette or role shade: a hex value for a palette name
+ * such as `slate`, the theme variable for a registered role such as `accent`,
+ * or undefined when neither exists.
+ */
+export function colorValue(name: string, shade: string | number): string | undefined {
+  const key = String(shade);
   const palette = PALETTE[name as PaletteName];
-  if (palette && shade in palette) {
-    return palette[shade as Shade];
+  if (palette && key in palette) {
+    return palette[key as Shade];
   }
-  if (!roles.has(name) || !/^\d+$/.test(shade)) return;
-  return `var(--vrui-color-${name}-${shade})`;
+  if (!roles.has(name) || !/^\d+$/.test(key)) return;
+  return colorVar(name, key);
 }

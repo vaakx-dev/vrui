@@ -70,6 +70,14 @@ export function resolve<T>(v: T | ReactiveValue<T>): T {
   return v;
 }
 
+/** Read a plain, signal, derive, getter, or condition value, tracking it in the active effect. */
+export function read(value: Condition): boolean;
+export function read<T>(value: T | ReactiveValue<T>): T;
+export function read(value: boolean | ReactiveValue<boolean> | Condition): boolean;
+export function read<T>(value: T | ReactiveValue<T> | Condition): T | boolean {
+  return value instanceof Condition ? value.get() : resolve(value);
+}
+
 export function isReactive(v: unknown): v is ReactiveValue<unknown> {
   return v instanceof Sig || v instanceof Derive || typeof v === "function";
 }

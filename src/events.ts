@@ -189,14 +189,74 @@ export type KeyOptions = EventOptions & {
   repeat?: boolean;
 };
 
+const MODIFIERS = ["ctrl", "alt", "shift", "meta"] as const;
+
+type Chord = {
+  key: string;
+  held: string;
+  handler: KeyMap[string];
+};
+
+function isMac(): boolean {
+  return typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+}
+
+function modifierName(part: string): string {
+  if (part === "mod") return isMac() ? "meta" : "ctrl";
+  if (part === "cmd") return "meta";
+  if (part === "control") return "ctrl";
+  if (part === "option") return "alt";
+  return part;
+}
+
+function parseChord(name: string, handler: KeyMap[string]): Chord | undefined {
+  const plus = name.lastIndexOf("+", name.length - 2);
+  if (plus <= 0) return undefined;
+
+  const parts = name.slice(0, plus).toLowerCase().split("+").map(modifierName);
+  const held = MODIFIERS.filter((modifier) => parts.includes(modifier)).join("+");
+  return { key: name.slice(plus + 1).toLowerCase(), held, handler };
+}
+
+function heldModifiers(ev: KeyboardEvent): string {
+  const held = [ev.ctrlKey, ev.altKey, ev.shiftKey, ev.metaKey];
+  return MODIFIERS.filter((_, index) => held[index]).join("+");
+}
+
+function pressedKeys(ev: KeyboardEvent): string[] {
+  const names = [ev.key.toLowerCase()];
+  if (ev.key === " ") names.push("space");
+  if (/^Key[A-Z]$/.test(ev.code)) names.push(ev.code.slice(3).toLowerCase());
+  if (/^Digit\d$/.test(ev.code)) names.push(ev.code.slice(5));
+  return names;
+}
+
+function chordHandler(chords: Chord[], ev: KeyboardEvent): KeyMap[string] {
+  if (!chords.length) return undefined;
+  const held = heldModifiers(ev);
+  if (!held) return undefined;
+  const pressed = pressedKeys(ev);
+  return chords.find((chord) => chord.held === held && pressed.includes(chord.key))?.handler;
+}
+
+/**
+ * Map keys to handlers. Plain names match `event.key`, such as `Enter` or
+ * `ArrowDown`. Chords join modifiers and a key with `+`, such as `mod+k`,
+ * `shift+Enter`, or `ctrl+alt+Delete`; `mod` is Meta on Apple platforms and
+ * Control elsewhere. A chord matches only its exact modifiers, and takes
+ * precedence over a plain name for the same key.
+ */
 export function keys(map: KeyMap, options: KeyOptions = {}): EventHandler<KeyboardEvent> {
   const shouldPrevent = options.prevent ?? true;
+  const chords = Object.entries(map)
+    .map(([name, handler]) => parseChord(name, handler))
+    .filter((chord): chord is Chord => !!chord);
 
   return (ev) => {
     if (options.self && ev.target !== ev.currentTarget) return;
     if (options.repeat === false && ev.repeat) return;
 
-    const handler = map[ev.key];
+    const handler = chordHandler(chords, ev) ?? map[ev.key];
     if (!handler) return;
 
     if (shouldPrevent) ev.preventDefault();

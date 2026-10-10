@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sig } from "./core";
 import { button, div } from "./elements";
-import { onDisconnect, onMount } from "./lifecycle";
+import { listen, onDisconnect, onMount } from "./lifecycle";
 import { collectScope, disposeAll } from "./scope";
 
 async function flushMutations(): Promise<void> {
@@ -169,5 +169,24 @@ describe("DOM lifecycle ownership", () => {
     dispose();
 
     expect(cleanups).toBe(1);
+  });
+});
+
+describe("listen", () => {
+  it("accepts typed handlers for any event target and removes them with the scope", () => {
+    const socket = new EventTarget();
+    const seen: string[] = [];
+
+    const { scope } = collectScope(() => {
+      listen(socket, "message", (event: MessageEvent<string>) => {
+        seen.push(event.data);
+      });
+    });
+
+    socket.dispatchEvent(new MessageEvent("message", { data: "one" }));
+    disposeAll(scope);
+    socket.dispatchEvent(new MessageEvent("message", { data: "two" }));
+
+    expect(seen).toEqual(["one"]);
   });
 });

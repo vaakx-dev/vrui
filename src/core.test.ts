@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { batch, derive, effect, isReactive, resolve, sig, untrack } from "./core";
+import { batch, derive, effect, isReactive, read, resolve, sig, untrack } from "./core";
 import { enterScope, exitScope, hasScope, registerInScope } from "./scope";
 
 describe("core helpers", () => {
@@ -18,6 +18,25 @@ describe("core helpers", () => {
     expect(isReactive(5)).toBe(false);
 
     doubled.dispose();
+  });
+
+  it("reads conditions as well as reactive values, tracking them in effects", () => {
+    const mode = sig("view");
+    const seen: boolean[] = [];
+
+    enterScope();
+    const editing = mode.eq("edit");
+    effect(() => {
+      seen.push(read(editing));
+    });
+    const disposers = exitScope();
+
+    expect(read(mode)).toBe("view");
+    expect(read(() => 3)).toBe(3);
+    mode.set("edit");
+    expect(seen).toEqual([false, true]);
+
+    for (const dispose of disposers) dispose();
   });
 
   it("runs effects on signal changes and coalesces batched updates", () => {
