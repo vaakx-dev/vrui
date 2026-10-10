@@ -177,7 +177,7 @@ add(800, {
   "opacity-50": [["opacity", "0.5"]],
   "opacity-75": [["opacity", "0.75"]],
   "opacity-100": [["opacity", "1"]],
-  "transition": [["transition-property", "color, background-color, border-color, box-shadow, opacity, transform"], ["transition-duration", "150ms"]],
+  "transition": [["transition-property", "color, background-color, border-color, box-shadow, opacity, transform, rotate"], ["transition-duration", "150ms"]],
   "transition-colors": [["transition-property", "color, background-color, border-color"], ["transition-duration", "150ms"]],
 });
 
