@@ -30,6 +30,8 @@
     "src",
     "!src/**/*.test.ts",
     "scripts/check.mjs",
+    "scripts/check",
+    "!scripts/check/*.test.mjs",
     "docs",
     "AGENTS.md",
     "README.md"
@@ -53,7 +55,8 @@
   "vrui": {
     "check": [
       "examples"
-    ]
+    ],
+    "shapes": "project"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^16.0.3",
