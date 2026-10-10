@@ -89,6 +89,14 @@ function listenerRoute(receiver) {
   return "an on* prop on the VRUI element, or onTarget(owner, target, event, handler) or listen(target, event, handler)";
 }
 
+// `tag({ hidden: true })` with no children, or with only a portal child.
+function isHiddenPlaceholder(tokens, index) {
+  const shape = ["(", "{", "hidden", ":", "true", "}"];
+  if (!shape.every((value, offset) => tokens[index + 1 + offset]?.value === value)) return false;
+  const after = tokens[index + 7];
+  return isPunct(after, ")") || (isPunct(after, ",") && isIdent(tokens[index + 8], "portal"));
+}
+
 // Variables the file builds as FormData, URLSearchParams or Headers, whose append() is not DOM work.
 function nonNodeNames(tokens) {
   const names = new Set();
@@ -149,6 +157,11 @@ export function browserFindings(tokens) {
     } else if (!member && called && name === "el" && tokens[index + 2]?.type === "string" && FACTORY_TAGS.has(tokens[index + 2].value)) {
       const tag = tokens[index + 2].value;
       add(token, "factory", `el("${tag}") has a typed factory; use ${tag}(props, ...children)`);
+    } else if (!member && FACTORY_TAGS.has(name) && isHiddenPlaceholder(tokens, index)) {
+      const portal = isIdent(tokens[index + 8], "portal");
+      add(token, "placeholder", portal
+        ? `${name}({ hidden: true }, portal(...)) only hosts a portal; return the portal from the show or dynamicChild factory`
+        : `${name}({ hidden: true }) is an empty placeholder; return null from the show, keep or dynamicChild factory to render nothing`);
     }
   });
   return findings;

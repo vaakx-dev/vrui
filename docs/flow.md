@@ -45,9 +45,12 @@ subscription. It takes the same conditions as `show`.
 
 The factories of `show`, `keep`, and `dynamicChild` may return `null` or
 `undefined` to render nothing. Do not build hidden placeholder elements.
+`show` and `dynamicChild` factories may also return any node, such as the
+marker a `portal` returns.
 
 ```ts
 dynamicChild(model.error, (error) => error ? p({ class: "text-danger-600" }, error) : null);
+show(model.menu_open, () => portal(document.body, menu()));
 ```
 
 ## list

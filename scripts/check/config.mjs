@@ -8,7 +8,7 @@ export function findConfig(cwd) {
     const manifest = join(dir, "package.json");
     if (existsSync(manifest)) {
       const config = JSON.parse(readFileSync(manifest, "utf8")).vrui;
-      if (config && typeof config === "object") return { root: dir, config: normalize(config) };
+      if (config && typeof config === "object") return { root: dir, manifest, config: normalize(config) };
     }
     if (dirname(dir) === dir) return { root: cwd, config: normalize({}) };
   }

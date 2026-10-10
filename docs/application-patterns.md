@@ -259,6 +259,7 @@ left alone. In browser code the check reports:
 | `append`, `prepend`, `before`, `after`, `insertBefore`, `replaceChildren`, `replaceWith`, `appendChild`, `insertAdjacent*`, `remove()`, `removeChild`, `replaceChild` | factory children, reactive children, `show`, `dynamicChild`, `list`, or `portal` |
 | `createElement`, `createElementNS`, `createTextNode`, `document.getElementById` | factories, `svgEl`, string children, or `byId` |
 | `el("div")` and other tags with a typed factory | `div(...)` |
+| `span({ hidden: true })` placeholders, alone or around a `portal` | return `null` or the portal from the `show` or `dynamicChild` factory |
 | `setAttribute`, `removeAttribute`, `toggleAttribute` | reactive `data-*`, `aria-*`, `role`, or element property props |
 | `classList`, `className =` | a reactive `class` prop |
 | `style.x =`, `style.setProperty` | a reactive `style` prop or a utility |
@@ -299,7 +300,8 @@ part of the tree. It reads its settings from the `vrui` field in the nearest
 ```
 
 - `check` lists the folders to scan when no paths are given.
-- `classes` lists class names the application defines in its own CSS.
+- `classes` lists class names the application defines in its own CSS. A full
+  run reports listed names that VRUI now generates itself.
 - `roles` lists extra color roles the application's theme registers.
 - `ui` lists the modules that mark a file as view code.
 - `browser` lists globs, relative to the `package.json`, of files that are

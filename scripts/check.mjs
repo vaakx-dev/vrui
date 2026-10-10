@@ -36,7 +36,7 @@ async function loadVrui() {
 }
 
 const cwd = process.cwd();
-const { root, config } = findConfig(cwd);
+const { root, manifest, config } = findConfig(cwd);
 const args = process.argv.slice(2);
 const roots = args.length ? args.map((path) => resolve(cwd, path)) : config.check.map((path) => resolve(root, path));
 // Themes register their roles at runtime; register the app's extra roles the same way.
@@ -95,6 +95,15 @@ for (const path of files) {
   for (const shape of result.shapes) shapes.push({ at: `${file}:${shape.line}`, group, tokens: shape.tokens });
 }
 findings.push(...repeatedShapes(shapes));
+
+// App classes that VRUI now generates itself, so the app's own rule competes with VRUI's.
+if (manifest && !args.length) {
+  const text = readFileSync(manifest, "utf8");
+  for (const name of config.classes.filter(vrui.isUtility)) {
+    const line = text.slice(0, text.indexOf(JSON.stringify(name))).split("\n").length;
+    findings.push({ at: `${display(manifest)}:${line}`, rule: "redundant-class", message: `vrui.classes lists "${name}", which VRUI generates; remove it here and from the app's CSS` });
+  }
+}
 
 if (findings.length) {
   for (const { at, rule, message } of findings) console.error(`${at} ${message} [${rule}]`);

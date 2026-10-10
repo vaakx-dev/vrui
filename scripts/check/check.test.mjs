@@ -69,6 +69,12 @@ describe("vrui-check browser rules", () => {
     expect(messages("src/a.ts", `${UI}el("h2", "Title"); el("iframe", {});`)).toEqual(['el("h2") has a typed factory; use h2(props, ...children)']);
   });
 
+  it("flags hidden placeholder elements", () => {
+    expect(rules("src/a.ts", `${UI}show(open, () => span({ hidden: true })); dynamicChild(x, () => span({ hidden: true }, portal(document.body, layer)));`))
+      .toEqual(["placeholder", "placeholder"]);
+    expect(rules("src/a.ts", `${UI}span({ hidden: true }, "kept"); div({ hidden: open });`)).toEqual([]);
+  });
+
   it("lists exactly the exported HTML factories", () => {
     for (const tag of FACTORY_TAGS) {
       const factory = vrui[tag];
