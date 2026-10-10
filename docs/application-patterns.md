@@ -260,6 +260,7 @@ left alone. In browser code the check reports:
 | `createElement`, `createElementNS`, `createTextNode`, `document.getElementById` | factories, `svgEl`, string children, or `byId` |
 | `el("div")` and other tags with a typed factory | `div(...)` |
 | `span({ hidden: true })` placeholders, alone or around a `portal` | return `null` or the portal from the `show` or `dynamicChild` factory |
+| `() => open.toggle()` or `open.toggle();`, which throw away the handler `toggle()` returns | `onClick: open.toggle()`, or `open.set(!open.get())` inside a function |
 | `setAttribute`, `removeAttribute`, `toggleAttribute` | reactive `data-*`, `aria-*`, `role`, or element property props |
 | `classList`, `className =` | a reactive `class` prop |
 | `style.x =`, `style.setProperty` | a reactive `style` prop or a utility |

@@ -34,6 +34,13 @@ describe("vrui-check browser files", () => {
 });
 
 describe("vrui-check browser rules", () => {
+  it("flags a toggle() whose handler is thrown away", () => {
+    const wasted = `${UI}const a = { onClick: () => open.toggle() };\nif (x) state.open.toggle();\nconst f = () => { open.toggle(); };`;
+    expect(rules("src/a.ts", wasted)).toEqual(["discarded-handler", "discarded-handler", "discarded-handler"]);
+    const used = `${UI}const a = { onClick: open.toggle(), run: open.toggle() };\nopen.toggle()();`;
+    expect(rules("src/a.ts", used)).toEqual([]);
+  });
+
   it("flags listeners with the matching VRUI route", () => {
     const found = messages("src/a.ts", `${UI}window.addEventListener("resize", f);\ndocument.addEventListener("keydown", f);\nsocket.addEventListener("open", f);\nsocket.removeEventListener("open", f);`);
     expect(found[0]).toContain("onWindow");

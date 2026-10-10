@@ -107,6 +107,20 @@ function nonNodeNames(tokens) {
   return names;
 }
 
+// The index of the first token of the member chain ending at tokens[index]: `a` in `a.b.toggle`.
+function chainStart(tokens, index) {
+  let start = index;
+  while (isMember(tokens, start) && isIdent(tokens[start - 2])) start -= 2;
+  return start;
+}
+
+// `sig.toggle()` returns a handler; calling it as a statement or arrow body throws that handler away.
+function discardsHandler(tokens, index) {
+  if (!callsWithoutArguments(tokens, index) || isPunct(tokens[index + 3], "(")) return false;
+  const before = tokens[chainStart(tokens, index) - 1];
+  return ["=>", "{", ";", ")"].some((value) => isPunct(before, value)) || isIdent(before, "else");
+}
+
 // Browser work in a browser file that VRUI owns; each finding is { start, rule, message }.
 export function browserFindings(tokens) {
   const findings = [];
@@ -121,7 +135,9 @@ export function browserFindings(tokens) {
     const called = isCalled(tokens, index);
     const global = !member || GLOBAL_RECEIVERS.has(receiver) && receiver !== undefined;
 
-    if (called && name === "addEventListener") {
+    if (member && name === "toggle" && discardsHandler(tokens, index)) {
+      add(token, "discarded-handler", ".toggle() returns a click handler and changes nothing here; pass sig.toggle() as the handler (onClick: open.toggle()), or call open.set(!open.get())");
+    } else if (called && name === "addEventListener") {
       add(token, "listener", `${receiver ? `${receiver}.` : ""}addEventListener() is never removed with its owner; use ${listenerRoute(receiver)}`);
     } else if (called && name === "removeEventListener") {
       add(token, "listener", "removeEventListener() pairs a hand-rolled listener; call the disposer that listen, onTarget, onWindow or onDocument returns");
