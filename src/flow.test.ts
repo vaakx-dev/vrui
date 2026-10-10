@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { sig, effect } from "./core";
 import { button, div, span } from "./elements";
 import { dynamicChild, keep, list, show } from "./flow";
+import { portal } from "./portal";
 import { hasScope } from "./scope";
 
 /* dynamicChild -- one reactive child */
@@ -303,6 +304,26 @@ describe("show", () => {
     count.set(2);
     expect(builds).toBe(2);
     expect(wrapper.textContent).toBe("many");
+  });
+});
+
+describe("show with a portal", () => {
+  it("renders a portal marker directly and removes its content on hide", () => {
+    const open = sig(true);
+    const target = document.createElement("section");
+    document.body.appendChild(target);
+    const wrapper = show(open, () => portal(target, span({ text: "layer" })));
+    document.body.appendChild(wrapper);
+
+    expect(wrapper.firstChild?.nodeType).toBe(Node.COMMENT_NODE);
+    expect(target.textContent).toBe("layer");
+
+    open.set(false);
+    expect(wrapper.childNodes.length).toBe(0);
+    expect(target.textContent).toBe("");
+
+    wrapper.remove();
+    target.remove();
   });
 });
 

@@ -6,8 +6,11 @@ import { batch, Condition, Derive, effect, read, sig, Sig, untrack } from "./cor
 import { autoDispose } from "./lifecycle";
 import { collectScope, disposeAll, type Disposer } from "./scope";
 
-/** A flow factory result; `null` or `undefined` renders nothing. */
-export type FlowNode = HTMLElement | null | undefined;
+/** A `show` or `dynamicChild` factory result; `null` or `undefined` renders nothing. */
+export type FlowNode = Node | null | undefined;
+
+/** A `keep` factory result; `keep` toggles the element's display. */
+export type KeptNode = HTMLElement | null | undefined;
 
 /** A visibility source for `show` and `keep`. */
 export type FlowCondition = Sig<boolean> | Derive<boolean> | Condition | (() => boolean);
@@ -28,7 +31,7 @@ export function dynamicChild<T>(
   const node = container ?? document.createElement("div");
   if (!container) node.style.display = "contents";
 
-  let child: HTMLElement | null = null;
+  let child: Node | null = null;
   let childScope: Disposer[] = [];
 
   const disposeEff = effect(() => {
@@ -190,11 +193,11 @@ export function show(
   wrapper.style.display = "contents";
 
   let built = false;
-  let node: HTMLElement | null = null;
+  let node: Node | null = null;
   let scope: Disposer[] = [];
 
   const disposeChild = () => {
-    if (node?.parentNode === wrapper) node.remove();
+    if (node?.parentNode === wrapper) wrapper.removeChild(node);
     disposeAll(scope);
     scope = [];
     node = null;
@@ -247,7 +250,7 @@ export function show(
  */
 export function keep(
   condition: FlowCondition,
-  factory: () => FlowNode
+  factory: () => KeptNode
 ): HTMLElement {
   const wrapper = document.createElement("div");
   wrapper.style.display = "contents";

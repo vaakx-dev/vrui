@@ -147,7 +147,7 @@ export { clock, media, stored } from "./browserState";
 export type { StoredValidator } from "./browserState";
 
 export { dynamicChild, keep, list, show } from "./flow";
-export type { FlowCondition, FlowNode } from "./flow";
+export type { FlowCondition, FlowNode, KeptNode } from "./flow";
 
 export { portal } from "./portal";
 
