@@ -72,6 +72,20 @@ keys({ Enter: submit }, { prevent: false });
 keys({ Escape: close }, { stop: true, repeat: false });
 ```
 
+Join modifiers and a key with `+` for a chord. `mod` is Meta on Apple
+platforms and Control elsewhere; `ctrl`, `alt`, `shift`, and `meta` name one
+modifier each. A chord matches only its exact modifiers and wins over a plain
+name for the same key. Plain names still match `event.key` whatever modifiers
+are held.
+
+```ts
+keys({
+  Enter: send,
+  "shift+Enter": newLine,
+  "mod+k": openPalette,
+});
+```
+
 Use VRUI event props or cleanup-aware helpers at integration boundaries.
 
 ## Custom events
@@ -88,4 +102,15 @@ const stopListening = listen(target, "panel:activate", (event) => {
 });
 
 stopListening();
+```
+
+`listen` takes any `EventTarget`, including a `WebSocket`, `FileReader`,
+`MediaQueryList`, or `AbortSignal`. Use it instead of `addEventListener` or
+handler properties such as `socket.onmessage`. Annotate the handler's event
+type for typed access:
+
+```ts
+listen(socket, "message", (event: MessageEvent<string>) => {
+  model.receive(JSON.parse(event.data));
+});
 ```

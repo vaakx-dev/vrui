@@ -52,17 +52,39 @@ values are `none`, `sm`, `md`, `lg`, `xl`, `2xl`, and `full`. Shadows are
 The first utility set covers:
 
 - block, inline, flex, and grid display
-- position, offsets, and overflow
+- position, offsets, and overflow, including `overflow-x-*` and `overflow-y-*`
 - flex direction, wrapping, alignment, and distribution
 - grid columns
 - padding, margin, gap, width, and height
-- text family, size, weight, alignment, decoration, color, and truncation
-- backgrounds, borders, radii, rings, shadows, and opacity
-- pointer, cursor, appearance, selection, accent color, and transitions
+- text family (`font-sans`, `font-mono`), size, weight, alignment,
+  decoration, color, `tabular-nums`, and truncation
+- white space (`whitespace-normal`, `-nowrap`, `-pre`, `-pre-line`,
+  `-pre-wrap`, `-break-spaces`), wrapping (`break-words`, `break-all`,
+  `wrap-anywhere`), and `line-clamp-1` through `line-clamp-6` or
+  `line-clamp-none`
+- backgrounds, borders, radii, rings, shadows, and opacity; side radii such as
+  `rounded-t-lg` and `rounded-b` use `t`, `r`, `b`, and `l`
+- `rotate-0`, `rotate-45`, `rotate-90`, `rotate-180`, and their negatives such
+  as `-rotate-90`
+- `animate-spin` and `animate-none`
+- pointer, cursor, appearance, selection, `resize-*`, `overscroll-*`,
+  `scrollbar-none`, accent color, and transitions
 
-State variants include `hover`, `focus`, `focus-visible`, `active`,
-`disabled`, `checked`, `first`, and `last`. Responsive variants use `sm`,
-`md`, `lg`, `xl`, and `2xl`.
+State variants include `hover`, `focus`, `focus-visible`, `focus-within`,
+`active`, `disabled`, `checked`, `first`, and `last`. Responsive variants use
+`sm`, `md`, `lg`, `xl`, and `2xl`.
+
+Mark a parent with `group` and style its children by the parent's state with
+`group-` and a state variant, such as `group-hover:flex` or
+`group-focus-within:opacity-100`:
+
+```ts
+li(
+  { class: "group flex items-center gap-2" },
+  span(name),
+  button({ class: "hidden group-hover:flex" }, "Remove"),
+);
+```
 
 ```ts
 div({
@@ -105,6 +127,11 @@ Semantic color utilities use the selected role, such as `bg-accent-600` and
 `text-neutral-50`. Direct palette utilities such as `bg-blue-600` work without
 a theme. The `dark` variant checks the explicit mount mode.
 
+For a color in a style value or the application's own CSS, `colorVar(role,
+shade)` returns the theme variable, such as `var(--vrui-color-neutral-900)`.
+`colorValue(name, shade)` returns a palette's hex value or a registered role's
+variable, and `undefined` for anything else.
+
 ## Application components
 
 When a utility composition represents a repeated UI shape, put it in the
@@ -138,5 +165,8 @@ This gives the application one searchable, typed component instead of a
 separate registry of class-name strings.
 
 `vrui-check` reports arbitrary values, unknown class names, and repeated or
-near-repeated utility shapes. It points to the first matching source location
-so the shape can be extracted into the nearest application component.
+near-repeated utility shapes across the checked tree. It points to the first
+matching source location so the shape can be extracted into the nearest
+application component. It also checks strings outside `class:` that read as
+class lists, such as the values of `const tones = { ok: "text-success-600" }`,
+and fixed `style` entries a utility already sets, such as `top: "0"`.

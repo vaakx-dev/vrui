@@ -36,6 +36,33 @@ VRUI does not expose its last value as if it belonged to the new transaction.
 Signals include helpers such as `update`, `toggle`, `setter`, `fromInput`,
 `map`, `eq`, `prop`, `or`, `index`, and `filter`.
 
+`read(value)` reads a plain value, signal, derive, getter, or `Condition`, and
+tracks it inside an effect. Use it in components that accept `MaybeReactive`
+props.
+
+```ts
+function badge(label: MaybeReactive<string>) {
+  return span({ text: () => read(label).toUpperCase() });
+}
+```
+
+## Browser-backed signals
+
+These signals belong to the active scope, which stops their listeners and
+timers:
+
+- `stored(key, fallback, valid?)` loads JSON from `localStorage`, saves every
+  `set`, and falls back when the saved value is missing, unreadable, or fails
+  `valid`. By default a saved value must have the fallback's type.
+- `media(query)` is a read-only boolean that follows a media query.
+- `clock(ms = 1000)` is a read-only `Date.now()` that updates every `ms`.
+
+```ts
+const width = stored("sidebar-width", 280);
+const wide = media("(min-width: 64rem)");
+const now = clock(30_000);
+```
+
 ## Reactive UI
 
 Factory props and children can read signals directly:

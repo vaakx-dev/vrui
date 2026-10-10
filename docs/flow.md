@@ -31,12 +31,24 @@ normally without remounting the child.
 disposes it when hidden. Use it when rebuilding is cheap or cleanup on hide is
 desired.
 
+The condition is a boolean signal, a derive, a `Condition` such as
+`mode.eq("edit")`, or a getter such as `() => items.get().length > 0`.
+
 ## keep
 
 `keep(condition, factory)` lazily creates a node on the first true value, keeps
 it mounted, and toggles `display` while hidden. Use it when state should survive
 visibility changes, such as canvas pixels, scroll position, or an open
-subscription.
+subscription. It takes the same conditions as `show`.
+
+## Rendering nothing
+
+The factories of `show`, `keep`, and `dynamicChild` may return `null` or
+`undefined` to render nothing. Do not build hidden placeholder elements.
+
+```ts
+dynamicChild(model.error, (error) => error ? p({ class: "text-danger-600" }, error) : null);
+```
 
 ## list
 

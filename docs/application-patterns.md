@@ -143,13 +143,14 @@ contract.
 | Element event | typed event prop such as `onClick`, `onInput`, or `onKeyDown` |
 | Form state | `bindValue` or `bindChecked` |
 | Form submission | `onSubmit: preventThen(action)` |
-| Key mapping | `keys({ Escape: close, Enter: submit })` |
+| Key mapping | `keys({ Escape: close, "mod+Enter": submit })` |
 | Window event | `onWindow(owner, event, handler)` |
 | Document event | `onDocument(owner, event, handler)` |
-| Custom or third-party event | `onTarget` or `listen` |
-| Timer or animation frame | `onTimeout`, `onInterval`, or `onRaf` |
-| Resize or media state | `onResize`, `onMedia`, or `resizeObserver` |
-| Conditional UI | `show` or `keep` |
+| Custom, socket, or third-party event | `onTarget` or `listen` |
+| Timer or animation frame | `onTimeout`, `onInterval`, or `onRaf`, with an optional owner node |
+| Resize or media state | `onResize`, `media`, `onMedia`, or `resizeObserver` |
+| Persisted state or current time | `stored(key, fallback)` or `clock(ms)` |
+| Conditional UI | `show` or `keep`; factories may return `null` |
 | Repeated UI | keyed `list` |
 | Imperative integration | `ref` or `onMount` with cleanup |
 
@@ -199,6 +200,18 @@ const dashboard = div({
 The mounted view owns the schedule and observation. The model owns what a
 refresh or resize means.
 
+An event handler runs outside any scope, so pass the element as the owner to
+cancel a timer when the element disconnects:
+
+```ts
+button({
+  onClick: (event) => {
+    model.copy();
+    onTimeout(model.clear_copied, 1_500, event.currentTarget as Node);
+  },
+}, "Copy");
+```
+
 ## Integration boundaries
 
 Keep imperative platform or third-party setup in a focused integration
@@ -226,30 +239,71 @@ The view remains VRUI-shaped while the integration keeps its native contract.
 `vrui-check` checks the complete application source rather than only the
 rendered page. It reports:
 
-- class names VRUI does not generate
-- browser operations that bypass the application routes above
+- class names VRUI does not generate, in `class:` values, in the complete words
+  of template literals, and in strings elsewhere that read as class lists, such
+  as `const tones = { ok: "text-sucess-600" }`
 - arbitrary utility values outside the built-in scale
-- exact and near-duplicate utility shapes within an application
+- fixed inline styles a utility already sets, such as `style: { top: "0" }`
+- browser work that bypasses the application routes above
+- exact and near-duplicate utility shapes across the checked tree
+
+A file is browser code when it imports a `ui` module, reads a DOM global such
+as `document`, `window`, `navigator`, `localStorage`, or an `HTMLElement`
+type, or matches a `browser` glob. Server code that only uses `setTimeout` is
+left alone. In browser code the check reports:
+
+| Found | Use instead |
+| --- | --- |
+| `addEventListener`, `removeEventListener` | event props, `onWindow`, `onDocument`, `onTarget`, or `listen` |
+| `socket.onmessage = ...` and other `on*` handler properties | `listen(socket, "message", handler)` |
+| `append`, `prepend`, `before`, `after`, `insertBefore`, `replaceChildren`, `replaceWith`, `appendChild`, `insertAdjacent*`, `remove()`, `removeChild`, `replaceChild` | factory children, reactive children, `show`, `dynamicChild`, `list`, or `portal` |
+| `createElement`, `createElementNS`, `createTextNode`, `document.getElementById` | factories, `svgEl`, string children, or `byId` |
+| `el("div")` and other tags with a typed factory | `div(...)` |
+| `setAttribute`, `removeAttribute`, `toggleAttribute` | reactive `data-*`, `aria-*`, `role`, or element property props |
+| `classList`, `className =` | a reactive `class` prop |
+| `style.x =`, `style.setProperty` | a reactive `style` prop or a utility |
+| `innerHTML`, `outerHTML`, `textContent`, `innerText` writes | factories and reactive children |
+| `new ResizeObserver`, `new IntersectionObserver`, `new MutationObserver` | `resizeObserver`, `intersectionObserver`, or `onMount` |
+| `setTimeout`, `setInterval`, `requestAnimationFrame`, `queueMicrotask`, and their `clear` calls | `onTimeout`, `onInterval`, `onRaf`, and their disposers |
+| `matchMedia` | `media(query)` or `onMedia` |
+| `localStorage`, `sessionStorage` | `stored(key, fallback)` |
+
+`append` on `FormData`, `URLSearchParams`, and `Headers`, and `remove(item)`
+with arguments, are not DOM work and are not reported.
+
+Each report names the file and line, what was found, and the VRUI route, with
+the rule in brackets:
+
+```text
+src/chat/socket.ts:14 assigning .onmessage holds one untracked handler; use listen(target, "message", handler), or the event prop on a VRUI element [on-prop]
+```
 
 When a repeated shape is reported, extract the actual VRUI element into the
 nearest feature or application component. Focused `integrations` folders are
-treated as explicit native-platform boundaries.
+treated as explicit native-platform boundaries and are not checked.
 
-Run it as `npx vrui-check src` or `bunx vrui-check src`, and add it to the
-application's other checks. With no paths, it reads its settings from the
-`vrui` field in the application's `package.json`:
+Run it as `npx vrui-check` or `bunx vrui-check`, and add it to the
+application's other checks. Pass paths, such as `vrui-check src/chat`, to check
+part of the tree. It reads its settings from the `vrui` field in the nearest
+`package.json`:
 
 ```json
 "vrui": {
   "check": ["src"],
   "classes": ["markdown"],
   "roles": ["sky"],
-  "ui": ["@vaakx-dev/vrui"]
+  "ui": ["@vaakx-dev/vrui"],
+  "browser": ["**/web/**"],
+  "shapes": "tree"
 }
 ```
 
-- `check` lists the folders to scan.
+- `check` lists the folders to scan when no paths are given.
 - `classes` lists class names the application defines in its own CSS.
 - `roles` lists extra color roles the application's theme registers.
-- `ui` lists the modules that mark a file as view code. The check only reports
-  browser operations in files that import one of them.
+- `ui` lists the modules that mark a file as view code.
+- `browser` lists globs, relative to the `package.json`, of files that are
+  browser code even when they read no DOM global.
+- `shapes` compares repeated class lists across the whole `"tree"`, the
+  default, or within each `"project"`: the nearest folder with its own
+  `package.json`, or the first folder under the scanned path.

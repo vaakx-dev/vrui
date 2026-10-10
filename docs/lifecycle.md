@@ -60,6 +60,11 @@ Listener helpers tied to an owner node, including `onTarget`, `onWindow`,
 `onDocument`, `onResize`, return a disposer for explicit early cleanup as
 well as cleaning up when the owner disconnects.
 
+`onTimeout(fn, ms, owner?)`, `onInterval(fn, ms, owner?)`, and
+`onRaf(fn, owner?)` belong to the active scope. Event handlers run outside any
+scope, so pass an owner node there; the timer is then also cancelled when the
+owner disconnects.
+
 Example:
 
 ```ts

@@ -10,14 +10,14 @@ The class names follow Tailwind, but spacing, type size, radius, shadow and colo
 
 VRUI ties listeners, timers and observers to the part of the page that started them. When that part is removed, VRUI stops them too.
 
-The library is 3,700 lines of TypeScript and 12.6 KB minified and gzipped. Its only dependency is Lucide, for icons.
+The library is 3,900 lines of TypeScript and about 14 KB minified and gzipped. Its only dependency is Lucide, for icons.
 
 ## Catch mistakes before they ship
 
 VRUI includes `vrui-check`, which reads your source and reports three kinds of problems:
 
 - class names VRUI doesn't generate, which otherwise do nothing and show no error
-- timers and event listeners in view code that VRUI can't clean up
+- browser work VRUI already owns, such as event listeners, timers, DOM edits and style writes, that VRUI can't clean up
 - the same class list repeated in several places, which should become a component
 
 Run it with your other checks. It helps most when an AI agent writes your UI, because the agent can read the report and fix each problem itself.

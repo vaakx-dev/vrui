@@ -57,14 +57,15 @@ Choose the VRUI path that matches the application intent:
 | Intent | Route |
 | --- | --- |
 | Elements | typed factories such as `div`, `button`, `input`, `form`, `table`, and `svg` |
-| Reactive state and props | `sig`, `derive`, `effect`, reactive children, and reactive props |
+| Reactive state and props | `sig`, `derive`, `effect`, `read`, reactive children, and reactive props |
+| Persisted, media, and time state | `stored`, `media`, and `clock` |
 | Forms | `bindValue`, `bindChecked`, `onSubmit`, and `preventThen` |
-| Element interaction | typed event props and `keys`, `event`, `stopThen`, or `preventThen` |
-| Conditional and repeated UI | `show`, `keep`, `dynamicChild`, and keyed `list` |
+| Element interaction | typed event props and `keys` (with chords such as `mod+k`), `event`, `stopThen`, or `preventThen` |
+| Conditional and repeated UI | `show`, `keep`, `dynamicChild` (factories may return `null`), and keyed `list` |
 | Window or document interaction | `onWindow` and `onDocument` |
-| Target or custom interaction | `onTarget` and `listen` |
-| Delayed browser work | `onTimeout`, `onInterval`, and `onRaf` |
-| Browser observation | `onResize`, `onMedia`, `resizeObserver`, and `intersectionObserver` |
+| Target, socket, or custom interaction | `onTarget` and `listen` |
+| Delayed browser work | `onTimeout`, `onInterval`, and `onRaf`, with an owner node inside event handlers |
+| Browser observation | `onResize`, `media`, `onMedia`, `resizeObserver`, and `intersectionObserver` |
 | Imperative integration | `ref` or `onMount`, returning cleanup |
 
 Every browser side effect belongs to a VRUI element or active scope. Keep setup
@@ -83,10 +84,14 @@ the actual element into the nearest application `components` folder.
 ## Verification
 
 Run `vrui-check` (`npm run examples:style` in this repository) while writing
-application code, and fix everything it reports. It rejects class names VRUI
-does not generate, arbitrary utility values, browser work outside VRUI, and
-repeated utility shapes. Unknown classes are not harmless: they render nothing.
-Run `npm run check` before reporting.
+application code, and fix everything it reports. Pass paths to check part of
+the tree. It rejects class names VRUI does not generate, including in class-list
+strings outside `class:`, arbitrary utility values, inline styles a utility
+covers, browser work outside VRUI, and repeated utility shapes across the tree.
+Browser work includes `addEventListener`, handler properties such as
+`onmessage`, hand-made DOM edits, attribute, class list, and style writes, bare
+timers, observers, `matchMedia`, and raw storage. Unknown classes are not
+harmless: they render nothing. Run `npm run check` before reporting.
 
 Read `docs/application-patterns.md` when choosing a project boundary, event,
 lifecycle, flow, or integration shape.
