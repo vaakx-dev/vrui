@@ -238,6 +238,8 @@ describe("runtime utilities", () => {
     expect(css).toContain(".selection\\:bg-accent-500\\/40::selection,.selection\\:bg-accent-500\\/40 *::selection{");
     expect(css).toContain(".marker\\:text-neutral-500::marker,.marker\\:text-neutral-500 *::marker{");
     expect(css).toContain(".\\*\\:animate-fade > *{animation:vrui-fade 300ms");
+    div({ class: "*:first:rounded-t-xl" });
+    expect(utilityCss()).toContain(".\\*\\:first\\:rounded-t-xl > *:first-child{border-top-left-radius:0.75rem;");
     expect(isUtility("placeholder:selection:flex")).toBe(false);
     expect(isUtility("*:placeholder:flex")).toBe(false);
     expect(isUtility("placeholder:scrollbar-none")).toBe(false);

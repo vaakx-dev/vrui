@@ -136,7 +136,8 @@ span({ class: "animate-spin motion-reduce:hidden" }, icon("loader"));
 selected text and list markers of the element and everything inside it, so
 `selection:bg-accent-500/40` on `document.body` covers the page. `*:` applies a
 utility to each direct child, such as `*:animate-fade` on a container whose
-children arrive over time.
+children arrive over time. Variants after `*:` test the child, so
+`*:first:rounded-t-xl` rounds only the first child.
 
 Mark a parent with `group` and style its children by the parent's state with
 `group-` and a state variant, such as `group-hover:flex` or
