@@ -33,10 +33,10 @@ real dynamic or platform-specific value.
 
 ## Built-in scales
 
-Spacing and fixed-size utilities use `0`, `1`, `2`, `3`, `4`, `5`, `6`, `8`,
-`10`, `12`, `16`, `20`, `24`, `32`, `40`, `48`, `64`, `80`, and `96`.
-`px` is a 1px step. Examples include `p-4`, `px-6`, `mt-2`, `gap-4`, `w-64`, and
-`h-full`.
+Spacing and fixed-size utilities use `0`, `1`, `1.5`, `2`, `3`, `4`, `5`, `6`,
+`8`, `10`, `12`, `16`, `20`, `24`, `32`, `40`, `48`, `64`, `80`, and `96`.
+`px` is a 1px step and `1.5` is a 6px step. Examples include `p-4`, `px-6`,
+`mt-2`, `gap-1.5`, `gap-4`, `w-64`, and `h-full`.
 
 Fractions `1/2`, `1/3`, `2/3`, `1/4`, `3/4`, and `full` work for widths,
 heights, offsets, and translation, such as `w-1/3` or `max-w-1/2`.

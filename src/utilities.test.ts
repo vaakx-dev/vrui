@@ -85,6 +85,19 @@ describe("runtime utilities", () => {
     expect(isUtility("md:hover:top-2")).toBe(true);
   });
 
+  it("supports the 1.5 spacing step", () => {
+    div({ class: "gap-1.5 h-1.5 w-1.5 -top-1.5 -mt-1.5 translate-x-1.5" });
+
+    expect(utilityCss()).toContain(".gap-1\\.5{gap:0.375rem}");
+    expect(utilityCss()).toContain(".h-1\\.5{height:0.375rem}");
+    expect(utilityCss()).toContain(".w-1\\.5{width:0.375rem}");
+    expect(utilityCss()).toContain(".-top-1\\.5{top:-0.375rem}");
+    expect(utilityCss()).toContain(".-mt-1\\.5{margin-top:-0.375rem}");
+    expect(isUtility("px-1.5")).toBe(true);
+    expect(isUtility("gap-2.5")).toBe(false);
+    expect(isUtility("p-1.")).toBe(false);
+  });
+
   it("supports text, scrolling, transform and animation utilities", () => {
     div({
       class: "font-mono tabular-nums whitespace-pre-wrap wrap-anywhere break-words line-clamp-2 resize-none overscroll-contain overflow-x-auto overflow-y-hidden scrollbar-none rotate-90 -rotate-90 rounded-t-lg rounded-b animate-spin",

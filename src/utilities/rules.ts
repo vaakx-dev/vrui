@@ -269,7 +269,7 @@ for (const lines of ["1", "2", "3", "4", "5", "6"]) {
 }
 
 function spacing(token: string): ResolvedUtility | undefined {
-  const match = /^(-?)(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+|px)$/.exec(token);
+  const match = /^(-?)(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+(?:\.5)?|px)$/.exec(token);
   if (!match) return;
   const [, minus, kind, key] = match as unknown as [string, string, string, string];
   if (minus && !kind.startsWith("m")) return;

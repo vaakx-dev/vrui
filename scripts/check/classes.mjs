@@ -1,7 +1,7 @@
 import { wordsOf } from "./lex.mjs";
 import { isIdent, isPunct } from "./tokens.mjs";
 
-const SCALE = "0, px, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96";
+const SCALE = "0, px, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96";
 const OPEN = new Set(["(", "[", "{"]);
 const CLOSE = new Set([")", "]", "}"]);
 const COMPARISONS = new Set(["===", "!==", "==", "!="]);

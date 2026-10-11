@@ -99,6 +99,7 @@ describe("vrui-check classes", () => {
     ]);
     expect(rules("src/a.ts", `div({ class: "w-[13px]" });`)).toEqual(["arbitrary-value"]);
     expect(rules("src/a.ts", `div({ class: "markdown flex" });`)).toEqual([]);
+    expect(rules("src/a.ts", `div({ class: "flex gap-1.5 h-1.5 -top-1.5" });`)).toEqual([]);
   });
 
   it("checks class lists outside class keys in browser files", () => {
