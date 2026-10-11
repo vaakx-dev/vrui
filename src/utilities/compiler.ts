@@ -67,7 +67,9 @@ export function compileUtility(token: string): CompiledUtility | undefined {
       continue;
     }
     if (variant === "*") {
+      if (children) return;
       children = true;
+      selector += " > *";
       continue;
     }
     const query = queries[variant];
@@ -98,7 +100,6 @@ export function compileUtility(token: string): CompiledUtility | undefined {
   if (dark) {
     selector += ":where([data-vrui-mode=\"dark\"], [data-vrui-mode=\"dark\"] *)";
   }
-  if (children) selector += " > *";
   if (group) selector = `${group}${selector}`;
   const targets = (pseudo ?? [""]).map((suffix) => `${selector}${suffix}`).join(",");
 
