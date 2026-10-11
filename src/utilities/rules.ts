@@ -40,6 +40,7 @@ add(100, {
   grid: [["display", "grid"]],
   hidden: [["display", "none"]],
   contents: [["display", "contents"]],
+  "flow-root": [["display", "flow-root"]],
 });
 
 add(105, {
@@ -108,6 +109,8 @@ add(300, {
   "overscroll-auto": [["overscroll-behavior", "auto"]],
   "overscroll-contain": [["overscroll-behavior", "contain"]],
   "overscroll-none": [["overscroll-behavior", "none"]],
+  "touch-none": [["touch-action", "none"]],
+  "callout-none": [["-webkit-touch-callout", "none"]],
   group: [],
 });
 
@@ -129,6 +132,16 @@ add(300, Object.fromEntries(CURSORS.map((cursor) => [`cursor-${cursor}`, [["curs
 exact["scrollbar-none"] = {
   declarations: [["scrollbar-width", "none"]],
   nested: [["::-webkit-scrollbar", [["display", "none"]]]],
+  order: 300,
+};
+
+const thinScrollbar: readonly Declaration[] = [
+  ["scrollbar-width", "thin"],
+  ["scrollbar-color", "color-mix(in srgb, currentColor 30%, transparent) transparent"],
+];
+exact["scrollbars-thin"] = {
+  declarations: thinScrollbar,
+  nested: [[" *", thinScrollbar]],
   order: 300,
 };
 
@@ -187,6 +200,9 @@ add(600, {
   ],
   "no-underline": [["text-decoration-line", "none"]],
   underline: [["text-decoration-line", "underline"]],
+  antialiased: [["-webkit-font-smoothing", "antialiased"], ["-moz-osx-font-smoothing", "grayscale"]],
+  "text-box-trim": [["text-box", "trim-both ex alphabetic"]],
+  "align-top": [["vertical-align", "top"]],
   ...Object.fromEntries(Object.entries(TRACKING).map(([name, value]) => [`tracking-${name}`, [["letter-spacing", value]]])),
 });
 
@@ -203,6 +219,8 @@ add(700, {
   "border-b": [["border-width", "0px"], ["border-bottom-width", "1px"]],
   "border-l": [["border-width", "0px"], ["border-left-width", "1px"]],
   "border-solid": [["border-style", "solid"]],
+  "border-dashed": [["border-style", "dashed"]],
+  "border-collapse": [["border-collapse", "collapse"]],
   "outline-none": [["outline", "2px solid transparent"], ["outline-offset", "2px"]],
   "shadow-none": [["--vrui-shadow", "0 0 #0000"], ["box-shadow", "var(--vrui-ring-shadow, 0 0 #0000), var(--vrui-shadow, 0 0 #0000)"]],
   ...Object.fromEntries(["0", "1", "2", "4"].map((width) => [`ring-${width}`, [
@@ -255,6 +273,34 @@ exact["animate-spin"] = {
   order: 830,
 };
 add(830, { "animate-none": [["animation", "none"]] });
+
+const ENTRANCES: Record<string, readonly [duration: string, from: string]> = {
+  fade: ["300ms", "opacity:0"],
+  rise: ["250ms", "opacity:0;transform:translateY(8px)"],
+  pop: ["220ms", "opacity:0;transform:translateY(-8px) scale(.98)"],
+  slide: ["250ms", "opacity:0;transform:translateX(30px)"],
+  drawer: ["250ms", "transform:translateX(-100%)"],
+  tip: ["120ms", "opacity:0;transform:scale(.97)"],
+};
+for (const [name, [duration, from]] of Object.entries(ENTRANCES)) {
+  exact[`animate-${name}`] = {
+    declarations: [["animation", `vrui-${name} ${duration} ${EASE.spring}`]],
+    prelude: `@keyframes vrui-${name}{from{${from}}}`,
+    order: 830,
+  };
+}
+
+exact["animate-shimmer"] = {
+  declarations: [
+    ["-webkit-text-fill-color", "transparent"],
+    ["background", "linear-gradient(90deg, transparent, #fff, transparent) -4.5rem 0 / 4.5rem 100% no-repeat, linear-gradient(currentColor, currentColor)"],
+    ["-webkit-background-clip", "text"],
+    ["background-clip", "text"],
+    ["animation", "vrui-shimmer 2.2s steps(30) infinite"],
+  ],
+  prelude: "@keyframes vrui-shimmer{to{background-position:calc(100% + 4.5rem) 0, 0 0}}",
+  order: 830,
+};
 
 add(610, { "line-clamp-none": [["overflow", "visible"], ["display", "block"], ["-webkit-box-orient", "horizontal"], ["-webkit-line-clamp", "unset"]] });
 for (const lines of ["1", "2", "3", "4", "5", "6"]) {

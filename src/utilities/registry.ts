@@ -1,4 +1,5 @@
 import { compileUtility, type CompiledUtility } from "./compiler";
+import { PREFLIGHT } from "./preflight";
 
 type Registry = {
   rules: Map<string, CompiledUtility>;
@@ -30,10 +31,10 @@ function registry(document: Document): Registry {
 }
 
 function render(current: Registry): void {
-  current.style.textContent = Array.from(current.rules.values())
+  const rules = Array.from(current.rules.values())
     .sort((left, right) => left.order.localeCompare(right.order))
-    .map((rule) => rule.css)
-    .join("\n");
+    .map((rule) => rule.css);
+  current.style.textContent = [PREFLIGHT, ...rules].join("\n");
 }
 
 export function ensureUtilities(element: Element, className: string): string {

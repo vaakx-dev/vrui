@@ -202,6 +202,69 @@ describe("runtime utilities", () => {
     expect(isUtility("group-wobble:flex")).toBe(false);
   });
 
+  it("writes the base rules before every utility", () => {
+    div({ class: "border" });
+
+    expect(utilityCss().startsWith("*,::before,::after{box-sizing:border-box;margin:0;padding:0;border:0 solid}")).toBe(true);
+    expect(utilityCss()).toContain("[data-vrui-mode=dark]{color-scheme:dark}");
+    expect(utilityCss()).toContain("@media (prefers-reduced-motion:reduce){");
+  });
+
+  it("applies hover only on devices that can hover", () => {
+    div({ class: "group" }, div({ class: "hover:bg-blue-700 group-hover:flex md:hover:px-6 focus:ring-2" }));
+
+    expect(utilityCss()).toContain("@media (hover:hover){.hover\\:bg-blue-700:hover{");
+    expect(utilityCss()).toContain("@media (hover:hover){.group:hover .group-hover\\:flex{display:flex}}");
+    expect(utilityCss()).toContain("@media (min-width:48rem) and (hover:hover){.md\\:hover\\:px-6:hover{");
+    expect(utilityCss()).toContain(".focus\\:ring-2:focus{");
+  });
+
+  it("supports touch, motion and keyboard focus variants", () => {
+    div({ class: "group" }, div({ class: "opacity-0 touch:opacity-100 motion-reduce:hidden motion-safe:flex group-focus-visible-within:flex" }));
+
+    const css = utilityCss();
+    expect(css).toContain("@media (hover:none){.touch\\:opacity-100{opacity:1}}");
+    expect(css).toContain("@media (prefers-reduced-motion:reduce){.motion-reduce\\:hidden{display:none}}");
+    expect(css).toContain("@media (prefers-reduced-motion:no-preference){.motion-safe\\:flex{display:flex}}");
+    expect(css).toContain(".group:is(:focus-visible, :has(:focus-visible)) .group-focus-visible-within\\:flex{display:flex}");
+    expect(css.indexOf(".touch\\:opacity-100{")).toBeGreaterThan(css.indexOf(".opacity-0{"));
+  });
+
+  it("styles pseudo-elements and direct children", () => {
+    div({ class: "placeholder:text-neutral-500 selection:bg-accent-500/40 marker:text-neutral-500 *:animate-fade" });
+
+    const css = utilityCss();
+    expect(css).toContain(".placeholder\\:text-neutral-500::placeholder{color:var(--vrui-color-neutral-500)}");
+    expect(css).toContain(".selection\\:bg-accent-500\\/40::selection,.selection\\:bg-accent-500\\/40 *::selection{");
+    expect(css).toContain(".marker\\:text-neutral-500::marker,.marker\\:text-neutral-500 *::marker{");
+    expect(css).toContain(".\\*\\:animate-fade > *{animation:vrui-fade 300ms");
+    expect(isUtility("placeholder:selection:flex")).toBe(false);
+    expect(isUtility("*:placeholder:flex")).toBe(false);
+    expect(isUtility("placeholder:scrollbar-none")).toBe(false);
+  });
+
+  it("supports entrance, shimmer, table, touch and type utilities", () => {
+    div({
+      class: "animate-rise animate-shimmer ease-spring border-dashed border-collapse align-top flow-root touch-none callout-none antialiased text-box-trim scrollbars-thin",
+    });
+
+    const css = utilityCss();
+    expect(css).toContain("@keyframes vrui-rise{from{opacity:0;transform:translateY(8px)}}.animate-rise{animation:vrui-rise 250ms cubic-bezier(0.32, 0.72, 0, 1)}");
+    expect(css).toContain("@keyframes vrui-shimmer{");
+    expect(css).toContain(".animate-shimmer{-webkit-text-fill-color:transparent;");
+    expect(css).toContain(".ease-spring{transition-timing-function:cubic-bezier(0.32, 0.72, 0, 1)}");
+    expect(css).toContain(".border-dashed{border-style:dashed}");
+    expect(css).toContain(".border-collapse{border-collapse:collapse}");
+    expect(css).toContain(".align-top{vertical-align:top}");
+    expect(css).toContain(".flow-root{display:flow-root}");
+    expect(css).toContain(".touch-none{touch-action:none}");
+    expect(css).toContain(".callout-none{-webkit-touch-callout:none}");
+    expect(css).toContain(".antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}");
+    expect(css).toContain(".text-box-trim{text-box:trim-both ex alphabetic}");
+    expect(css).toContain(".scrollbars-thin{scrollbar-width:thin;");
+    expect(css).toContain(".scrollbars-thin *{scrollbar-width:thin;");
+  });
+
   it("registers utilities introduced by reactive classes", () => {
     const classes = sig("p-2");
     const node = div({ class: classes });
@@ -249,6 +312,18 @@ describe("color themes", () => {
 
     expect(target.style.getPropertyValue("--vrui-color-accent-600")).toBe("");
     expect(target.hasAttribute("data-vrui-mode")).toBe(false);
+  });
+
+  it("adds utilities to the mount target while mounted", () => {
+    const target = div({ class: "page" });
+    const stop = mount(target, { class: "bg-neutral-900 text-sm page" });
+
+    expect(target.className).toBe("page bg-neutral-900 text-sm");
+    expect(utilityCss()).toContain(".bg-neutral-900{");
+
+    stop();
+
+    expect(target.className).toBe("page");
   });
 
   it("exposes color values and role variables", () => {
