@@ -1,6 +1,7 @@
 import { appendChild } from "./dom";
 import type { Child } from "./domTypes";
 import { collectScope, disposeAll, once, scoped } from "./scope";
+import { ensureUtilities } from "./utilities/registry";
 import {
   applyTheme,
   type ColorMode,
@@ -8,9 +9,19 @@ import {
 } from "./utilities/theme";
 
 export type MountOptions = {
+  /** Utilities added to the target while mounted, such as page colors and type on `document.body`. */
+  class?: string;
   mode?: ColorMode;
   theme?: ColorTheme;
 };
+
+function addClasses(target: HTMLElement, className: string): () => void {
+  const added = ensureUtilities(target, className)
+    .split(/\s+/)
+    .filter((name) => name && !target.classList.contains(name));
+  target.classList.add(...added);
+  return () => target.classList.remove(...added);
+}
 
 export function byId<T extends Element = HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -30,11 +41,13 @@ function mountChildren(
 
   const mounted = Array.from(fragment.childNodes);
   let stopTheme: (() => void) | undefined;
+  let stopClass: (() => void) | undefined;
   if (options) {
     if (!(parent instanceof HTMLElement)) {
-      throw new Error("vrui: mount theme options require an HTML element target");
+      throw new Error("vrui: mount options require an HTML element target");
     }
     stopTheme = applyTheme(parent, options.theme, options.mode);
+    if (options.class) stopClass = addClasses(parent, options.class);
   }
   parent.appendChild(fragment);
 
@@ -45,6 +58,7 @@ function mountChildren(
     try {
       disposeAll(scope);
     } finally {
+      stopClass?.();
       stopTheme?.();
     }
   });
@@ -92,7 +106,7 @@ function isMountOptions(value: Child | MountOptions): value is MountOptions {
     typeof value === "object" &&
     !Array.isArray(value) &&
     !(value instanceof Node) &&
-    ("theme" in value || "mode" in value);
+    ("theme" in value || "mode" in value || "class" in value);
 }
 
 export function mount(

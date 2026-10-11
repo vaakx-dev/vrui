@@ -25,6 +25,20 @@ once into `style[data-vrui-utilities]` and sorts rules independently of element
 creation order. Reactive class values register new rules before updating the
 element.
 
+The style element starts with a small set of base rules:
+
+- every element uses `border-box` sizing, no margin or padding, and a solid
+  zero-width border, so `border` alone draws a line
+- buttons and form fields inherit font, color, and text alignment and have no
+  background
+- `svg` is a block, and `[hidden]` hides an element even when a utility sets
+  `display`
+- a `dark` or `light` mount mode sets `color-scheme`, so native scrollbars and
+  controls match
+- when the user asks for reduced motion, animations and transitions finish
+  at once
+- touch devices show no tap highlight
+
 Unknown class names stay on the element for external stylesheets, but VRUI
 generates nothing for them, so a misspelt or unsupported utility silently does
 nothing. `vrui-check` reports them. Arbitrary utility values such as
@@ -82,6 +96,16 @@ The first utility set covers:
 - `rotate-0`, `rotate-45`, `rotate-90`, `rotate-180`, and their negatives such
   as `-rotate-90`
 - `animate-spin` and `animate-none`
+- entrance animations `animate-fade`, `-rise` (from below), `-pop` (from above,
+  for menus), `-slide` (from the right), `-drawer` (from off-screen left), and
+  `-tip` (a quick zoom, for tooltips), plus `animate-shimmer`, a light sweeping
+  across text
+- `antialiased` font smoothing, and `text-box-trim`, which trims the line box
+  to the letters so text sits centred in a fixed-height chip
+- `border-dashed`, `border-collapse`, `align-top`, and `flow-root`
+- `touch-none`, `callout-none` (no long-press menu on iOS), and
+  `scrollbars-thin`, which makes the element's scrollbar and every scrollbar
+  inside it thin
 - `ring-inset`, `backdrop-blur` (`-none`, `-xs`, `-sm`, `-md`, `-lg`, `-xl`),
   `aspect-auto`, `aspect-square`, `aspect-video`, `object-contain`, `-cover`,
   `-fill`, `-none`, `-scale-down`, and positions such as `object-top-left`
@@ -92,11 +116,27 @@ The first utility set covers:
 - transitions: `transition`, `transition-none`, `-all`, `-colors`, `-opacity`,
   `-shadow`, `-transform`, then `duration-*` and `delay-*` (`0`, `75`, `100`,
   `150`, `200`, `300`, `500`, `700`, `1000`) and `ease-linear`, `-in`, `-out`,
-  `-in-out`
+  `-in-out`, `-spring`
 
 State variants include `hover`, `focus`, `focus-visible`, `focus-within`,
-`active`, `disabled`, `checked`, `first`, and `last`. Responsive variants use
-`sm`, `md`, `lg`, `xl`, and `2xl`.
+`focus-visible-within` (the element or something inside it has keyboard
+focus), `active`, `disabled`, `checked`, `first`, and `last`. Responsive
+variants use `sm`, `md`, `lg`, `xl`, and `2xl`.
+
+`hover` and `group-hover` apply only on devices that can hover, so a tap on a
+phone never leaves a hover style stuck on. `touch:` applies only on devices
+that cannot hover. `motion-safe:` and `motion-reduce:` follow the user's
+reduced-motion setting:
+
+```ts
+span({ class: "animate-spin motion-reduce:hidden" }, icon("loader"));
+```
+
+`placeholder:` styles a field's placeholder. `selection:` and `marker:` style
+selected text and list markers of the element and everything inside it, so
+`selection:bg-accent-500/40` on `document.body` covers the page. `*:` applies a
+utility to each direct child, such as `*:animate-fade` on a container whose
+children arrive over time.
 
 Mark a parent with `group` and style its children by the parent's state with
 `group-` and a state variant, such as `group-hover:flex` or
@@ -129,6 +169,18 @@ mount(
   { theme: themes.indigo, mode: "dark" },
   application,
 );
+```
+
+The `class` mount option adds utilities to the target itself while it is
+mounted. Use it for page colors and type on `document.body`, which is not a
+VRUI element:
+
+```ts
+mount(document.body, {
+  theme: themes.indigo,
+  mode: "dark",
+  class: "bg-neutral-900 text-sm text-neutral-100 antialiased",
+});
 ```
 
 Built-in themes provide `accent`, `neutral`, `success`, `warning`, and

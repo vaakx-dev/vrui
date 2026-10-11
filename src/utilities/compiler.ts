@@ -12,11 +12,26 @@ const states: Record<string, string> = {
   focus: ":focus",
   "focus-visible": ":focus-visible",
   "focus-within": ":focus-within",
+  "focus-visible-within": ":is(:focus-visible, :has(:focus-visible))",
   active: ":active",
   disabled: ":disabled",
   checked: ":checked",
   first: ":first-child",
   last: ":last-child",
+};
+
+const CAN_HOVER = "(hover:hover)";
+
+const queries: Record<string, string> = {
+  touch: "(hover:none)",
+  "motion-safe": "(prefers-reduced-motion:no-preference)",
+  "motion-reduce": "(prefers-reduced-motion:reduce)",
+};
+
+const pseudoElements: Record<string, readonly string[]> = {
+  placeholder: ["::placeholder"],
+  marker: ["::marker", " *::marker"],
+  selection: ["::selection", " *::selection"],
 };
 
 function escapeClass(token: string): string {
@@ -36,7 +51,10 @@ export function compileUtility(token: string): CompiledUtility | undefined {
   let selector = `.${escapeClass(token)}`;
   let breakpoint: keyof typeof BREAKPOINT | undefined;
   let group: string | undefined;
+  let pseudo: readonly string[] | undefined;
   let dark = false;
+  let children = false;
+  const conditions = new Set<string>();
 
   for (const variant of parts) {
     if (variant in BREAKPOINT) {
@@ -48,29 +66,48 @@ export function compileUtility(token: string): CompiledUtility | undefined {
       dark = true;
       continue;
     }
+    if (variant === "*") {
+      children = true;
+      continue;
+    }
+    const query = queries[variant];
+    if (query) {
+      conditions.add(query);
+      continue;
+    }
+    const element = pseudoElements[variant];
+    if (element) {
+      if (pseudo) return;
+      pseudo = element;
+      continue;
+    }
     const groupState = variant.startsWith("group-") ? states[variant.slice(6)] : undefined;
     if (groupState) {
       if (group) return;
       group = `.group${groupState} `;
+      if (variant === "group-hover") conditions.add(CAN_HOVER);
       continue;
     }
     const suffix = states[variant];
     if (!suffix) return;
     selector += suffix;
+    if (variant === "hover") conditions.add(CAN_HOVER);
   }
+  if (pseudo && (children || utility.nested)) return;
 
   if (dark) {
     selector += ":where([data-vrui-mode=\"dark\"], [data-vrui-mode=\"dark\"] *)";
   }
+  if (children) selector += " > *";
   if (group) selector = `${group}${selector}`;
+  const targets = (pseudo ?? [""]).map((suffix) => `${selector}${suffix}`).join(",");
 
   let css = [
-    `${selector}{${declarations(utility.declarations)}}`,
+    `${targets}{${declarations(utility.declarations)}}`,
     ...(utility.nested ?? []).map(([suffix, nested]) => `${selector}${suffix}{${declarations(nested)}}`),
   ].join("");
-  if (breakpoint) {
-    css = `@media (min-width:${BREAKPOINT[breakpoint]}){${css}}`;
-  }
+  const media = [...(breakpoint ? [`(min-width:${BREAKPOINT[breakpoint]})`] : []), ...conditions];
+  if (media.length) css = `@media ${media.join(" and ")}{${css}}`;
   css = `${utility.prelude ?? ""}${css}`;
 
   const breakpointOrder = breakpoint
@@ -78,7 +115,7 @@ export function compileUtility(token: string): CompiledUtility | undefined {
     : 0;
   return {
     css,
-    order: `${breakpointOrder.toString().padStart(2, "0")}:${utility.order.toString().padStart(4, "0")}:${token}`,
+    order: `${breakpointOrder.toString().padStart(2, "0")}:${conditions.size ? 1 : 0}:${utility.order.toString().padStart(4, "0")}:${token}`,
     token,
   };
 }
