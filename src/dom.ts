@@ -37,13 +37,14 @@ function isNode(v: unknown): v is Node {
 export function classStr(v: ClassValue): string {
   if (Array.isArray(v)) return v.map(classStr).filter(Boolean).join(" ");
   if (v == null || v === false) return "";
+  if (isReactive(v)) return classStr(resolve(v) as ClassValue);
   if (typeof v === "object" && !isNode(v)) {
     return Object.entries(v as Record<string, unknown>)
       .filter(([, enabled]) => !!resolve(enabled))
       .map(([name]) => name)
       .join(" ");
   }
-  return String(resolve(v));
+  return String(v);
 }
 
 function hasReactivePart(value: unknown): boolean {

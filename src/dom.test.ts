@@ -39,6 +39,14 @@ describe("string and class helpers", () => {
     expect(classStr({ active })).toBe("");
   });
 
+  it("flattens arrays that nested getters and signals return", () => {
+    const extra = sig<string[]>(["b", "c"]);
+
+    expect(classStr(["a", () => ["b", false, ["c"]]])).toBe("a b c");
+    expect(classStr(["a", extra])).toBe("a b c");
+    expect(classStr(() => "a")).toBe("a");
+  });
+
   it("does not require a global Node constructor for class helpers", () => {
     vi.stubGlobal("Node", undefined);
     try {
