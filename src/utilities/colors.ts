@@ -53,9 +53,16 @@ export type PaletteName = keyof typeof PALETTE;
 export type Shade = keyof (typeof PALETTE)[PaletteName];
 
 const roles = new Set(["accent", "neutral", "success", "warning", "danger"]);
+let rolesVersion = 0;
 
 export function registerColorRole(name: string): void {
+  if (roles.has(name)) return;
   roles.add(name);
+  rolesVersion++;
+}
+
+export function colorRolesVersion(): number {
+  return rolesVersion;
 }
 
 /** The CSS variable a theme sets for a color role shade, such as `var(--vrui-color-accent-500)`. */
