@@ -1,6 +1,7 @@
 {
   "name": "@vaakx-dev/vrui",
   "version": "0.1.0-alpha.6",
+  "license": "MIT",
   "sideEffects": false,
   "repository": {
     "type": "git",
