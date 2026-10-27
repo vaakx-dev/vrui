@@ -8,7 +8,7 @@ import {
 } from "@vaakx-dev/vrui";
 import { badge } from "../components/badge";
 import { empty_state } from "../components/empty";
-import { text_field } from "../components/field";
+import { field_label, text_field } from "../components/field";
 import { feature_page, page_heading } from "../components/page";
 import { panel } from "../components/panel";
 import type { PartsModel } from "./model";
@@ -24,7 +24,7 @@ export function parts_view(model: PartsModel): HTMLElement {
       span(
         { class: "inline-flex items-center gap-2" },
         badge("Reorder", "warning"),
-        span({ class: "text-sm font-semibold text-neutral-600" }, model.low_count),
+        span({ class: "text-sm font-semibold tabular-nums text-neutral-700" }, model.low_count),
       ),
     ),
     panel(
@@ -46,7 +46,7 @@ export function parts_view(model: PartsModel): HTMLElement {
             class: "h-5 w-5 accent-accent-600 cursor-pointer",
             type: "checkbox",
           }),
-          span({ class: "text-sm font-medium text-neutral-700" }, "Show reorder items only"),
+          field_label("Show reorder items only"),
         ),
       ),
       list(

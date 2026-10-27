@@ -1,4 +1,4 @@
-import { ChevronDown, Settings } from "lucide";
+import { ChevronDown, Settings, Star } from "lucide";
 import { describe, expect, it } from "vitest";
 import { icon, type IconNode } from "./icons";
 
@@ -18,6 +18,20 @@ describe("lucide icon helper", () => {
     expect(settings.querySelector("svg")?.getAttribute("width")).toBe("12");
     expect(settings.querySelector("svg")?.getAttribute("height")).toBe("12");
     expect(settings.querySelector("svg")?.getAttribute("stroke-width")).toBe("2");
+  });
+
+  it("takes sizes named after the text scale, and draws filled icons", () => {
+    const sizes = (["xs", "sm", "md", "lg"] as const).map((size) => icon(Star, size).querySelector("svg")?.getAttribute("width"));
+    const filled = icon(Star, { size: "sm", strokeWidth: 1.5, fill: true }).querySelector("svg");
+    const outlined = icon(Star, { size: 18 }).querySelector("svg");
+
+    expect(sizes).toEqual(["12", "14", "16", "20"]);
+    expect(filled?.getAttribute("height")).toBe("14");
+    expect(filled?.getAttribute("stroke-width")).toBe("1.5");
+    expect(filled?.getAttribute("fill")).toBe("currentColor");
+    expect(outlined?.getAttribute("width")).toBe("18");
+    expect(outlined?.getAttribute("stroke-width")).toBe("2");
+    expect(outlined?.getAttribute("fill")).toBe("none");
   });
 
   it("exposes the Lucide IconNode type", () => {

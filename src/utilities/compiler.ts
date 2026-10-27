@@ -1,8 +1,9 @@
 import { BREAKPOINT } from "./scales";
-import { resolveUtility } from "./rules";
+import { resolveUtility, type ResolvedUtility } from "./rules";
 
 export type CompiledUtility = {
   css: string;
+  key: string;
   order: string;
   token: string;
 };
@@ -18,6 +19,10 @@ const states: Record<string, string> = {
   checked: ":checked",
   first: ":first-child",
   last: ":last-child",
+  ...Object.fromEntries(
+    ["selected", "expanded", "disabled", "pressed"].map((state) => [`aria-${state}`, `[aria-${state}="true"]`]),
+  ),
+  "aria-current": "[aria-current]:not([aria-current=\"false\"])",
 };
 
 const CAN_HOVER = "(hover:hover)";
@@ -42,13 +47,20 @@ function declarations(entries: readonly (readonly [string, string])[]): string {
   return entries.map(([property, value]) => `${property}:${value}`).join(";");
 }
 
+function properties(utility: ResolvedUtility): string {
+  return [
+    ...utility.declarations.map(([property]) => property),
+    ...(utility.nested ?? []).flatMap(([suffix, nested]) => nested.map(([property]) => `${suffix}${property}`)),
+  ].sort().join(",");
+}
+
 export function compileUtility(token: string): CompiledUtility | undefined {
   const parts = token.split(":");
   const utilityName = parts.pop()!;
   const utility = resolveUtility(utilityName);
   if (!utility) return;
 
-  let selector = `.${escapeClass(token)}`;
+  let selector = "&";
   let breakpoint: keyof typeof BREAKPOINT | undefined;
   let group: string | undefined;
   let pseudo: readonly string[] | undefined;
@@ -101,13 +113,15 @@ export function compileUtility(token: string): CompiledUtility | undefined {
     selector += ":where([data-vrui-mode=\"dark\"], [data-vrui-mode=\"dark\"] *)";
   }
   if (group) selector = `${group}${selector}`;
+  const media = [...(breakpoint ? [`(min-width:${BREAKPOINT[breakpoint]})`] : []), ...conditions];
+  const key = `${[...media].sort().join(" and ")}{${selector}${pseudo?.join(",") ?? ""}}${properties(utility)}`;
+  selector = selector.replace("&", () => `.${escapeClass(token)}`);
   const targets = (pseudo ?? [""]).map((suffix) => `${selector}${suffix}`).join(",");
 
   let css = [
     `${targets}{${declarations(utility.declarations)}}`,
     ...(utility.nested ?? []).map(([suffix, nested]) => `${selector}${suffix}{${declarations(nested)}}`),
   ].join("");
-  const media = [...(breakpoint ? [`(min-width:${BREAKPOINT[breakpoint]})`] : []), ...conditions];
   if (media.length) css = `@media ${media.join(" and ")}{${css}}`;
   css = `${utility.prelude ?? ""}${css}`;
 
@@ -116,6 +130,7 @@ export function compileUtility(token: string): CompiledUtility | undefined {
     : 0;
   return {
     css,
+    key,
     order: `${breakpointOrder.toString().padStart(2, "0")}:${conditions.size ? 1 : 0}:${utility.order.toString().padStart(4, "0")}:${token}`,
     token,
   };
@@ -124,4 +139,9 @@ export function compileUtility(token: string): CompiledUtility | undefined {
 /** Whether VRUI generates CSS for this class name, including its variants. */
 export function isUtility(token: string): boolean {
   return compileUtility(token) !== undefined;
+}
+
+/** Classes with the same key set the same properties under the same variants; in one class list the later one wins. */
+export function utilityKey(token: string): string | undefined {
+  return compileUtility(token)?.key;
 }

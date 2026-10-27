@@ -20,10 +20,17 @@ const save = button(
 );
 ```
 
-The original class names stay on the element. VRUI inserts each generated rule
-once into `style[data-vrui-utilities]` and sorts rules independently of element
+The class names stay on the element. VRUI inserts each generated rule once
+into `style[data-vrui-utilities]` and sorts rules independently of element
 creation order. Reactive class values register new rules before updating the
 element.
+
+When two utilities in one class list set the same properties under the same
+variants, the later one wins and VRUI leaves the earlier one off the element.
+`["px-4 bg-accent-600", "px-2"]` renders `bg-accent-600 px-2`, and
+`"hidden md:flex flex"` renders `md:flex flex`. Utilities that set only some of
+the same properties, such as `p-4` and `px-2` or `text-sm` and `leading-6`,
+both stay; the narrower one wins.
 
 The style element starts with a small set of base rules:
 
@@ -68,8 +75,9 @@ centers an element. They set the `translate` property, so they combine with
 Opacity (`opacity-60`) and color alpha (`bg-accent-500/20`,
 `text-neutral-400/60`, `ring-white/10`) use steps of 5 from 0 to 100.
 
-Named maximum widths run from `max-w-sm` through `max-w-7xl`. They provide
-stable content widths without treating a page width as an arbitrary value.
+`max-w-*` takes the spacing scale, fractions, `screen`, `min`, `max`, `fit`,
+and the named content widths `max-w-sm` through `max-w-7xl`. The named widths
+give stable page widths without an arbitrary value.
 
 Text sizes are `xs`, `sm`, `base`, `lg`, `xl`, `2xl`, and `3xl`. Radius
 values are `none`, `sm`, `md`, `lg`, `xl`, `2xl`, and `full`. Shadows are
@@ -101,11 +109,20 @@ The first utility set covers:
   `-tip` (a quick zoom, for tooltips), plus `animate-shimmer`, a light sweeping
   across text
 - `antialiased` font smoothing, and `text-box-trim`, which trims the line box
-  to the letters so text sits centred in a fixed-height chip
+  to the letters so text sits centred in a fixed-height chip;
+  `text-box-trim-cap` trims to the capital height instead of the x-height, for
+  capitals and initials
 - `border-dashed`, `border-collapse`, `align-top`, and `flow-root`
 - `touch-none`, `callout-none` (no long-press menu on iOS), and
   `scrollbars-thin`, which makes the element's scrollbar and every scrollbar
   inside it thin
+- `isolate` and `isolation-auto`, which start or join a stacking context, and
+  `anchor-none` and `anchor-auto`, which turn scroll anchoring off or on
+- safe-area padding `pt-safe`, `pr-safe`, `pb-safe`, `pl-safe`, `px-safe`, and
+  `py-safe`, which pad by the device's `env(safe-area-inset-*)`
+- filters `grayscale`, `grayscale-0`, and `brightness-*` (`0`, `50`, `75`,
+  `90`, `95`, `100`, `105`, `110`, `125`, `150`, `200`), which combine, so
+  `grayscale brightness-75` applies both
 - `ring-inset`, `backdrop-blur` (`-none`, `-xs`, `-sm`, `-md`, `-lg`, `-xl`),
   `aspect-auto`, `aspect-square`, `aspect-video`, `object-contain`, `-cover`,
   `-fill`, `-none`, `-scale-down`, and positions such as `object-top-left`
@@ -122,6 +139,21 @@ State variants include `hover`, `focus`, `focus-visible`, `focus-within`,
 `focus-visible-within` (the element or something inside it has keyboard
 focus), `active`, `disabled`, `checked`, `first`, and `last`. Responsive
 variants use `sm`, `md`, `lg`, `xl`, and `2xl`.
+
+ARIA variants style an element by the state it already announces:
+`aria-selected:`, `aria-expanded:`, `aria-disabled:`, and `aria-pressed:` apply
+when the attribute is `"true"`, and `aria-current:` applies for any value but
+`"false"`, so `aria-current="page"` matches. They work after `group-` too:
+
+```ts
+button(
+  { class: "group flex items-center gap-2 aria-selected:bg-neutral-800", "aria-selected": selected },
+  span({ class: "group-aria-selected:text-accent-400" }, label),
+);
+```
+
+There are no `data-*` variants. A selector such as `data-[state=open]:` is an
+arbitrary value; use an ARIA state or a reactive class.
 
 `hover` and `group-hover` apply only on devices that can hover, so a tap on a
 phone never leaves a hover style stuck on. `touch:` applies only on devices
@@ -239,10 +271,13 @@ export function primary_action(
 ```
 
 This gives the application one searchable, typed component instead of a
-separate registry of class-name strings.
+separate registry of class-name strings. The caller's `class` comes last, so
+`primary_action({ class: "px-2" })` replaces the component's `px-4` rather
+than competing with it.
 
-`vrui-check` reports arbitrary values, unknown class names, and repeated or
-near-repeated utility shapes across the checked tree. It points to the first
+`vrui-check` reports arbitrary values, unknown class names, two classes in one
+string that set the same property, and repeated, near-repeated, or
+one-class-off utility shapes across the checked tree. It points to the first
 matching source location so the shape can be extracted into the nearest
 application component. It also checks strings outside `class:` that read as
 class lists, such as the values of `const tones = { ok: "text-success-600" }`,

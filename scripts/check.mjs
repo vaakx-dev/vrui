@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // vrui-check: flags VRUI application code that bypasses VRUI.
 //
-//   vrui-check [paths...]
+//   vrui-check [--json] [--config file.json] [paths...]
+//
+// --json prints { files, total, rules, findings } instead of text.
+// --config merges a JSON file's "vrui" block, or the whole file, over the package.json settings.
 //
 // Paths default to the "vrui.check" list of the nearest package.json, then to "src".
 // Configure it in package.json:
@@ -12,11 +15,14 @@
 //     "roles": ["sky"],             extra color roles the app's theme registers
 //     "ui": ["@vaakx-dev/vrui"],    a file is UI code when it imports one of these
 //     "browser": ["**/web/**"],     globs of files that are browser code even without DOM globals
-//     "shapes": "tree"              compare repeated class lists across the "tree" or per "project"
+//     "shapes": "tree",             compare repeated class lists across the "tree" or per "project"
+//     "shades": { "text-neutral": [100, 400, 500] },  allowed shades per color utility and role
+//     "iconSizes": [12, 14, 16, 20]                    allowed numeric icon() sizes
 //   }
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseArgs } from "node:util";
 import { findConfig, globRegex } from "./check/config.mjs";
 import { createInspector } from "./check/inspect.mjs";
 import { repeatedShapes } from "./check/shapes.mjs";
@@ -36,15 +42,22 @@ async function loadVrui() {
 }
 
 const cwd = process.cwd();
-const { root, manifest, config } = findConfig(cwd);
-const args = process.argv.slice(2);
+const { values: flags, positionals: args } = parseArgs({
+  allowPositionals: true,
+  options: { json: { type: "boolean" }, config: { type: "string" } },
+});
+const overrides = flags.config ? JSON.parse(readFileSync(resolve(cwd, flags.config), "utf8")) : {};
+const { root, manifest, config } = findConfig(cwd, overrides.vrui ?? overrides);
 const roots = args.length ? args.map((path) => resolve(cwd, path)) : config.check.map((path) => resolve(root, path));
 // Themes register their roles at runtime; register the app's extra roles the same way.
 for (const role of config.roles) vrui.theme({ [role]: "slate" });
 
 const inspect = createInspector({
   isUtility: vrui.isUtility,
+  utilityKey: vrui.utilityKey,
   allowed: new Set(config.classes),
+  shades: config.shades,
+  iconSizes: config.iconSizes,
   ui: config.ui,
   browser: config.browser.map(globRegex),
 });
@@ -94,7 +107,7 @@ for (const path of files) {
   const group = config.shapes === "project" ? projectOf(path) : root;
   for (const shape of result.shapes) shapes.push({ at: `${file}:${shape.line}`, group, tokens: shape.tokens });
 }
-findings.push(...repeatedShapes(shapes));
+findings.push(...repeatedShapes(shapes, { utilityKey: vrui.utilityKey }));
 
 // App classes that VRUI now generates itself, so the app's own rule competes with VRUI's.
 if (manifest && !args.length) {
@@ -105,13 +118,17 @@ if (manifest && !args.length) {
   }
 }
 
-if (findings.length) {
+const counts = new Map();
+for (const { rule } of findings) counts.set(rule, (counts.get(rule) ?? 0) + 1);
+const ranked = [...counts].sort((left, right) => right[1] - left[1]);
+if (findings.length) process.exitCode = 1;
+
+if (flags.json) {
+  console.log(JSON.stringify({ files: files.length, total: findings.length, rules: Object.fromEntries(ranked), findings }, null, 2));
+} else if (findings.length) {
   for (const { at, rule, message } of findings) console.error(`${at} ${message} [${rule}]`);
-  const counts = new Map();
-  for (const { rule } of findings) counts.set(rule, (counts.get(rule) ?? 0) + 1);
-  const summary = [...counts].sort((left, right) => right[1] - left[1]).map(([rule, count]) => `${rule} ${count}`).join(", ");
+  const summary = ranked.map(([rule, count]) => `${rule} ${count}`).join(", ");
   console.error(`\nvrui-check: ${findings.length} problem${findings.length === 1 ? "" : "s"} in ${files.length} files (${summary}).`);
-  process.exitCode = 1;
 } else {
   console.log(`vrui-check: ${files.length} files follow VRUI conventions.`);
 }

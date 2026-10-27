@@ -54,7 +54,7 @@ export function navigation(page: Sig<Page>): HTMLElement {
           onClick: page.setter(item.page),
           type: "button",
         },
-        icon(item.icon, 17),
+        icon(item.icon, "md"),
         item.label,
         span(
           { class: "ml-auto hidden text-xs text-neutral-500 lg:inline" },

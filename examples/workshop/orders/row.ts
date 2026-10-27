@@ -72,7 +72,7 @@ export function order_row(
       },
       dynamicChild(
         order.map((value) => value.status),
-        (value) => icon(value === "ready" ? Check : ChevronRight, 15),
+        (value) => icon(value === "ready" ? Check : ChevronRight, "md"),
       ),
       order.map((value) => next_action[value.status]),
     ),

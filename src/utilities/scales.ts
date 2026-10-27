@@ -107,6 +107,8 @@ export const BLUR = {
   xl: "blur(24px)",
 } as const;
 
+export const BRIGHTNESS = ["0", "50", "75", "90", "95", "100", "105", "110", "125", "150", "200"] as const;
+
 export const DURATION = ["0", "75", "100", "150", "200", "300", "500", "700", "1000"] as const;
 
 export const EASE = {

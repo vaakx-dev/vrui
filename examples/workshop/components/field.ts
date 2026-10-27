@@ -15,6 +15,10 @@ const control_class = [
   "focus:ring-accent-100",
 ].join(" ");
 
+export function field_label(label_text: string): HTMLSpanElement {
+  return span({ class: "text-sm font-semibold text-neutral-700" }, label_text);
+}
+
 function field(
   label_text: string,
   control: Child,
@@ -22,7 +26,7 @@ function field(
 ): HTMLLabelElement {
   return label(
     { class: "flex flex-col gap-2" },
-    span({ class: "text-sm font-semibold text-neutral-700" }, label_text),
+    field_label(label_text),
     control,
     help && span({ class: "text-xs text-neutral-500" }, help),
   );

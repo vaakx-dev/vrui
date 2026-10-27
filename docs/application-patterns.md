@@ -243,9 +243,25 @@ rendered page. It reports:
   of template literals, and in strings elsewhere that read as class lists, such
   as `const tones = { ok: "text-sucess-600" }`
 - arbitrary utility values outside the built-in scale
+- two classes in one string that set the same property under the same
+  variants, such as `p-2 p-4`, where the first does nothing
+  (`conflicting-class`); separate strings, such as a component's base classes
+  and the caller's `class`, may override each other
 - fixed inline styles a utility already sets, such as `style: { top: "0" }`
 - browser work that bypasses the application routes above
 - exact and near-duplicate utility shapes across the checked tree
+  (`repeated-shape`), and shapes that match an earlier one except for one class
+  that sets the same property, such as `font-medium` against `font-semibold`
+  (`inconsistent-shape`)
+- `icon()` calls with a numeric size, alone or as `size` in the options, that
+  is not one of the icon sizes (`icon-size`); named sizes such as `"sm"` always
+  pass
+
+A class list counts as a shape when it fixes a look: at least three visual
+classes (type, color, padding, border, radius, shadow, ring, or opacity), or
+at least six classes with one visual class among them. Layout-only lists such
+as `flex flex-col gap-6` are never reported, however often they repeat. A near
+duplicate shares at least six classes and differs by one or two.
 
 A file is browser code when it imports a `ui` module, reads a DOM global such
 as `document`, `window`, `navigator`, `localStorage`, or an `HTMLElement`
@@ -286,8 +302,13 @@ treated as explicit native-platform boundaries and are not checked.
 
 Run it as `npx vrui-check` or `bunx vrui-check`, and add it to the
 application's other checks. Pass paths, such as `vrui-check src/chat`, to check
-part of the tree. It reads its settings from the `vrui` field in the nearest
-`package.json`:
+part of the tree. `--json` prints the result as one JSON object instead, with
+the number of `files`, the `total` number of findings, a count per rule in
+`rules`, and the `findings` themselves, so a script can track the score over
+time. `--config trial.json` lays the settings in a JSON file, either its
+`vrui` field or the whole file, over the ones in `package.json`, to try a
+setting such as a shade budget without editing it. It reads its settings from
+the `vrui` field in the nearest `package.json`:
 
 ```json
 "vrui": {
@@ -296,7 +317,9 @@ part of the tree. It reads its settings from the `vrui` field in the nearest
   "roles": ["sky"],
   "ui": ["@vaakx-dev/vrui"],
   "browser": ["**/web/**"],
-  "shapes": "tree"
+  "shapes": "tree",
+  "shades": { "text-neutral": [100, 400, 500], "bg-neutral": [800, 900] },
+  "iconSizes": [12, 14, 16, 20]
 }
 ```
 
@@ -310,3 +333,12 @@ part of the tree. It reads its settings from the `vrui` field in the nearest
 - `shapes` compares repeated class lists across the whole `"tree"`, the
   default, or within each `"project"`: the nearest folder with its own
   `package.json`, or the first folder under the scanned path.
+- `shades` is a budget of color shades per utility and role, such as
+  `"text-neutral": [100, 400, 500]`. A class with a listed utility and role and
+  any other shade is reported as `shade`, whatever its variants or alpha, so
+  `hover:text-neutral-300` and `text-neutral-300/50` both count. Utilities and
+  roles that are not listed are not checked, and with no `shades` the rule is
+  off. A small budget keeps text, surface, and border colors to a few steps
+  the whole app shares.
+- `iconSizes` lists the numeric sizes `icon()` may take, by default `12`,
+  `14`, `16`, and `20`, the pixel sizes of the named sizes `xs` to `lg`.

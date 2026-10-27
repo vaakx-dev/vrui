@@ -87,7 +87,9 @@ Run `vrui-check` (`npm run examples:style` in this repository) while writing
 application code, and fix everything it reports. Pass paths to check part of
 the tree. It rejects class names VRUI does not generate, including in class-list
 strings outside `class:`, arbitrary utility values, inline styles a utility
-covers, browser work outside VRUI, and repeated utility shapes across the tree.
+covers, browser work outside VRUI, two classes in one string that set the same
+property, repeated or one-class-off utility shapes across the tree, and colors
+or icon sizes outside the app's configured `shades` and `iconSizes`.
 Browser work includes `addEventListener`, handler properties such as
 `onmessage`, hand-made DOM edits, attribute, class list, and style writes, bare
 timers, observers, `matchMedia`, and raw storage. Unknown classes are not

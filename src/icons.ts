@@ -43,7 +43,22 @@ function createIcon(node: IconNode, attributes: NodeAttributes): SVGElement {
   ]);
 }
 
-export function icon(node: IconNode, size = 12, strokeWidth = 2): HTMLElement {
+const NAMED_SIZES = { xs: 12, sm: 14, md: 16, lg: 20 } as const;
+
+export type IconSize = number | keyof typeof NAMED_SIZES;
+
+export type IconOptions = {
+  size?: IconSize;
+  strokeWidth?: number;
+  fill?: boolean;
+};
+
+export function icon(node: IconNode, size?: IconSize, strokeWidth?: number): HTMLElement;
+export function icon(node: IconNode, options: IconOptions): HTMLElement;
+export function icon(node: IconNode, sizeOrOptions: IconSize | IconOptions = {}, strokeWidth?: number): HTMLElement {
+  const options = typeof sizeOrOptions === "object" ? sizeOrOptions : { size: sizeOrOptions, strokeWidth };
+  const { size = 12, strokeWidth: stroke = 2, fill = false } = options;
+  const pixels = typeof size === "number" ? size : NAMED_SIZES[size];
   const wrapper = document.createElement("span");
   wrapper.className = "vrui-icon";
   Object.assign(wrapper.style, {
@@ -54,9 +69,10 @@ export function icon(node: IconNode, size = 12, strokeWidth = 2): HTMLElement {
   });
 
   wrapper.appendChild(createIcon(node, {
-    width: size,
-    height: size,
-    "stroke-width": strokeWidth,
+    width: pixels,
+    height: pixels,
+    "stroke-width": stroke,
+    fill: fill ? "currentColor" : "none",
     "aria-hidden": "true",
     focusable: "false",
   }));

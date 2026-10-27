@@ -8,6 +8,7 @@ import { repeatedShapes } from "./shapes.mjs";
 
 const inspect = createInspector({
   isUtility: vrui.isUtility,
+  utilityKey: vrui.utilityKey,
   allowed: new Set(["markdown"]),
   ui: ["@vaakx-dev/vrui"],
   browser: [globRegex("**/web/**")],
@@ -72,6 +73,14 @@ describe("vrui-check browser rules", () => {
     expect(rules("src/a.ts", `${UI}clock.setTimeout(f); scheduler.queueMicrotask(f);`)).toEqual([]);
   });
 
+  it("flags numeric icon sizes off the icon scale", () => {
+    expect(messages("src/a.ts", `${UI}icon(Star, 13); kit.icon("x", { fill: true, size: 18 }); icon(Star, 16, 1.5); icon(Star, "sm"); icon(Star, { size: 20 }); icon(Star); icon(Star, open ? 13 : 16);`)).toEqual([
+      'icon size 13 is off the icon sizes 12, 14, 16, 20 in package.json "vrui.iconSizes"; use one of them',
+      'icon size 18 is off the icon sizes 12, 14, 16, 20 in package.json "vrui.iconSizes"; use one of them',
+    ]);
+    expect(rules("src/a.ts", `${UI}export const icon = (name: string, size = 13) => lucide(name, size);`)).toEqual([]);
+  });
+
   it("flags el() for tags with a typed factory", () => {
     expect(messages("src/a.ts", `${UI}el("h2", "Title"); el("iframe", {});`)).toEqual(['el("h2") has a typed factory; use h2(props, ...children)']);
   });
@@ -102,6 +111,31 @@ describe("vrui-check classes", () => {
     expect(rules("src/a.ts", `div({ class: "flex gap-1.5 h-1.5 -top-1.5" });`)).toEqual([]);
   });
 
+  it("flags two classes in one string that set the same property", () => {
+    expect(messages("src/a.ts", `div({ class: "p-2 flex p-4" });`)).toEqual(['"p-2" and "p-4" set the same property, so "p-2" does nothing; keep one']);
+    expect(messages("src/a.ts", `div({ class: "flex text-xs flex" });`)).toEqual(['"flex" is listed twice; remove one']);
+    expect(rules("src/a.ts", `${UI}const tone = "text-xs text-sm";`)).toEqual(["conflicting-class"]);
+    expect(rules("src/a.ts", `div({ class: ["p-2 text-sm", open ? "p-4" : "p-6", "hover:p-4 md:p-6 leading-6"] });`)).toEqual([]);
+    expect(rules("src/a.ts", "div({ class: `px-2 ${open ? 'hidden' : 'flex'} block` });")).toEqual([]);
+  });
+
+  it("keeps colors within the configured shade budget", () => {
+    const budgeted = createInspector({
+      isUtility: vrui.isUtility,
+      utilityKey: vrui.utilityKey,
+      allowed: new Set(),
+      shades: { "text-neutral": [100, 400, 500], "bg-neutral": [800, 900] },
+      ui: ["@vaakx-dev/vrui"],
+      browser: [],
+    });
+    const found = (text) => budgeted("src/a.ts", text).findings.map((finding) => finding.message);
+    expect(found(`${UI}div({ class: "text-neutral-400 hover:text-neutral-300 bg-neutral-900/50 ring-accent-700 border-neutral-600" }); const tone = "bg-neutral-700";`)).toEqual([
+      '"hover:text-neutral-300" is off the text-neutral shades 100, 400, 500 in package.json "vrui.shades"; use one of them',
+      '"bg-neutral-700" is off the bg-neutral shades 800, 900 in package.json "vrui.shades"; use one of them',
+    ]);
+    expect(rules("src/a.ts", `div({ class: "text-neutral-300 bg-neutral-700" });`)).toEqual([]);
+  });
+
   it("checks class lists outside class keys in browser files", () => {
     expect(messages("src/a.ts", `${UI}const tones = { ok: "text-sucess-400", bad: "text-danger-500" };`)).toEqual([
       expect.stringContaining('unknown class "text-sucess-400"'),
@@ -126,21 +160,44 @@ describe("vrui-check styles", () => {
     const found = messages("src/a.ts", `div({ style: { cursor: "grab", objectFit: "cover", lineHeight: 1, opacity: 0.6 } });`);
     expect(found.map((message) => /"([^"]+)" utility/.exec(message)?.[1])).toEqual(["cursor-grab", "object-cover", "leading-none", "opacity-60"]);
   });
+
+  it("flags touch action, isolation, scroll anchoring, text box and grayscale", () => {
+    const found = messages("src/a.ts", `div({ style: { touchAction: "none", isolation: "isolate", overflowAnchor: "none", textBox: "trim-both cap alphabetic", filter: "grayscale(100%)" } });`);
+    expect(found.map((message) => /"([^"]+)" utility/.exec(message)?.[1])).toEqual(["touch-none", "isolate", "anchor-none", "text-box-trim-cap", "grayscale"]);
+  });
 });
 
 describe("vrui-check shapes", () => {
+  const shapes = (lists) => repeatedShapes(
+    lists.map((list, index) => ({ at: `f:${index + 1}`, group: "tree", tokens: list.split(" ") })),
+    { utilityKey: vrui.utilityKey },
+  ).map((finding) => `${finding.at} ${finding.rule}`);
+
   it("reports each repeated shape once, within its group", () => {
-    const tokens = ["a", "b", "c", "d", "e", "f"];
+    const tokens = ["rounded-lg", "border", "bg-neutral-900", "p-4"];
     const found = repeatedShapes([
       { at: "x:1", group: "tree", tokens },
       { at: "y:1", group: "tree", tokens },
       { at: "z:1", group: "tree", tokens },
       { at: "w:1", group: "other", tokens },
-    ]);
+    ], { utilityKey: vrui.utilityKey });
     expect(found.map((finding) => `${finding.at} ${finding.message}`)).toEqual([
       "y:1 repeats the class list at x:1; extract an app-owned VRUI component",
       "z:1 repeats the class list at x:1; extract an app-owned VRUI component",
     ]);
+  });
+
+  it("leaves layout lists alone and counts short visual lists", () => {
+    expect(shapes(["flex flex-col gap-6", "flex flex-col gap-6", "flex flex-1 flex-col min-w-0 overflow-hidden gap-2", "flex flex-1 flex-col min-w-0 overflow-hidden gap-2"])).toEqual([]);
+    expect(shapes(["font-medium text-sm text-neutral-100", "font-medium text-sm text-neutral-100"])).toEqual(["f:2 repeated-shape"]);
+    expect(shapes(["flex items-center gap-2 rounded-md px-2 py-1 text-sm", "flex items-center gap-2 rounded-md px-2 py-1 text-sm truncate"])).toEqual(["f:2 repeated-shape"]);
+  });
+
+  it("reports a list that swaps one class for another setting the same property", () => {
+    expect(shapes(["font-medium text-sm text-neutral-100 truncate", "font-semibold text-sm text-neutral-100 truncate"])).toEqual(["f:2 inconsistent-shape"]);
+    expect(shapes(["flex flex-1 flex-col min-w-0 py-1 gap-3", "flex flex-1 flex-col min-w-0 py-1 gap-4"])).toEqual(["f:2 inconsistent-shape"]);
+    expect(shapes(["flex flex-col gap-6", "flex flex-col gap-4", "flex flex-wrap justify-between gap-4 items-start", "flex flex-wrap justify-between gap-4 items-end"])).toEqual([]);
+    expect(shapes(["font-mono text-xs text-neutral-300", "font-mono text-sm text-neutral-300 truncate"])).toEqual([]);
   });
 });
 

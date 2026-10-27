@@ -70,7 +70,8 @@ describe("runtime utilities", () => {
   });
 
   it("places positioned elements with the spacing scale", () => {
-    div({ class: "absolute top-0 right-2 bottom-px left-auto top-full inset-x-4 inset-y-0" });
+    div({ class: "absolute top-0 right-2 bottom-px left-auto inset-x-4 inset-y-0" });
+    div({ class: "top-full" });
 
     expect(utilityCss()).toContain(".top-0{top:0px}");
     expect(utilityCss()).toContain(".right-2{right:0.5rem}");
@@ -100,8 +101,9 @@ describe("runtime utilities", () => {
 
   it("supports text, scrolling, transform and animation utilities", () => {
     div({
-      class: "font-mono tabular-nums whitespace-pre-wrap wrap-anywhere break-words line-clamp-2 resize-none overscroll-contain overflow-x-auto overflow-y-hidden scrollbar-none rotate-90 -rotate-90 rounded-t-lg rounded-b animate-spin",
+      class: "font-mono tabular-nums whitespace-pre-wrap wrap-anywhere line-clamp-2 resize-none overscroll-contain overflow-x-auto overflow-y-hidden scrollbar-none -rotate-90 rounded-t-lg rounded-b animate-spin",
     });
+    div({ class: "break-words rotate-90" });
 
     expect(utilityCss()).toContain(".font-mono{font-family:ui-monospace");
     expect(utilityCss()).toContain(".tabular-nums{font-variant-numeric:tabular-nums}");
@@ -147,7 +149,8 @@ describe("runtime utilities", () => {
   });
 
   it("supports type, cursor, ring, blur and accessibility utilities", () => {
-    div({ class: "leading-none leading-6 tracking-wide cursor-grabbing ring-inset ring-2 backdrop-blur sr-only md:not-sr-only" });
+    div({ class: "leading-none tracking-wide cursor-grabbing ring-inset ring-2 backdrop-blur sr-only md:not-sr-only" });
+    div({ class: "leading-6" });
 
     expect(utilityCss()).toContain(".leading-none{line-height:1}");
     expect(utilityCss()).toContain(".leading-6{line-height:1.5rem}");
@@ -166,8 +169,31 @@ describe("runtime utilities", () => {
     expect(utilityCss().indexOf(".leading-6{")).toBeGreaterThan(utilityCss().indexOf(".text-sm{"));
   });
 
+  it("lets the later of two classes for the same property and variants win", () => {
+    const node = div({ class: ["px-4 py-2 text-sm bg-accent-600 hover:bg-accent-700", "px-2 bg-danger-600"] });
+
+    expect(node.className).toBe("py-2 text-sm hover:bg-accent-700 px-2 bg-danger-600");
+    expect(div({ class: "hidden md:flex flex" }).className).toBe("md:flex flex");
+    expect(div({ class: "leading-6 text-sm px-2 py-2 project-card" }).className).toBe("leading-6 text-sm px-2 py-2 project-card");
+  });
+
+  it("lets a utility for fewer sides win over a wider one", () => {
+    div({ class: "-mt-1 m-2 pt-4 py-2 p-1 bottom-2 inset-x-0 inset-0" });
+
+    const css = utilityCss();
+    expect(css.indexOf(".-mt-1{")).toBeGreaterThan(css.indexOf(".m-2{"));
+    expect(css.indexOf(".pt-4{")).toBeGreaterThan(css.indexOf(".py-2{"));
+    expect(css.indexOf(".py-2{")).toBeGreaterThan(css.indexOf(".p-1{"));
+    expect(css.indexOf(".bottom-2{")).toBeGreaterThan(css.indexOf(".inset-x-0{"));
+    expect(css.indexOf(".inset-x-0{")).toBeGreaterThan(css.indexOf(".inset-0{"));
+    expect(isUtility("mx-auto")).toBe(true);
+    expect(isUtility("-mx-auto")).toBe(false);
+    expect(isUtility("px-auto")).toBe(false);
+  });
+
   it("fades colors and elements on the step-5 alpha scale", () => {
-    div({ class: "opacity-60 bg-accent-500/20 text-neutral-400/5 border-blue-600/100 bg-white/10 ring-black/40" });
+    div({ class: "opacity-60 bg-accent-500/20 text-neutral-400/5 border-blue-600/100 ring-black/40" });
+    div({ class: "bg-white/10" });
 
     expect(utilityCss()).toContain(".opacity-60{opacity:0.6}");
     expect(utilityCss()).toContain(".bg-accent-500\\/20{background-color:color-mix(in srgb, var(--vrui-color-accent-500) 20%, transparent)}");
@@ -181,7 +207,8 @@ describe("runtime utilities", () => {
   });
 
   it("tunes transitions after the transition utility", () => {
-    div({ class: "transition transition-transform duration-200 ease-out delay-75" });
+    div({ class: "transition" });
+    div({ class: "transition-transform duration-200 ease-out delay-75" });
 
     const css = utilityCss();
     expect(css).toContain(".transition{transition-property:color, background-color, border-color, box-shadow, opacity, transform, translate, rotate;transition-duration:150ms}");
@@ -208,6 +235,20 @@ describe("runtime utilities", () => {
     expect(utilityCss().startsWith("*,::before,::after{box-sizing:border-box;margin:0;padding:0;border:0 solid}")).toBe(true);
     expect(utilityCss()).toContain("[data-vrui-mode=dark]{color-scheme:dark}");
     expect(utilityCss()).toContain("@media (prefers-reduced-motion:reduce){");
+  });
+
+  it("supports aria state variants", () => {
+    div({ class: "group aria-selected:bg-accent-600 aria-expanded:rotate-180 aria-disabled:opacity-50 aria-pressed:font-semibold aria-current:text-accent-400 group-aria-expanded:flex" });
+
+    const css = utilityCss();
+    expect(css).toContain(".aria-selected\\:bg-accent-600[aria-selected=\"true\"]{");
+    expect(css).toContain(".aria-expanded\\:rotate-180[aria-expanded=\"true\"]{rotate:180deg}");
+    expect(css).toContain(".aria-disabled\\:opacity-50[aria-disabled=\"true\"]{");
+    expect(css).toContain(".aria-pressed\\:font-semibold[aria-pressed=\"true\"]{");
+    expect(css).toContain(".aria-current\\:text-accent-400[aria-current]:not([aria-current=\"false\"]){");
+    expect(css).toContain(".group[aria-expanded=\"true\"] .group-aria-expanded\\:flex{display:flex}");
+    expect(isUtility("aria-busy:flex")).toBe(false);
+    expect(isUtility("data-[state=open]:flex")).toBe(false);
   });
 
   it("applies hover only on devices that can hover", () => {
@@ -265,6 +306,29 @@ describe("runtime utilities", () => {
     expect(css).toContain(".text-box-trim{text-box:trim-both ex alphabetic}");
     expect(css).toContain(".scrollbars-thin{scrollbar-width:thin;");
     expect(css).toContain(".scrollbars-thin *{scrollbar-width:thin;");
+  });
+
+  it("supports filter, isolation, scroll anchor, safe area and cap trim utilities", () => {
+    div({ class: "grayscale brightness-75 isolate anchor-none text-box-trim-cap pt-safe px-safe" });
+    div({ class: "grayscale-0 isolation-auto anchor-auto pb-safe" });
+
+    const css = utilityCss();
+    expect(css).toContain("@property --vrui-grayscale{syntax:\"*\";inherits:false}.grayscale{--vrui-grayscale:grayscale(100%);filter:var(--vrui-brightness,) var(--vrui-grayscale,)}");
+    expect(css).toContain(".brightness-75{--vrui-brightness:brightness(0.75);filter:");
+    expect(css).toContain(".grayscale-0{--vrui-grayscale:grayscale(0);");
+    expect(css).toContain(".isolate{isolation:isolate}");
+    expect(css).toContain(".isolation-auto{isolation:auto}");
+    expect(css).toContain(".anchor-none{overflow-anchor:none}");
+    expect(css).toContain(".anchor-auto{overflow-anchor:auto}");
+    expect(css).toContain(".text-box-trim-cap{text-box:trim-both cap alphabetic}");
+    expect(css).toContain(".pt-safe{padding-top:env(safe-area-inset-top)}");
+    expect(css).toContain(".px-safe{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}");
+    expect(css).toContain(".pb-safe{padding-bottom:env(safe-area-inset-bottom)}");
+    expect(isUtility("py-safe")).toBe(true);
+    expect(isUtility("pl-safe")).toBe(true);
+    expect(isUtility("p-safe")).toBe(false);
+    expect(isUtility("mt-safe")).toBe(false);
+    expect(isUtility("brightness-80")).toBe(false);
   });
 
   it("registers utilities introduced by reactive classes", () => {

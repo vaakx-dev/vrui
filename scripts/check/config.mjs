@@ -3,14 +3,14 @@ import { dirname, join } from "node:path";
 
 // The nearest package.json with a "vrui" block, searching up from `cwd`.
 // Its folder is the root that config paths and report paths are relative to.
-export function findConfig(cwd) {
+export function findConfig(cwd, overrides = {}) {
   for (let dir = cwd; ; dir = dirname(dir)) {
     const manifest = join(dir, "package.json");
     if (existsSync(manifest)) {
       const config = JSON.parse(readFileSync(manifest, "utf8")).vrui;
-      if (config && typeof config === "object") return { root: dir, manifest, config: normalize(config) };
+      if (config && typeof config === "object") return { root: dir, manifest, config: normalize({ ...config, ...overrides }) };
     }
-    if (dirname(dir) === dir) return { root: cwd, config: normalize({}) };
+    if (dirname(dir) === dir) return { root: cwd, config: normalize(overrides) };
   }
 }
 
@@ -22,6 +22,8 @@ function normalize(config) {
     ui: config.ui ?? ["@vaakx-dev/vrui"],
     browser: config.browser ?? [],
     shapes: config.shapes ?? "tree",
+    shades: config.shades ?? {},
+    iconSizes: config.iconSizes ?? [12, 14, 16, 20],
   };
 }
 
