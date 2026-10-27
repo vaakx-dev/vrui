@@ -160,6 +160,11 @@ describe("vrui-check styles", () => {
     const found = messages("src/a.ts", `div({ style: { cursor: "grab", objectFit: "cover", lineHeight: 1, opacity: 0.6 } });`);
     expect(found.map((message) => /"([^"]+)" utility/.exec(message)?.[1])).toEqual(["cursor-grab", "object-cover", "leading-none", "opacity-60"]);
   });
+
+  it("flags touch action, isolation, scroll anchoring, text box and grayscale", () => {
+    const found = messages("src/a.ts", `div({ style: { touchAction: "none", isolation: "isolate", overflowAnchor: "none", textBox: "trim-both cap alphabetic", filter: "grayscale(100%)" } });`);
+    expect(found.map((message) => /"([^"]+)" utility/.exec(message)?.[1])).toEqual(["touch-none", "isolate", "anchor-none", "text-box-trim-cap", "grayscale"]);
+  });
 });
 
 describe("vrui-check shapes", () => {
