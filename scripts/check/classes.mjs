@@ -36,7 +36,7 @@ function classValueTokens(tokens, from) {
   return found;
 }
 
-export function classChecker({ isUtility, allowed }) {
+export function classChecker({ isUtility, allowed, listFindings }) {
   const known = (name) => allowed.has(name) || isUtility(name);
 
   const nameFindings = (token, names) => names.flatMap((name) => {
@@ -71,7 +71,7 @@ export function classChecker({ isUtility, allowed }) {
         seen.add(value);
         const words = wordsOf(value);
         names.push(...words);
-        findings.push(...nameFindings(value, words));
+        findings.push(...nameFindings(value, words), ...listFindings(value, words));
       }
       const unique = [...new Set(names)].sort();
       if (unique.length >= 2) shapes.push({ start: token.start, tokens: unique });
@@ -81,7 +81,8 @@ export function classChecker({ isUtility, allowed }) {
       tokens.forEach((token, index) => {
         if ((token.type !== "string" && token.type !== "template") || seen.has(token) || isCompared(tokens, index)) return;
         const words = wordsOf(token);
-        if (looksLikeClasses(words)) findings.push(...nameFindings(token, words));
+        if (!looksLikeClasses(words) && !(words.length && words.every(known))) return;
+        findings.push(...nameFindings(token, words), ...listFindings(token, words));
       });
     }
     return { findings, shapes };

@@ -44,6 +44,7 @@ for (const role of config.roles) vrui.theme({ [role]: "slate" });
 
 const inspect = createInspector({
   isUtility: vrui.isUtility,
+  utilityKey: vrui.utilityKey,
   allowed: new Set(config.classes),
   ui: config.ui,
   browser: config.browser.map(globRegex),

@@ -8,6 +8,7 @@ import { repeatedShapes } from "./shapes.mjs";
 
 const inspect = createInspector({
   isUtility: vrui.isUtility,
+  utilityKey: vrui.utilityKey,
   allowed: new Set(["markdown"]),
   ui: ["@vaakx-dev/vrui"],
   browser: [globRegex("**/web/**")],
@@ -100,6 +101,14 @@ describe("vrui-check classes", () => {
     expect(rules("src/a.ts", `div({ class: "w-[13px]" });`)).toEqual(["arbitrary-value"]);
     expect(rules("src/a.ts", `div({ class: "markdown flex" });`)).toEqual([]);
     expect(rules("src/a.ts", `div({ class: "flex gap-1.5 h-1.5 -top-1.5" });`)).toEqual([]);
+  });
+
+  it("flags two classes in one string that set the same property", () => {
+    expect(messages("src/a.ts", `div({ class: "p-2 flex p-4" });`)).toEqual(['"p-2" and "p-4" set the same property, so "p-2" does nothing; keep one']);
+    expect(messages("src/a.ts", `div({ class: "flex text-xs flex" });`)).toEqual(['"flex" is listed twice; remove one']);
+    expect(rules("src/a.ts", `${UI}const tone = "text-xs text-sm";`)).toEqual(["conflicting-class"]);
+    expect(rules("src/a.ts", `div({ class: ["p-2 text-sm", open ? "p-4" : "p-6", "hover:p-4 md:p-6 leading-6"] });`)).toEqual([]);
+    expect(rules("src/a.ts", "div({ class: `px-2 ${open ? 'hidden' : 'flex'} block` });")).toEqual([]);
   });
 
   it("checks class lists outside class keys in browser files", () => {

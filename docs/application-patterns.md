@@ -243,6 +243,10 @@ rendered page. It reports:
   of template literals, and in strings elsewhere that read as class lists, such
   as `const tones = { ok: "text-sucess-600" }`
 - arbitrary utility values outside the built-in scale
+- two classes in one string that set the same property under the same
+  variants, such as `p-2 p-4`, where the first does nothing
+  (`conflicting-class`); separate strings, such as a component's base classes
+  and the caller's `class`, may override each other
 - fixed inline styles a utility already sets, such as `style: { top: "0" }`
 - browser work that bypasses the application routes above
 - exact and near-duplicate utility shapes across the checked tree
