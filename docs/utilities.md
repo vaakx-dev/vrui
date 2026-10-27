@@ -75,8 +75,9 @@ centers an element. They set the `translate` property, so they combine with
 Opacity (`opacity-60`) and color alpha (`bg-accent-500/20`,
 `text-neutral-400/60`, `ring-white/10`) use steps of 5 from 0 to 100.
 
-Named maximum widths run from `max-w-sm` through `max-w-7xl`. They provide
-stable content widths without treating a page width as an arbitrary value.
+`max-w-*` takes the spacing scale, fractions, `screen`, `min`, `max`, `fit`,
+and the named content widths `max-w-sm` through `max-w-7xl`. The named widths
+give stable page widths without an arbitrary value.
 
 Text sizes are `xs`, `sm`, `base`, `lg`, `xl`, `2xl`, and `3xl`. Radius
 values are `none`, `sm`, `md`, `lg`, `xl`, `2xl`, and `full`. Shadows are
