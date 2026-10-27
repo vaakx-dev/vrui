@@ -19,6 +19,10 @@ const states: Record<string, string> = {
   checked: ":checked",
   first: ":first-child",
   last: ":last-child",
+  ...Object.fromEntries(
+    ["selected", "expanded", "disabled", "pressed"].map((state) => [`aria-${state}`, `[aria-${state}="true"]`]),
+  ),
+  "aria-current": "[aria-current]:not([aria-current=\"false\"])",
 };
 
 const CAN_HOVER = "(hover:hover)";

@@ -140,6 +140,21 @@ State variants include `hover`, `focus`, `focus-visible`, `focus-within`,
 focus), `active`, `disabled`, `checked`, `first`, and `last`. Responsive
 variants use `sm`, `md`, `lg`, `xl`, and `2xl`.
 
+ARIA variants style an element by the state it already announces:
+`aria-selected:`, `aria-expanded:`, `aria-disabled:`, and `aria-pressed:` apply
+when the attribute is `"true"`, and `aria-current:` applies for any value but
+`"false"`, so `aria-current="page"` matches. They work after `group-` too:
+
+```ts
+button(
+  { class: "group flex items-center gap-2 aria-selected:bg-neutral-800", "aria-selected": selected },
+  span({ class: "group-aria-selected:text-accent-400" }, label),
+);
+```
+
+There are no `data-*` variants. A selector such as `data-[state=open]:` is an
+arbitrary value; use an ARIA state or a reactive class.
+
 `hover` and `group-hover` apply only on devices that can hover, so a tap on a
 phone never leaves a hover style stuck on. `touch:` applies only on devices
 that cannot hover. `motion-safe:` and `motion-reduce:` follow the user's

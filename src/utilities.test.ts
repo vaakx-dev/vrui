@@ -237,6 +237,20 @@ describe("runtime utilities", () => {
     expect(utilityCss()).toContain("@media (prefers-reduced-motion:reduce){");
   });
 
+  it("supports aria state variants", () => {
+    div({ class: "group aria-selected:bg-accent-600 aria-expanded:rotate-180 aria-disabled:opacity-50 aria-pressed:font-semibold aria-current:text-accent-400 group-aria-expanded:flex" });
+
+    const css = utilityCss();
+    expect(css).toContain(".aria-selected\\:bg-accent-600[aria-selected=\"true\"]{");
+    expect(css).toContain(".aria-expanded\\:rotate-180[aria-expanded=\"true\"]{rotate:180deg}");
+    expect(css).toContain(".aria-disabled\\:opacity-50[aria-disabled=\"true\"]{");
+    expect(css).toContain(".aria-pressed\\:font-semibold[aria-pressed=\"true\"]{");
+    expect(css).toContain(".aria-current\\:text-accent-400[aria-current]:not([aria-current=\"false\"]){");
+    expect(css).toContain(".group[aria-expanded=\"true\"] .group-aria-expanded\\:flex{display:flex}");
+    expect(isUtility("aria-busy:flex")).toBe(false);
+    expect(isUtility("data-[state=open]:flex")).toBe(false);
+  });
+
   it("applies hover only on devices that can hover", () => {
     div({ class: "group" }, div({ class: "hover:bg-blue-700 group-hover:flex md:hover:px-6 focus:ring-2" }));
 
