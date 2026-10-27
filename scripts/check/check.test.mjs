@@ -193,6 +193,13 @@ describe("vrui-check shapes", () => {
     expect(shapes(["flex items-center gap-2 rounded-md px-2 py-1 text-sm", "flex items-center gap-2 rounded-md px-2 py-1 text-sm truncate"])).toEqual(["f:2 repeated-shape"]);
   });
 
+  it("gives the same answer whichever list comes first", () => {
+    const slot = "inline-flex h-8 w-8 shrink-0 items-center justify-center";
+    const button = `${slot} rounded-full transition-colors`;
+    expect(shapes([slot, button])).toEqual([]);
+    expect(shapes([button, slot])).toEqual([]);
+  });
+
   it("reports a list that swaps one class for another setting the same property", () => {
     expect(shapes(["font-medium text-sm text-neutral-100 truncate", "font-semibold text-sm text-neutral-100 truncate"])).toEqual(["f:2 inconsistent-shape"]);
     expect(shapes(["flex flex-1 flex-col min-w-0 py-1 gap-3", "flex flex-1 flex-col min-w-0 py-1 gap-4"])).toEqual(["f:2 inconsistent-shape"]);

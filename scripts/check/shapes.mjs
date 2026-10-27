@@ -31,7 +31,7 @@ export function repeatedShapes(shapes, { utilityKey }) {
   for (let right = 1; right < shapes.length; right++) {
     if (!isShape(shapes[right].tokens)) continue;
     for (let left = 0; left < right; left++) {
-      if (shapes[left].group !== shapes[right].group) continue;
+      if (shapes[left].group !== shapes[right].group || !isShape(shapes[left].tokens)) continue;
       const match = compare(sets[left], sets[right], utilityKey);
       if (!match) continue;
       findings.push(finding(shapes[right].at, shapes[left].at, match));
