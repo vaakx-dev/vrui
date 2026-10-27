@@ -13,7 +13,8 @@
 //     "ui": ["@vaakx-dev/vrui"],    a file is UI code when it imports one of these
 //     "browser": ["**/web/**"],     globs of files that are browser code even without DOM globals
 //     "shapes": "tree",             compare repeated class lists across the "tree" or per "project"
-//     "shades": { "text-neutral": [100, 400, 500] }   allowed shades per color utility and role
+//     "shades": { "text-neutral": [100, 400, 500] },  allowed shades per color utility and role
+//     "iconSizes": [12, 14, 16, 20]                    allowed numeric icon() sizes
 //   }
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -48,6 +49,7 @@ const inspect = createInspector({
   utilityKey: vrui.utilityKey,
   allowed: new Set(config.classes),
   shades: config.shades,
+  iconSizes: config.iconSizes,
   ui: config.ui,
   browser: config.browser.map(globRegex),
 });

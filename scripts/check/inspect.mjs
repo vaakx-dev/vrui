@@ -1,5 +1,6 @@
 import { browserFindings, importsModule, touchesDom } from "./browser.mjs";
 import { classChecker } from "./classes.mjs";
+import { iconFindings } from "./icons.mjs";
 import { lex } from "./lex.mjs";
 import { listChecker } from "./lists.mjs";
 import { styleFindings } from "./style.mjs";
@@ -31,7 +32,7 @@ function htmlFindings(text) {
 
 // Checks one source file. `file` is its "/"-separated path relative to the config root.
 // Returns findings as { line, rule, message } and class shapes as { line, tokens }.
-export function createInspector({ isUtility, utilityKey, allowed, shades = {}, ui, browser }) {
+export function createInspector({ isUtility, utilityKey, allowed, shades = {}, iconSizes = [12, 14, 16, 20], ui, browser }) {
   const classFindings = classChecker({ isUtility, allowed, listFindings: listChecker({ utilityKey, shades }) });
 
   return function inspect(file, text) {
@@ -40,7 +41,11 @@ export function createInspector({ isUtility, utilityKey, allowed, shades = {}, u
     const tokens = lex(text);
     const isBrowser = importsModule(tokens, ui) || browser.some((glob) => glob.test(file)) || touchesDom(tokens);
     const classes = classFindings(tokens, { strings: isBrowser });
-    const found = [...classes.findings, ...styleFindings(tokens), ...(isBrowser ? browserFindings(tokens) : [])];
+    const found = [
+      ...classes.findings,
+      ...styleFindings(tokens),
+      ...(isBrowser ? [...browserFindings(tokens), ...iconFindings(tokens, iconSizes)] : []),
+    ];
 
     const starts = lineStarts(text);
     const findings = found

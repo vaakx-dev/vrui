@@ -26,7 +26,7 @@ export function schedule_slot(
   return record(
     div(
       { class: "flex w-24 shrink-0 items-center gap-2" },
-      icon(Clock3, 15),
+      icon(Clock3, "md"),
       strong({ class: "text-sm" }, slot.map((value) => value.time)),
     ),
     div(
@@ -57,7 +57,7 @@ export function schedule_slot(
       },
       dynamicChild(
         slot.map((value) => value.state),
-        (value) => icon(value === "booked" ? ChevronRight : Check, 15),
+        (value) => icon(value === "booked" ? ChevronRight : Check, "md"),
       ),
       slot.map((value) => {
         if (value.state === "booked") return "Start service";

@@ -253,6 +253,9 @@ rendered page. It reports:
   (`repeated-shape`), and shapes that match an earlier one except for one class
   that sets the same property, such as `font-medium` against `font-semibold`
   (`inconsistent-shape`)
+- `icon()` calls with a numeric size, alone or as `size` in the options, that
+  is not one of the icon sizes (`icon-size`); named sizes such as `"sm"` always
+  pass
 
 A class list counts as a shape when it fixes a look: at least three visual
 classes (type, color, padding, border, radius, shadow, ring, or opacity), or
@@ -310,7 +313,8 @@ part of the tree. It reads its settings from the `vrui` field in the nearest
   "ui": ["@vaakx-dev/vrui"],
   "browser": ["**/web/**"],
   "shapes": "tree",
-  "shades": { "text-neutral": [100, 400, 500], "bg-neutral": [800, 900] }
+  "shades": { "text-neutral": [100, 400, 500], "bg-neutral": [800, 900] },
+  "iconSizes": [12, 14, 16, 20]
 }
 ```
 
@@ -331,3 +335,5 @@ part of the tree. It reads its settings from the `vrui` field in the nearest
   roles that are not listed are not checked, and with no `shades` the rule is
   off. A small budget keeps text, surface, and border colors to a few steps
   the whole app shares.
+- `iconSizes` lists the numeric sizes `icon()` may take, by default `12`,
+  `14`, `16`, and `20`, the pixel sizes of the named sizes `xs` to `lg`.

@@ -73,6 +73,14 @@ describe("vrui-check browser rules", () => {
     expect(rules("src/a.ts", `${UI}clock.setTimeout(f); scheduler.queueMicrotask(f);`)).toEqual([]);
   });
 
+  it("flags numeric icon sizes off the icon scale", () => {
+    expect(messages("src/a.ts", `${UI}icon(Star, 13); kit.icon("x", { fill: true, size: 18 }); icon(Star, 16, 1.5); icon(Star, "sm"); icon(Star, { size: 20 }); icon(Star); icon(Star, open ? 13 : 16);`)).toEqual([
+      'icon size 13 is off the icon sizes 12, 14, 16, 20 in package.json "vrui.iconSizes"; use one of them',
+      'icon size 18 is off the icon sizes 12, 14, 16, 20 in package.json "vrui.iconSizes"; use one of them',
+    ]);
+    expect(rules("src/a.ts", `${UI}export const icon = (name: string, size = 13) => lucide(name, size);`)).toEqual([]);
+  });
+
   it("flags el() for tags with a typed factory", () => {
     expect(messages("src/a.ts", `${UI}el("h2", "Title"); el("iframe", {});`)).toEqual(['el("h2") has a typed factory; use h2(props, ...children)']);
   });

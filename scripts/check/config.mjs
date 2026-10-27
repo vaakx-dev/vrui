@@ -23,6 +23,7 @@ function normalize(config) {
     browser: config.browser ?? [],
     shapes: config.shapes ?? "tree",
     shades: config.shades ?? {},
+    iconSizes: config.iconSizes ?? [12, 14, 16, 20],
   };
 }
 

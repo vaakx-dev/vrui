@@ -52,7 +52,7 @@ export function part_row(
       ),
       secondary_action(
         { onClick: () => model.receive(part.get().id), type: "button" },
-        icon(PackagePlus, 15),
+        icon(PackagePlus, "md"),
         "Receive 6",
       ),
     ),
