@@ -302,8 +302,13 @@ treated as explicit native-platform boundaries and are not checked.
 
 Run it as `npx vrui-check` or `bunx vrui-check`, and add it to the
 application's other checks. Pass paths, such as `vrui-check src/chat`, to check
-part of the tree. It reads its settings from the `vrui` field in the nearest
-`package.json`:
+part of the tree. `--json` prints the result as one JSON object instead, with
+the number of `files`, the `total` number of findings, a count per rule in
+`rules`, and the `findings` themselves, so a script can track the score over
+time. `--config trial.json` lays the settings in a JSON file, either its
+`vrui` field or the whole file, over the ones in `package.json`, to try a
+setting such as a shade budget without editing it. It reads its settings from
+the `vrui` field in the nearest `package.json`:
 
 ```json
 "vrui": {
