@@ -20,10 +20,17 @@ const save = button(
 );
 ```
 
-The original class names stay on the element. VRUI inserts each generated rule
-once into `style[data-vrui-utilities]` and sorts rules independently of element
+The class names stay on the element. VRUI inserts each generated rule once
+into `style[data-vrui-utilities]` and sorts rules independently of element
 creation order. Reactive class values register new rules before updating the
 element.
+
+When two utilities in one class list set the same properties under the same
+variants, the later one wins and VRUI leaves the earlier one off the element.
+`["px-4 bg-accent-600", "px-2"]` renders `bg-accent-600 px-2`, and
+`"hidden md:flex flex"` renders `md:flex flex`. Utilities that set only some of
+the same properties, such as `p-4` and `px-2` or `text-sm` and `leading-6`,
+both stay; the narrower one wins.
 
 The style element starts with a small set of base rules:
 

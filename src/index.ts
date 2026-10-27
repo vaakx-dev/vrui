@@ -172,7 +172,7 @@ export type { SvgAttribute, SvgProps } from "./svgTypes";
 export { icon } from "./icons";
 export type { IconNode } from "./icons";
 
-export { isUtility } from "./utilities/compiler";
+export { isUtility, utilityKey } from "./utilities/compiler";
 export { PALETTE, colorValue, colorVar } from "./utilities/colors";
 export type { PaletteName, Shade } from "./utilities/colors";
 export {

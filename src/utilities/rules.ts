@@ -145,16 +145,6 @@ exact["scrollbars-thin"] = {
   order: 300,
 };
 
-add(400, {
-  "m-auto": [["margin", "auto"]],
-  "mx-auto": [["margin-inline", "auto"]],
-  "my-auto": [["margin-block", "auto"]],
-  "mt-auto": [["margin-top", "auto"]],
-  "mr-auto": [["margin-right", "auto"]],
-  "mb-auto": [["margin-bottom", "auto"]],
-  "ml-auto": [["margin-left", "auto"]],
-});
-
 add(510, {
   "aspect-auto": [["aspect-ratio", "auto"]],
   "aspect-square": [["aspect-ratio", "1 / 1"]],
@@ -314,27 +304,34 @@ for (const lines of ["1", "2", "3", "4", "5", "6"]) {
   });
 }
 
+const SPACING_PROPERTIES: Record<string, string> = {
+  p: "padding", px: "padding-inline", py: "padding-block",
+  pt: "padding-top", pr: "padding-right", pb: "padding-bottom", pl: "padding-left",
+  m: "margin", mx: "margin-inline", my: "margin-block",
+  mt: "margin-top", mr: "margin-right", mb: "margin-bottom", ml: "margin-left",
+  gap: "gap", "gap-x": "column-gap", "gap-y": "row-gap",
+};
+
+const SPACING_ORDER: Record<string, number> = {
+  px: 401, py: 401, mx: 401, my: 401, "gap-x": 401, "gap-y": 401,
+  pt: 402, pr: 402, pb: 402, pl: 402, mt: 402, mr: 402, mb: 402, ml: 402,
+};
+
 function spacing(token: string): ResolvedUtility | undefined {
-  const match = /^(-?)(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+(?:\.5)?|px)$/.exec(token);
+  const match = /^(-?)(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+(?:\.5)?|px|auto)$/.exec(token);
   if (!match) return;
   const [, minus, kind, key] = match as unknown as [string, string, string, string];
-  if (minus && !kind.startsWith("m")) return;
-  const space = SPACE[key as keyof typeof SPACE];
+  const margin = kind.startsWith("m");
+  if (minus && (!margin || key === "auto")) return;
+  const space = key === "auto" ? margin && "auto" : SPACE[key as keyof typeof SPACE];
   if (!space) return;
-  const value = minus ? negate(space) : space;
-
-  const properties: Record<string, string[]> = {
-    p: ["padding"], px: ["padding-inline"], py: ["padding-block"],
-    pt: ["padding-top"], pr: ["padding-right"], pb: ["padding-bottom"], pl: ["padding-left"],
-    m: ["margin"], mx: ["margin-inline"], my: ["margin-block"],
-    mt: ["margin-top"], mr: ["margin-right"], mb: ["margin-bottom"], ml: ["margin-left"],
-    gap: ["gap"], "gap-x": ["column-gap"], "gap-y": ["row-gap"],
-  };
   return {
-    declarations: properties[kind]!.map((property) => [property, value]),
-    order: 400,
+    declarations: [[SPACING_PROPERTIES[kind]!, minus ? negate(space) : space]],
+    order: SPACING_ORDER[kind] ?? 400,
   };
 }
+
+const POSITION_ORDER: Record<string, number> = { inset: 120, "inset-x": 121, "inset-y": 121 };
 
 function position(token: string): ResolvedUtility | undefined {
   const match = /^(-?)(top|right|bottom|left|inset-x|inset-y|inset)-(.+)$/.exec(token);
@@ -349,7 +346,7 @@ function position(token: string): ResolvedUtility | undefined {
   };
   return {
     declarations: properties[kind]!.map((property) => [property, value]),
-    order: 120,
+    order: POSITION_ORDER[kind] ?? 122,
   };
 }
 

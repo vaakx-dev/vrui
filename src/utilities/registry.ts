@@ -4,7 +4,7 @@ import { PREFLIGHT } from "./preflight";
 
 type Registry = {
   rules: Map<string, CompiledUtility>;
-  ensured: Map<string, number>;
+  ensured: Map<string, { rolesVersion: number; className: string }>;
   style: HTMLStyleElement;
 };
 
@@ -59,29 +59,45 @@ function rejectArbitrary(tokens: readonly string[]): void {
   }
 }
 
+function lastWins(tokens: readonly string[], rolesVersion: number): { kept: string[]; rules: CompiledUtility[] } {
+  const later = new Set<string>();
+  const kept: string[] = [];
+  const rules: CompiledUtility[] = [];
+  for (const token of [...tokens].reverse()) {
+    const rule = compileOnce(token, rolesVersion);
+    if (rule && later.has(rule.key)) continue;
+    if (rule) {
+      later.add(rule.key);
+      rules.push(rule);
+    }
+    kept.unshift(token);
+  }
+  return { kept, rules };
+}
+
 export function ensureUtilities(element: Element, className: string): string {
   const document = element.ownerDocument;
   const rolesVersion = colorRolesVersion();
-  if (registries.get(document)?.ensured.get(className) === rolesVersion) {
+  const known = registries.get(document)?.ensured.get(className);
+  if (known?.rolesVersion === rolesVersion) {
     registry(document);
-    return className;
+    return known.className;
   }
 
   const tokens = className.split(/\s+/).filter(Boolean);
   rejectArbitrary(tokens);
-  const compiled = tokens
-    .map((token) => compileOnce(token, rolesVersion))
-    .filter((rule): rule is CompiledUtility => !!rule);
-  if (!compiled.length) return className;
+  const { kept, rules } = lastWins(tokens, rolesVersion);
+  if (!rules.length) return className;
 
   const current = registry(document);
   let changed = false;
-  for (const rule of compiled) {
+  for (const rule of rules) {
     if (current.rules.has(rule.token)) continue;
     current.rules.set(rule.token, rule);
     changed = true;
   }
   if (changed) render(current);
-  current.ensured.set(className, rolesVersion);
-  return className;
+  const result = kept.length === tokens.length ? className : kept.join(" ");
+  current.ensured.set(className, { rolesVersion, className: result });
+  return result;
 }
