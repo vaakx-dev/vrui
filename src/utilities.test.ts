@@ -294,6 +294,29 @@ describe("runtime utilities", () => {
     expect(css).toContain(".scrollbars-thin *{scrollbar-width:thin;");
   });
 
+  it("supports filter, isolation, scroll anchor, safe area and cap trim utilities", () => {
+    div({ class: "grayscale brightness-75 isolate anchor-none text-box-trim-cap pt-safe px-safe" });
+    div({ class: "grayscale-0 isolation-auto anchor-auto pb-safe" });
+
+    const css = utilityCss();
+    expect(css).toContain("@property --vrui-grayscale{syntax:\"*\";inherits:false}.grayscale{--vrui-grayscale:grayscale(100%);filter:var(--vrui-brightness,) var(--vrui-grayscale,)}");
+    expect(css).toContain(".brightness-75{--vrui-brightness:brightness(0.75);filter:");
+    expect(css).toContain(".grayscale-0{--vrui-grayscale:grayscale(0);");
+    expect(css).toContain(".isolate{isolation:isolate}");
+    expect(css).toContain(".isolation-auto{isolation:auto}");
+    expect(css).toContain(".anchor-none{overflow-anchor:none}");
+    expect(css).toContain(".anchor-auto{overflow-anchor:auto}");
+    expect(css).toContain(".text-box-trim-cap{text-box:trim-both cap alphabetic}");
+    expect(css).toContain(".pt-safe{padding-top:env(safe-area-inset-top)}");
+    expect(css).toContain(".px-safe{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}");
+    expect(css).toContain(".pb-safe{padding-bottom:env(safe-area-inset-bottom)}");
+    expect(isUtility("py-safe")).toBe(true);
+    expect(isUtility("pl-safe")).toBe(true);
+    expect(isUtility("p-safe")).toBe(false);
+    expect(isUtility("mt-safe")).toBe(false);
+    expect(isUtility("brightness-80")).toBe(false);
+  });
+
   it("registers utilities introduced by reactive classes", () => {
     const classes = sig("p-2");
     const node = div({ class: classes });

@@ -109,11 +109,20 @@ The first utility set covers:
   `-tip` (a quick zoom, for tooltips), plus `animate-shimmer`, a light sweeping
   across text
 - `antialiased` font smoothing, and `text-box-trim`, which trims the line box
-  to the letters so text sits centred in a fixed-height chip
+  to the letters so text sits centred in a fixed-height chip;
+  `text-box-trim-cap` trims to the capital height instead of the x-height, for
+  capitals and initials
 - `border-dashed`, `border-collapse`, `align-top`, and `flow-root`
 - `touch-none`, `callout-none` (no long-press menu on iOS), and
   `scrollbars-thin`, which makes the element's scrollbar and every scrollbar
   inside it thin
+- `isolate` and `isolation-auto`, which start or join a stacking context, and
+  `anchor-none` and `anchor-auto`, which turn scroll anchoring off or on
+- safe-area padding `pt-safe`, `pr-safe`, `pb-safe`, `pl-safe`, `px-safe`, and
+  `py-safe`, which pad by the device's `env(safe-area-inset-*)`
+- filters `grayscale`, `grayscale-0`, and `brightness-*` (`0`, `50`, `75`,
+  `90`, `95`, `100`, `105`, `110`, `125`, `150`, `200`), which combine, so
+  `grayscale brightness-75` applies both
 - `ring-inset`, `backdrop-blur` (`-none`, `-xs`, `-sm`, `-md`, `-lg`, `-xl`),
   `aspect-auto`, `aspect-square`, `aspect-video`, `object-contain`, `-cover`,
   `-fill`, `-none`, `-scale-down`, and positions such as `object-top-left`

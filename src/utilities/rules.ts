@@ -1,5 +1,5 @@
 import { colorValue } from "./colors";
-import { ALPHA, BLUR, DURATION, EASE, FRACTION, LEADING, MAX_WIDTH, RADIUS, SHADOW, SPACE, TEXT, TRACKING } from "./scales";
+import { ALPHA, BLUR, BRIGHTNESS, DURATION, EASE, FRACTION, LEADING, MAX_WIDTH, RADIUS, SHADOW, SPACE, TEXT, TRACKING } from "./scales";
 
 export type Declaration = readonly [property: string, value: string];
 
@@ -60,6 +60,8 @@ add(110, {
   absolute: [["position", "absolute"]],
   relative: [["position", "relative"]],
   sticky: [["position", "sticky"]],
+  isolate: [["isolation", "isolate"]],
+  "isolation-auto": [["isolation", "auto"]],
   "z-0": [["z-index", "0"]],
   "z-10": [["z-index", "10"]],
   "z-20": [["z-index", "20"]],
@@ -110,6 +112,8 @@ add(300, {
   "overscroll-contain": [["overscroll-behavior", "contain"]],
   "overscroll-none": [["overscroll-behavior", "none"]],
   "touch-none": [["touch-action", "none"]],
+  "anchor-none": [["overflow-anchor", "none"]],
+  "anchor-auto": [["overflow-anchor", "auto"]],
   "callout-none": [["-webkit-touch-callout", "none"]],
   group: [],
 });
@@ -192,6 +196,7 @@ add(600, {
   underline: [["text-decoration-line", "underline"]],
   antialiased: [["-webkit-font-smoothing", "antialiased"], ["-moz-osx-font-smoothing", "grayscale"]],
   "text-box-trim": [["text-box", "trim-both ex alphabetic"]],
+  "text-box-trim-cap": [["text-box", "trim-both cap alphabetic"]],
   "align-top": [["vertical-align", "top"]],
   ...Object.fromEntries(Object.entries(TRACKING).map(([name, value]) => [`tracking-${name}`, [["letter-spacing", value]]])),
 });
@@ -257,6 +262,15 @@ add(840, {
   ...Object.fromEntries(Object.entries(BLUR).map(([name, filter]) => [`backdrop-blur-${name}`, backdrop(filter)])),
 });
 
+const filter = (name: string, value: string): ResolvedUtility => ({
+  declarations: [[`--vrui-${name}`, value], ["filter", "var(--vrui-brightness,) var(--vrui-grayscale,)"]],
+  prelude: local(`--vrui-${name}`),
+  order: 840,
+});
+exact.grayscale = filter("grayscale", "grayscale(100%)");
+exact["grayscale-0"] = filter("grayscale", "grayscale(0)");
+for (const step of BRIGHTNESS) exact[`brightness-${step}`] = filter("brightness", `brightness(${Number(step) / 100})`);
+
 exact["animate-spin"] = {
   declarations: [["animation", "vrui-spin 1s linear infinite"]],
   prelude: "@keyframes vrui-spin{to{transform:rotate(360deg)}}",
@@ -317,10 +331,24 @@ const SPACING_ORDER: Record<string, number> = {
   pt: 402, pr: 402, pb: 402, pl: 402, mt: 402, mr: 402, mb: 402, ml: 402,
 };
 
+const SAFE_SIDES: Record<string, readonly string[]> = {
+  pt: ["top"], pr: ["right"], pb: ["bottom"], pl: ["left"], px: ["left", "right"], py: ["top", "bottom"],
+};
+
+function safeArea(kind: string): ResolvedUtility | undefined {
+  const sides = SAFE_SIDES[kind];
+  if (!sides) return;
+  return {
+    declarations: sides.map((side) => [`padding-${side}`, `env(safe-area-inset-${side})`]),
+    order: 402,
+  };
+}
+
 function spacing(token: string): ResolvedUtility | undefined {
-  const match = /^(-?)(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+(?:\.5)?|px|auto)$/.exec(token);
+  const match = /^(-?)(p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml|gap|gap-x|gap-y)-(\d+(?:\.5)?|px|auto|safe)$/.exec(token);
   if (!match) return;
   const [, minus, kind, key] = match as unknown as [string, string, string, string];
+  if (key === "safe") return minus ? undefined : safeArea(kind);
   const margin = kind.startsWith("m");
   if (minus && (!margin || key === "auto")) return;
   const space = key === "auto" ? margin && "auto" : SPACE[key as keyof typeof SPACE];
