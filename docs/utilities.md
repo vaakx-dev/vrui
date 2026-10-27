@@ -271,10 +271,13 @@ export function primary_action(
 ```
 
 This gives the application one searchable, typed component instead of a
-separate registry of class-name strings.
+separate registry of class-name strings. The caller's `class` comes last, so
+`primary_action({ class: "px-2" })` replaces the component's `px-4` rather
+than competing with it.
 
-`vrui-check` reports arbitrary values, unknown class names, and repeated or
-near-repeated utility shapes across the checked tree. It points to the first
+`vrui-check` reports arbitrary values, unknown class names, two classes in one
+string that set the same property, and repeated, near-repeated, or
+one-class-off utility shapes across the checked tree. It points to the first
 matching source location so the shape can be extracted into the nearest
 application component. It also checks strings outside `class:` that read as
 class lists, such as the values of `const tones = { ok: "text-success-600" }`,

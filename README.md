@@ -14,11 +14,12 @@ The library is 3,900 lines of TypeScript and about 14 KB minified and gzipped. I
 
 ## Catch mistakes before they ship
 
-VRUI includes `vrui-check`, which reads your source and reports three kinds of problems:
+VRUI includes `vrui-check`, which reads your source and reports these kinds of problems:
 
 - class names VRUI doesn't generate, which otherwise do nothing and show no error
 - browser work VRUI already owns, such as event listeners, timers, DOM edits and style writes, that VRUI can't clean up
-- the same class list repeated in several places, which should become a component
+- the same class list repeated in several places, which should become a component, and near copies that differ by one class, such as a title that is `font-medium` here and `font-semibold` there
+- colors and icon sizes outside the steps your app has chosen
 
 Run it with your other checks. It helps most when an AI agent writes your UI, because the agent can read the report and fix each problem itself.
 
