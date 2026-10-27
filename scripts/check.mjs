@@ -94,7 +94,7 @@ for (const path of files) {
   const group = config.shapes === "project" ? projectOf(path) : root;
   for (const shape of result.shapes) shapes.push({ at: `${file}:${shape.line}`, group, tokens: shape.tokens });
 }
-findings.push(...repeatedShapes(shapes));
+findings.push(...repeatedShapes(shapes, { utilityKey: vrui.utilityKey }));
 
 // App classes that VRUI now generates itself, so the app's own rule competes with VRUI's.
 if (manifest && !args.length) {

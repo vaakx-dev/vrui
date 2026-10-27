@@ -129,18 +129,36 @@ describe("vrui-check styles", () => {
 });
 
 describe("vrui-check shapes", () => {
+  const shapes = (lists) => repeatedShapes(
+    lists.map((list, index) => ({ at: `f:${index + 1}`, group: "tree", tokens: list.split(" ") })),
+    { utilityKey: vrui.utilityKey },
+  ).map((finding) => `${finding.at} ${finding.rule}`);
+
   it("reports each repeated shape once, within its group", () => {
-    const tokens = ["a", "b", "c", "d", "e", "f"];
+    const tokens = ["rounded-lg", "border", "bg-neutral-900", "p-4"];
     const found = repeatedShapes([
       { at: "x:1", group: "tree", tokens },
       { at: "y:1", group: "tree", tokens },
       { at: "z:1", group: "tree", tokens },
       { at: "w:1", group: "other", tokens },
-    ]);
+    ], { utilityKey: vrui.utilityKey });
     expect(found.map((finding) => `${finding.at} ${finding.message}`)).toEqual([
       "y:1 repeats the class list at x:1; extract an app-owned VRUI component",
       "z:1 repeats the class list at x:1; extract an app-owned VRUI component",
     ]);
+  });
+
+  it("leaves layout lists alone and counts short visual lists", () => {
+    expect(shapes(["flex flex-col gap-6", "flex flex-col gap-6", "flex flex-1 flex-col min-w-0 overflow-hidden gap-2", "flex flex-1 flex-col min-w-0 overflow-hidden gap-2"])).toEqual([]);
+    expect(shapes(["font-medium text-sm text-neutral-100", "font-medium text-sm text-neutral-100"])).toEqual(["f:2 repeated-shape"]);
+    expect(shapes(["flex items-center gap-2 rounded-md px-2 py-1 text-sm", "flex items-center gap-2 rounded-md px-2 py-1 text-sm truncate"])).toEqual(["f:2 repeated-shape"]);
+  });
+
+  it("reports a list that swaps one class for another setting the same property", () => {
+    expect(shapes(["font-medium text-sm text-neutral-100 truncate", "font-semibold text-sm text-neutral-100 truncate"])).toEqual(["f:2 inconsistent-shape"]);
+    expect(shapes(["flex flex-1 flex-col min-w-0 py-1 gap-3", "flex flex-1 flex-col min-w-0 py-1 gap-4"])).toEqual(["f:2 inconsistent-shape"]);
+    expect(shapes(["flex flex-col gap-6", "flex flex-col gap-4", "flex flex-wrap justify-between gap-4 items-start", "flex flex-wrap justify-between gap-4 items-end"])).toEqual([]);
+    expect(shapes(["font-mono text-xs text-neutral-300", "font-mono text-sm text-neutral-300 truncate"])).toEqual([]);
   });
 });
 

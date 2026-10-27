@@ -74,7 +74,7 @@ export function classChecker({ isUtility, allowed }) {
         findings.push(...nameFindings(value, words));
       }
       const unique = [...new Set(names)].sort();
-      if (unique.length >= 6) shapes.push({ start: token.start, tokens: unique });
+      if (unique.length >= 2) shapes.push({ start: token.start, tokens: unique });
     });
 
     if (strings) {

@@ -246,6 +246,15 @@ rendered page. It reports:
 - fixed inline styles a utility already sets, such as `style: { top: "0" }`
 - browser work that bypasses the application routes above
 - exact and near-duplicate utility shapes across the checked tree
+  (`repeated-shape`), and shapes that match an earlier one except for one class
+  that sets the same property, such as `font-medium` against `font-semibold`
+  (`inconsistent-shape`)
+
+A class list counts as a shape when it fixes a look: at least three visual
+classes (type, color, padding, border, radius, shadow, ring, or opacity), or
+at least six classes with one visual class among them. Layout-only lists such
+as `flex flex-col gap-6` are never reported, however often they repeat. A near
+duplicate shares at least six classes and differs by one or two.
 
 A file is browser code when it imports a `ui` module, reads a DOM global such
 as `document`, `window`, `navigator`, `localStorage`, or an `HTMLElement`
