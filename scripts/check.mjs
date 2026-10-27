@@ -75,7 +75,8 @@ function collect(path, found) {
     found.push(path);
     return found;
   }
-  for (const entry of readdirSync(path, { withFileTypes: true })) {
+  const entries = readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name, "en"));
+  for (const entry of entries) {
     if (SKIP.has(entry.name) || entry.name.startsWith(".")) continue;
     const child = join(path, entry.name);
     if (entry.isDirectory()) collect(child, found);
