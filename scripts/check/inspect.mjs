@@ -31,8 +31,8 @@ function htmlFindings(text) {
 
 // Checks one source file. `file` is its "/"-separated path relative to the config root.
 // Returns findings as { line, rule, message } and class shapes as { line, tokens }.
-export function createInspector({ isUtility, utilityKey, allowed, ui, browser }) {
-  const classFindings = classChecker({ isUtility, allowed, listFindings: listChecker({ utilityKey }) });
+export function createInspector({ isUtility, utilityKey, allowed, shades = {}, ui, browser }) {
+  const classFindings = classChecker({ isUtility, allowed, listFindings: listChecker({ utilityKey, shades }) });
 
   return function inspect(file, text) {
     if (file.endsWith(".html")) return { findings: htmlFindings(text), shapes: [], browser: false };

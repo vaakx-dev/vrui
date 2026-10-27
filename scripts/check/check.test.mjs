@@ -111,6 +111,23 @@ describe("vrui-check classes", () => {
     expect(rules("src/a.ts", "div({ class: `px-2 ${open ? 'hidden' : 'flex'} block` });")).toEqual([]);
   });
 
+  it("keeps colors within the configured shade budget", () => {
+    const budgeted = createInspector({
+      isUtility: vrui.isUtility,
+      utilityKey: vrui.utilityKey,
+      allowed: new Set(),
+      shades: { "text-neutral": [100, 400, 500], "bg-neutral": [800, 900] },
+      ui: ["@vaakx-dev/vrui"],
+      browser: [],
+    });
+    const found = (text) => budgeted("src/a.ts", text).findings.map((finding) => finding.message);
+    expect(found(`${UI}div({ class: "text-neutral-400 hover:text-neutral-300 bg-neutral-900/50 ring-accent-700 border-neutral-600" }); const tone = "bg-neutral-700";`)).toEqual([
+      '"hover:text-neutral-300" is off the text-neutral shades 100, 400, 500 in package.json "vrui.shades"; use one of them',
+      '"bg-neutral-700" is off the bg-neutral shades 800, 900 in package.json "vrui.shades"; use one of them',
+    ]);
+    expect(rules("src/a.ts", `div({ class: "text-neutral-300 bg-neutral-700" });`)).toEqual([]);
+  });
+
   it("checks class lists outside class keys in browser files", () => {
     expect(messages("src/a.ts", `${UI}const tones = { ok: "text-sucess-400", bad: "text-danger-500" };`)).toEqual([
       expect.stringContaining('unknown class "text-sucess-400"'),

@@ -12,7 +12,8 @@
 //     "roles": ["sky"],             extra color roles the app's theme registers
 //     "ui": ["@vaakx-dev/vrui"],    a file is UI code when it imports one of these
 //     "browser": ["**/web/**"],     globs of files that are browser code even without DOM globals
-//     "shapes": "tree"              compare repeated class lists across the "tree" or per "project"
+//     "shapes": "tree",             compare repeated class lists across the "tree" or per "project"
+//     "shades": { "text-neutral": [100, 400, 500] }   allowed shades per color utility and role
 //   }
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -46,6 +47,7 @@ const inspect = createInspector({
   isUtility: vrui.isUtility,
   utilityKey: vrui.utilityKey,
   allowed: new Set(config.classes),
+  shades: config.shades,
   ui: config.ui,
   browser: config.browser.map(globRegex),
 });

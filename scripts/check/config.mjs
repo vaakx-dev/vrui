@@ -22,6 +22,7 @@ function normalize(config) {
     ui: config.ui ?? ["@vaakx-dev/vrui"],
     browser: config.browser ?? [],
     shapes: config.shapes ?? "tree",
+    shades: config.shades ?? {},
   };
 }
 

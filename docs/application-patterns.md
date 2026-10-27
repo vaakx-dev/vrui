@@ -309,7 +309,8 @@ part of the tree. It reads its settings from the `vrui` field in the nearest
   "roles": ["sky"],
   "ui": ["@vaakx-dev/vrui"],
   "browser": ["**/web/**"],
-  "shapes": "tree"
+  "shapes": "tree",
+  "shades": { "text-neutral": [100, 400, 500], "bg-neutral": [800, 900] }
 }
 ```
 
@@ -323,3 +324,10 @@ part of the tree. It reads its settings from the `vrui` field in the nearest
 - `shapes` compares repeated class lists across the whole `"tree"`, the
   default, or within each `"project"`: the nearest folder with its own
   `package.json`, or the first folder under the scanned path.
+- `shades` is a budget of color shades per utility and role, such as
+  `"text-neutral": [100, 400, 500]`. A class with a listed utility and role and
+  any other shade is reported as `shade`, whatever its variants or alpha, so
+  `hover:text-neutral-300` and `text-neutral-300/50` both count. Utilities and
+  roles that are not listed are not checked, and with no `shades` the rule is
+  off. A small budget keeps text, surface, and border colors to a few steps
+  the whole app shares.
