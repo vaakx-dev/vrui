@@ -80,7 +80,7 @@ describe("runtime utilities", () => {
     expect(utilityCss()).toContain(".top-full{top:100%}");
     expect(utilityCss()).toContain(".inset-x-4{left:1rem;right:1rem}");
     expect(utilityCss()).toContain(".inset-y-0{top:0px;bottom:0px}");
-    expect(isUtility("top-7")).toBe(false);
+    expect(isUtility("top-11")).toBe(false);
     expect(isUtility("py-px")).toBe(true);
     expect(isUtility("gap-x-px")).toBe(true);
     expect(isUtility("md:hover:top-2")).toBe(true);
@@ -120,6 +120,26 @@ describe("runtime utilities", () => {
     expect(isUtility("line-clamp-7")).toBe(false);
   });
 
+  it("supports spacing steps 7 and 9 and fifths", () => {
+    div({ class: "h-7 w-9 gap-7 p-9 -mt-7 -top-9 translate-x-7" });
+    div({ class: "h-1/5 w-2/5 left-3/5 max-w-4/5 -translate-y-2/5" });
+
+    expect(utilityCss()).toContain(".h-7{height:1.75rem}");
+    expect(utilityCss()).toContain(".w-9{width:2.25rem}");
+    expect(utilityCss()).toContain(".gap-7{gap:1.75rem}");
+    expect(utilityCss()).toContain(".p-9{padding:2.25rem}");
+    expect(utilityCss()).toContain(".-mt-7{margin-top:-1.75rem}");
+    expect(utilityCss()).toContain(".-top-9{top:-2.25rem}");
+    expect(utilityCss()).toContain(".w-2\\/5{width:40%}");
+    expect(utilityCss()).toContain(".left-3\\/5{left:60%}");
+    expect(utilityCss()).toContain(".max-w-4\\/5{max-width:80%}");
+    expect(utilityCss()).toContain(".h-1\\/5{height:20%}");
+    expect(isUtility("px-7")).toBe(true);
+    expect(isUtility("w-1\/5")).toBe(true);
+    expect(isUtility("w-5\/5")).toBe(false);
+    expect(isUtility("p-11")).toBe(false);
+  });
+
   it("places and sizes with fractions and negative offsets", () => {
     div({ class: "absolute top-1/2 -left-1 max-w-1/2 w-2/3 -mt-1 -mx-px aspect-square object-cover object-top-left" });
 
@@ -134,7 +154,7 @@ describe("runtime utilities", () => {
     expect(utilityCss()).toContain(".object-top-left{object-position:top left}");
     expect(isUtility("-p-1")).toBe(false);
     expect(isUtility("-top-auto")).toBe(false);
-    expect(isUtility("w-1/5")).toBe(false);
+    expect(isUtility("w-1/6")).toBe(false);
   });
 
   it("translates on its own property so translate composes with rotate", () => {

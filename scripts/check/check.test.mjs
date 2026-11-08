@@ -102,9 +102,9 @@ describe("vrui-check browser rules", () => {
 
 describe("vrui-check classes", () => {
   it("checks class values, including complete words of templates", () => {
-    expect(messages("src/a.ts", `div({ class: "flex p-7" });`)[0]).toContain('unknown class "p-7"');
-    expect(messages("src/a.ts", "div({ class: `flex gap-7 ${open ? 'block' : 'hidden'} p-${size}` });")).toEqual([
-      expect.stringContaining('unknown class "gap-7"'),
+    expect(messages("src/a.ts", `div({ class: "flex p-11" });`)[0]).toContain('unknown class "p-11"');
+    expect(messages("src/a.ts", "div({ class: `flex gap-11 ${open ? 'block' : 'hidden'} p-${size}` });")).toEqual([
+      expect.stringContaining('unknown class "gap-11"'),
     ]);
     expect(rules("src/a.ts", `div({ class: "w-[13px]" });`)).toEqual(["arbitrary-value"]);
     expect(rules("src/a.ts", `div({ class: "markdown flex" });`)).toEqual([]);
