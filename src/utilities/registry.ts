@@ -1,8 +1,13 @@
 import { colorRolesVersion } from "./colors";
-import { compileUtility, type CompiledUtility } from "./compiler";
+import { compileUtility, MEDIA_LAYERS, type CompiledUtility, type MediaLayer } from "./compiler";
 import { PREFLIGHT } from "./preflight";
+import { PRELUDES } from "./rules";
 
 type Placed = { utility: CompiledUtility; ruleCount: number };
+
+type RuleList = CSSStyleSheet | CSSGroupingRule;
+
+type Group = { layer: MediaLayer; rule: CSSGroupingRule | null; placed: Placed[] };
 
 type Ensured = { rolesVersion: number; className: string };
 
@@ -17,14 +22,59 @@ function createStyle(document: Document): HTMLStyleElement {
   return style;
 }
 
+function positionOf(placed: readonly Placed[], order: string): number {
+  let low = 0;
+  let high = placed.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (placed[middle]!.utility.order < order) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
+function ruleCountOf(placed: readonly Placed[], end = placed.length): number {
+  let count = 0;
+  for (let index = 0; index < end; index++) count += placed[index]!.ruleCount;
+  return count;
+}
+
+function inserted(list: RuleList | null, rule: string, index: number): boolean {
+  if (!list) return false;
+  try {
+    list.insertRule(rule, index);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function insert(list: RuleList | null, rules: readonly string[], index: number): number {
+  let count = 0;
+  for (const rule of rules) {
+    if (inserted(list, rule, index + count)) count++;
+  }
+  return count;
+}
+
+function insertAll(list: RuleList | null, placed: readonly Placed[], index: number): void {
+  let at = index;
+  for (const entry of placed) {
+    entry.ruleCount = insert(list, entry.utility.rules, at);
+    at += entry.ruleCount;
+  }
+}
+
 class UtilitySheet {
   readonly ensured = new Map<string, Ensured>();
   private readonly document: Document;
-  private readonly placed: Placed[] = [];
+  private readonly plain: Placed[] = [];
+  private readonly groups: Group[] = MEDIA_LAYERS.map((layer) => ({ layer, rule: null, placed: [] }))
+    .sort((a, b) => (a.layer.order < b.layer.order ? -1 : 1));
   private readonly tokens = new Set<string>();
   private style: HTMLStyleElement;
   private sheet: CSSStyleSheet | null = null;
-  private preflightRules = 0;
+  private baseRules = 0;
 
   constructor(document: Document) {
     this.document = document;
@@ -44,56 +94,45 @@ class UtilitySheet {
 
   private attach(): void {
     if (!this.style.isConnected) this.style = createStyle(this.document);
-    this.style.textContent = PREFLIGHT;
+    this.style.textContent = PREFLIGHT + PRELUDES.join("");
     this.sheet = this.style.sheet;
-    this.preflightRules = this.sheet?.cssRules.length ?? 0;
-    let index = this.preflightRules;
-    for (const entry of this.placed) {
-      entry.ruleCount = this.insert(entry.utility.rules, index);
-      index += entry.ruleCount;
+    this.baseRules = this.sheet?.cssRules.length ?? 0;
+    insertAll(this.sheet, this.plain, this.baseRules);
+    for (const group of this.groups) {
+      group.rule = this.groupRule(group.layer, this.sheet?.cssRules.length ?? 0);
+      insertAll(group.rule, group.placed, 0);
     }
+  }
+
+  private groupRule(layer: MediaLayer, index: number): CSSGroupingRule | null {
+    if (!this.sheet || !inserted(this.sheet, `@media ${layer.media}{}`, index)) return null;
+    return this.sheet.cssRules[index] as CSSGroupingRule;
+  }
+
+  private groupOf(layer: MediaLayer): Group {
+    const position = this.groups.findIndex((group) => group.layer.order >= layer.order);
+    const at = position < 0 ? this.groups.length : position;
+    const found = this.groups[at];
+    if (found?.layer.media === layer.media) return found;
+    const group = { layer, rule: this.groupRule(layer, this.baseRules + ruleCountOf(this.plain) + at), placed: [] };
+    this.groups.splice(at, 0, group);
+    return group;
   }
 
   private place(utility: CompiledUtility): void {
-    const position = this.positionOf(utility.order);
-    const ruleCount = this.insert(utility.rules, this.ruleIndexAt(position));
-    this.placed.splice(position, 0, { utility, ruleCount });
+    if (utility.layer.media) {
+      const group = this.groupOf(utility.layer);
+      this.placeIn(group.rule, group.placed, 0, utility);
+    } else {
+      this.placeIn(this.sheet, this.plain, this.baseRules, utility);
+    }
     this.tokens.add(utility.token);
   }
 
-  private positionOf(order: string): number {
-    let low = 0;
-    let high = this.placed.length;
-    while (low < high) {
-      const middle = (low + high) >> 1;
-      if (this.placed[middle]!.utility.order < order) low = middle + 1;
-      else high = middle;
-    }
-    return low;
-  }
-
-  private ruleIndexAt(position: number): number {
-    let index = this.preflightRules;
-    for (let placed = 0; placed < position; placed++) index += this.placed[placed]!.ruleCount;
-    return index;
-  }
-
-  private insert(rules: readonly string[], index: number): number {
-    let inserted = 0;
-    for (const rule of rules) {
-      if (this.inserted(rule, index + inserted)) inserted++;
-    }
-    return inserted;
-  }
-
-  private inserted(rule: string, index: number): boolean {
-    if (!this.sheet) return false;
-    try {
-      this.sheet.insertRule(rule, index);
-      return true;
-    } catch {
-      return false;
-    }
+  private placeIn(list: RuleList | null, placed: Placed[], offset: number, utility: CompiledUtility): void {
+    const position = positionOf(placed, utility.order);
+    const ruleCount = insert(list, utility.rules, offset + ruleCountOf(placed, position));
+    placed.splice(position, 0, { utility, ruleCount });
   }
 }
 
