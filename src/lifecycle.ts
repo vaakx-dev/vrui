@@ -47,11 +47,11 @@ function prune(node: Node, state: LifecycleState): void {
   if (lifecycles.get(node) === state) lifecycles.delete(node);
 }
 
-function collectRegistered(root: Node, found: Set<Node>): void {
+function collectRegistered(root: Node, ...found: Set<Node>[]): void {
   const pending = [root];
   while (pending.length) {
     const node = pending.pop()!;
-    if (lifecycles.has(node)) found.add(node);
+    if (lifecycles.has(node)) for (const nodes of found) nodes.add(node);
 
     for (let child = node.firstChild; child; child = child.nextSibling) {
       pending.push(child);
@@ -141,10 +141,7 @@ function flush(mutations: MutationRecord[]): void {
   const affected = new Set<Node>();
 
   for (const mutation of mutations) {
-    for (const node of mutation.addedNodes) {
-      collectRegistered(node, added);
-      collectRegistered(node, affected);
-    }
+    for (const node of mutation.addedNodes) collectRegistered(node, added, affected);
     for (const node of mutation.removedNodes) {
       collectRegistered(node, affected);
     }

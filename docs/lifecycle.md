@@ -51,6 +51,7 @@ Available helpers include:
 - `onTimeout`
 - `onInterval`
 - `onRaf`
+- `onIdle`
 - `onResize`
 - `onMedia`
 - `resizeObserver`
@@ -60,8 +61,10 @@ Listener helpers tied to an owner node, including `onTarget`, `onWindow`,
 `onDocument`, `onResize`, return a disposer for explicit early cleanup as
 well as cleaning up when the owner disconnects.
 
-`onTimeout(fn, ms, owner?)`, `onInterval(fn, ms, owner?)`, and
-`onRaf(fn, owner?)` belong to the active scope. Event handlers run outside any
+`onTimeout(fn, ms, owner?)`, `onInterval(fn, ms, owner?)`,
+`onRaf(fn, owner?)`, and `onIdle(fn, owner?)` belong to the active scope.
+`onIdle` runs `fn` once the browser is idle, or after two seconds at the
+latest; where the browser has no idle callback it runs `fn` after one second. Event handlers run outside any
 scope, so pass an owner node there; the timer is then also cancelled when the
 owner disconnects.
 

@@ -5,6 +5,9 @@
 import { autoDispose, listen, onDisconnect, onWindow } from "./lifecycle";
 import { once, scoped } from "./scope";
 
+const IDLE_TIMEOUT_MS = 2000;
+const IDLE_FALLBACK_MS = 1000;
+
 /**
  * Tie a stop function to the active scope and, when given, to an owner node's
  * mounted lifetime, like `onTarget`. The returned disposer stops early.
@@ -45,6 +48,20 @@ export function onRaf(fn: FrameRequestCallback, owner?: Node): () => void {
     dispose();
     fn(time);
   });
+  return dispose;
+}
+
+export function onIdle(fn: () => void, owner?: Node): () => void {
+  if (typeof window.requestIdleCallback !== "function") return onTimeout(fn, IDLE_FALLBACK_MS, owner);
+
+  let id: number | undefined;
+  const dispose = owned(() => {
+    if (id !== undefined) window.cancelIdleCallback(id);
+  }, owner);
+  id = window.requestIdleCallback(() => {
+    dispose();
+    fn();
+  }, { timeout: IDLE_TIMEOUT_MS });
   return dispose;
 }
 

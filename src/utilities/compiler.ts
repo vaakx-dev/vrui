@@ -2,7 +2,7 @@ import { BREAKPOINT } from "./scales";
 import { resolveUtility, type ResolvedUtility } from "./rules";
 
 export type CompiledUtility = {
-  css: string;
+  rules: readonly string[];
   key: string;
   order: string;
   token: string;
@@ -118,18 +118,17 @@ export function compileUtility(token: string): CompiledUtility | undefined {
   selector = selector.replace("&", () => `.${escapeClass(token)}`);
   const targets = (pseudo ?? [""]).map((suffix) => `${selector}${suffix}`).join(",");
 
-  let css = [
+  const rules = [
     `${targets}{${declarations(utility.declarations)}}`,
     ...(utility.nested ?? []).map(([suffix, nested]) => `${selector}${suffix}{${declarations(nested)}}`),
-  ].join("");
-  if (media.length) css = `@media ${media.join(" and ")}{${css}}`;
-  css = `${utility.prelude ?? ""}${css}`;
+  ];
+  const scoped = media.length ? [`@media ${media.join(" and ")}{${rules.join("")}}`] : rules;
 
   const breakpointOrder = breakpoint
     ? Object.keys(BREAKPOINT).indexOf(breakpoint) + 1
     : 0;
   return {
-    css,
+    rules: utility.prelude ? [utility.prelude, ...scoped] : scoped,
     key,
     order: `${breakpointOrder.toString().padStart(2, "0")}:${conditions.size ? 1 : 0}:${utility.order.toString().padStart(4, "0")}:${token}`,
     token,

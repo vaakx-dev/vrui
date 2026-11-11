@@ -65,8 +65,8 @@ describe("vrui-check browser rules", () => {
   });
 
   it("flags observers, timers, media queries and storage", () => {
-    expect(rules("src/a.ts", `${UI}new ResizeObserver(f); setTimeout(f, 1); window.setInterval(f, 1); clearTimeout(id); requestAnimationFrame(f); queueMicrotask(f); matchMedia("(x)"); localStorage.getItem("k");`))
-      .toEqual(["observer", "timer", "timer", "timer", "timer", "timer", "match-media", "storage"]);
+    expect(rules("src/a.ts", `${UI}new ResizeObserver(f); setTimeout(f, 1); window.setInterval(f, 1); clearTimeout(id); requestAnimationFrame(f); requestIdleCallback(f); queueMicrotask(f); matchMedia("(x)"); localStorage.getItem("k");`))
+      .toEqual(["observer", "timer", "timer", "timer", "timer", "timer", "timer", "match-media", "storage"]);
   });
 
   it("leaves method calls named like timers alone", () => {
