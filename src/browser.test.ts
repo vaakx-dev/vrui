@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { div } from "./elements";
 import { enterScope, exitScope } from "./scope";
-import { onInterval, onMedia, onResize, onTimeout } from "./browser";
+import { onIdle, onInterval, onMedia, onResize, onTimeout } from "./browser";
 
 describe("cleanup-aware browser helpers", () => {
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -87,6 +88,33 @@ describe("cleanup-aware browser helpers", () => {
     await Promise.resolve();
 
     window.dispatchEvent(new Event("resize"));
+    expect(calls).toBe(1);
+  });
+
+  it("runs idle work once, unless its scope ends first", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("requestIdleCallback", (fn: () => void) => setTimeout(fn, 50));
+    vi.stubGlobal("cancelIdleCallback", (id: number) => clearTimeout(id));
+    const ran: string[] = [];
+
+    enterScope();
+    onIdle(() => ran.push("dropped"));
+    for (const dispose of exitScope()) dispose();
+    onIdle(() => ran.push("kept"));
+    vi.advanceTimersByTime(50);
+
+    expect(ran).toEqual(["kept"]);
+  });
+
+  it("waits a moment for idle work where the browser has no idle callback", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("requestIdleCallback", undefined);
+    let calls = 0;
+
+    onIdle(() => calls++);
+    vi.advanceTimersByTime(10);
+    expect(calls).toBe(0);
+    vi.advanceTimersByTime(1000);
     expect(calls).toBe(1);
   });
 

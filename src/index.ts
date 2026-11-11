@@ -134,6 +134,7 @@ export type {
 
 export {
   intersectionObserver,
+  onIdle,
   onInterval,
   onMedia,
   onRaf,

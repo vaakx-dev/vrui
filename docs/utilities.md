@@ -21,8 +21,9 @@ const save = button(
 ```
 
 The class names stay on the element. VRUI inserts each generated rule once
-into `style[data-vrui-utilities]` and sorts rules independently of element
-creation order. Reactive class values register new rules before updating the
+into the stylesheet of `style[data-vrui-utilities]`, at its place in the
+cascade whatever order elements are created in, and leaves the rules already
+there untouched. Reactive class values register new rules before updating the
 element.
 
 When two utilities in one class list set the same properties under the same

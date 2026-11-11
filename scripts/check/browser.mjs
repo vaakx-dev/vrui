@@ -43,10 +43,12 @@ const TIMERS = new Map([
   ["setTimeout", "onTimeout(fn, ms), owned by the active scope or an owner node"],
   ["setInterval", "onInterval(fn, ms), owned by the active scope or an owner node"],
   ["requestAnimationFrame", "onRaf(fn), owned by the active scope or an owner node"],
+  ["requestIdleCallback", "onIdle(fn), owned by the active scope or an owner node"],
   ["queueMicrotask", "onTimeout(fn), which the owning scope cancels"],
   ["clearTimeout", "the disposer onTimeout returns"],
   ["clearInterval", "the disposer onInterval returns"],
   ["cancelAnimationFrame", "the disposer onRaf returns"],
+  ["cancelIdleCallback", "the disposer onIdle returns"],
 ]);
 
 const TREE = new Set([

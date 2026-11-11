@@ -3,13 +3,25 @@ import { sig } from "./core";
 import { button, div } from "./elements";
 import { mount } from "./mount";
 import { colorValue, colorVar } from "./utilities/colors";
-import { isUtility } from "./utilities/compiler";
+import { compileUtility, isUtility } from "./utilities/compiler";
 import { theme, themes } from "./utilities/theme";
 
-function utilityCss(): string {
-  return document.head
-    .querySelector<HTMLStyleElement>("style[data-vrui-utilities]")
-    ?.textContent ?? "";
+function compiled(...classLists: string[]): string {
+  return classLists
+    .flatMap((classList) => classList.split(" "))
+    .flatMap((token) => compileUtility(token)?.rules ?? [])
+    .join("");
+}
+
+function utilitySelectors(): string[] {
+  const rules = [...document.head.querySelector<HTMLStyleElement>("style[data-vrui-utilities]")?.sheet?.cssRules ?? []];
+  return rules
+    .flatMap((rule) => (rule instanceof CSSMediaRule ? [...rule.cssRules] : [rule]))
+    .map((rule) => (rule instanceof CSSStyleRule ? rule.selectorText.replaceAll("\\", "") : ""));
+}
+
+function cascadeOrder(...selectors: string[]): string[] {
+  return utilitySelectors().filter((selector) => selectors.includes(selector));
 }
 
 describe("runtime utilities", () => {
@@ -20,66 +32,64 @@ describe("runtime utilities", () => {
   });
 
   it("generates rules from fixed utility scales", () => {
-    const node = button({
-      class: "inline-flex h-px w-px items-center gap-2 rounded-md border-b px-4 py-2 text-sm font-semibold",
-    });
+    const css = compiled(
+      "inline-flex h-px w-px items-center gap-2 rounded-md border-b px-4 py-2 text-sm font-semibold",
+    );
 
-    expect(node.className).toContain("px-4");
-    expect(utilityCss()).toContain(".inline-flex{display:inline-flex}");
-    expect(utilityCss()).toContain(".gap-2{gap:0.5rem}");
-    expect(utilityCss()).toContain(".px-4{padding-inline:1rem}");
-    expect(utilityCss()).toContain(".h-px{height:1px}");
-    expect(utilityCss()).toContain(".w-px{width:1px}");
-    expect(utilityCss()).toContain(".border-b{border-width:0px;border-bottom-width:1px}");
-    expect(utilityCss()).toContain(".rounded-md{border-radius:0.375rem}");
-    expect(utilityCss()).toContain(".text-sm{font-size:0.875rem;line-height:1.25rem}");
+    expect(css).toContain(".inline-flex{display:inline-flex}");
+    expect(css).toContain(".gap-2{gap:0.5rem}");
+    expect(css).toContain(".px-4{padding-inline:1rem}");
+    expect(css).toContain(".h-px{height:1px}");
+    expect(css).toContain(".w-px{width:1px}");
+    expect(css).toContain(".border-b{border-width:0px;border-bottom-width:1px}");
+    expect(css).toContain(".rounded-md{border-radius:0.375rem}");
+    expect(css).toContain(".text-sm{font-size:0.875rem;line-height:1.25rem}");
   });
 
   it("supports state and responsive variants", () => {
-    div({ class: "hover:bg-blue-700 focus-visible:ring-2 dark:bg-blue-700 md:px-6" });
+    const css = compiled("hover:bg-blue-700 focus-visible:ring-2 dark:bg-blue-700 md:px-6");
 
-    expect(utilityCss()).toContain(".hover\\:bg-blue-700:hover");
-    expect(utilityCss()).toContain(".focus-visible\\:ring-2:focus-visible");
-    expect(utilityCss()).toContain(
+    expect(css).toContain(".hover\\:bg-blue-700:hover");
+    expect(css).toContain(".focus-visible\\:ring-2:focus-visible");
+    expect(css).toContain(
       ".dark\\:bg-blue-700:where([data-vrui-mode=\"dark\"], [data-vrui-mode=\"dark\"] *)",
     );
-    expect(utilityCss()).toContain("@media (min-width:48rem){.md\\:px-6");
+    expect(css).toContain("@media (min-width:48rem){.md\\:px-6");
   });
 
   it("supports layered application surfaces", () => {
-    div({ class: "fixed inset-0 z-50 items-baseline bg-black/50" });
+    const css = compiled("fixed inset-0 z-50 items-baseline bg-black/50");
 
-    expect(utilityCss()).toContain(".z-50{z-index:50}");
-    expect(utilityCss()).toContain(".items-baseline{align-items:baseline}");
-    expect(utilityCss()).toContain(".bg-black\\/50{background-color:rgb(0 0 0 / 0.5)}");
+    expect(css).toContain(".z-50{z-index:50}");
+    expect(css).toContain(".items-baseline{align-items:baseline}");
+    expect(css).toContain(".bg-black\\/50{background-color:rgb(0 0 0 / 0.5)}");
   });
 
   it("supports application shell and layout utilities", () => {
-    div({
-      class: "fixed inset-0 box-border flex flex-1 w-64 max-w-3xl mx-auto border-b border-solid accent-blue-600 font-sans list-none whitespace-nowrap",
-    });
+    const css = compiled(
+      "fixed inset-0 box-border flex flex-1 w-64 max-w-3xl mx-auto border-b border-solid accent-blue-600 font-sans list-none whitespace-nowrap",
+    );
 
-    expect(utilityCss()).toContain(".inset-0{inset:0px}");
-    expect(utilityCss()).toContain(".flex-1{flex:1 1 0%}");
-    expect(utilityCss()).toContain(".border-b{border-width:0px;border-bottom-width:1px}");
-    expect(utilityCss()).toContain(".accent-blue-600{accent-color:#2563eb}");
-    expect(utilityCss()).toContain(".w-64{width:16rem}");
-    expect(utilityCss()).toContain(".max-w-3xl{max-width:48rem}");
-    expect(utilityCss()).toContain(".mx-auto{margin-inline:auto}");
-    expect(utilityCss()).toContain(".font-sans{font-family:ui-sans-serif");
+    expect(css).toContain(".inset-0{inset:0px}");
+    expect(css).toContain(".flex-1{flex:1 1 0%}");
+    expect(css).toContain(".border-b{border-width:0px;border-bottom-width:1px}");
+    expect(css).toContain(".accent-blue-600{accent-color:#2563eb}");
+    expect(css).toContain(".w-64{width:16rem}");
+    expect(css).toContain(".max-w-3xl{max-width:48rem}");
+    expect(css).toContain(".mx-auto{margin-inline:auto}");
+    expect(css).toContain(".font-sans{font-family:ui-sans-serif");
   });
 
   it("places positioned elements with the spacing scale", () => {
-    div({ class: "absolute top-0 right-2 bottom-px left-auto inset-x-4 inset-y-0" });
-    div({ class: "top-full" });
+    const css = compiled("absolute top-0 right-2 bottom-px left-auto inset-x-4 inset-y-0", "top-full");
 
-    expect(utilityCss()).toContain(".top-0{top:0px}");
-    expect(utilityCss()).toContain(".right-2{right:0.5rem}");
-    expect(utilityCss()).toContain(".bottom-px{bottom:1px}");
-    expect(utilityCss()).toContain(".left-auto{left:auto}");
-    expect(utilityCss()).toContain(".top-full{top:100%}");
-    expect(utilityCss()).toContain(".inset-x-4{left:1rem;right:1rem}");
-    expect(utilityCss()).toContain(".inset-y-0{top:0px;bottom:0px}");
+    expect(css).toContain(".top-0{top:0px}");
+    expect(css).toContain(".right-2{right:0.5rem}");
+    expect(css).toContain(".bottom-px{bottom:1px}");
+    expect(css).toContain(".left-auto{left:auto}");
+    expect(css).toContain(".top-full{top:100%}");
+    expect(css).toContain(".inset-x-4{left:1rem;right:1rem}");
+    expect(css).toContain(".inset-y-0{top:0px;bottom:0px}");
     expect(isUtility("top-7")).toBe(false);
     expect(isUtility("py-px")).toBe(true);
     expect(isUtility("gap-x-px")).toBe(true);
@@ -87,86 +97,91 @@ describe("runtime utilities", () => {
   });
 
   it("supports the 1.5 spacing step", () => {
-    div({ class: "gap-1.5 h-1.5 w-1.5 -top-1.5 -mt-1.5 translate-x-1.5" });
+    const css = compiled("gap-1.5 h-1.5 w-1.5 -top-1.5 -mt-1.5 translate-x-1.5");
 
-    expect(utilityCss()).toContain(".gap-1\\.5{gap:0.375rem}");
-    expect(utilityCss()).toContain(".h-1\\.5{height:0.375rem}");
-    expect(utilityCss()).toContain(".w-1\\.5{width:0.375rem}");
-    expect(utilityCss()).toContain(".-top-1\\.5{top:-0.375rem}");
-    expect(utilityCss()).toContain(".-mt-1\\.5{margin-top:-0.375rem}");
+    expect(css).toContain(".gap-1\\.5{gap:0.375rem}");
+    expect(css).toContain(".h-1\\.5{height:0.375rem}");
+    expect(css).toContain(".w-1\\.5{width:0.375rem}");
+    expect(css).toContain(".-top-1\\.5{top:-0.375rem}");
+    expect(css).toContain(".-mt-1\\.5{margin-top:-0.375rem}");
     expect(isUtility("px-1.5")).toBe(true);
     expect(isUtility("gap-2.5")).toBe(false);
     expect(isUtility("p-1.")).toBe(false);
   });
 
   it("supports text, scrolling, transform and animation utilities", () => {
-    div({
-      class: "font-mono tabular-nums whitespace-pre-wrap wrap-anywhere line-clamp-2 resize-none overscroll-contain overflow-x-auto overflow-y-hidden scrollbar-none -rotate-90 rounded-t-lg rounded-b animate-spin",
-    });
-    div({ class: "break-words rotate-90" });
+    const css = compiled(
+      "font-mono tabular-nums whitespace-pre-wrap wrap-anywhere line-clamp-2 resize-none overscroll-contain overflow-x-auto overflow-y-hidden scrollbar-none -rotate-90 rounded-t-lg rounded-b animate-spin",
+      "break-words rotate-90",
+    );
 
-    expect(utilityCss()).toContain(".font-mono{font-family:ui-monospace");
-    expect(utilityCss()).toContain(".tabular-nums{font-variant-numeric:tabular-nums}");
-    expect(utilityCss()).toContain(".whitespace-pre-wrap{white-space:pre-wrap}");
-    expect(utilityCss()).toContain(".wrap-anywhere{overflow-wrap:anywhere}");
-    expect(utilityCss()).toContain(".line-clamp-2{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}");
-    expect(utilityCss()).toContain(".overflow-x-auto{overflow-x:auto}");
-    expect(utilityCss()).toContain(".scrollbar-none{scrollbar-width:none}.scrollbar-none::-webkit-scrollbar{display:none}");
-    expect(utilityCss()).toContain(".-rotate-90{rotate:-90deg}");
-    expect(utilityCss()).toContain(".rounded-t-lg{border-top-left-radius:0.5rem;border-top-right-radius:0.5rem}");
-    expect(utilityCss()).toContain(".rounded-b{border-bottom-right-radius:0.375rem;border-bottom-left-radius:0.375rem}");
-    expect(utilityCss()).toContain("@keyframes vrui-spin{to{transform:rotate(360deg)}}.animate-spin{animation:vrui-spin 1s linear infinite}");
+    expect(css).toContain(".font-mono{font-family:ui-monospace");
+    expect(css).toContain(".tabular-nums{font-variant-numeric:tabular-nums}");
+    expect(css).toContain(".whitespace-pre-wrap{white-space:pre-wrap}");
+    expect(css).toContain(".wrap-anywhere{overflow-wrap:anywhere}");
+    expect(css).toContain(".line-clamp-2{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}");
+    expect(css).toContain(".overflow-x-auto{overflow-x:auto}");
+    expect(css).toContain(".scrollbar-none{scrollbar-width:none}.scrollbar-none::-webkit-scrollbar{display:none}");
+    expect(css).toContain(".-rotate-90{rotate:-90deg}");
+    expect(css).toContain(".rounded-t-lg{border-top-left-radius:0.5rem;border-top-right-radius:0.5rem}");
+    expect(css).toContain(".rounded-b{border-bottom-right-radius:0.375rem;border-bottom-left-radius:0.375rem}");
+    expect(css).toContain("@keyframes vrui-spin{to{transform:rotate(360deg)}}.animate-spin{animation:vrui-spin 1s linear infinite}");
     expect(isUtility("rounded-tl")).toBe(false);
     expect(isUtility("line-clamp-7")).toBe(false);
   });
 
   it("places and sizes with fractions and negative offsets", () => {
-    div({ class: "absolute top-1/2 -left-1 max-w-1/2 w-2/3 -mt-1 -mx-px aspect-square object-cover object-top-left" });
+    const css = compiled(
+      "absolute top-1/2 -left-1 max-w-1/2 w-2/3 -mt-1 -mx-px aspect-square object-cover object-top-left",
+    );
 
-    expect(utilityCss()).toContain(".top-1\\/2{top:50%}");
-    expect(utilityCss()).toContain(".-left-1{left:-0.25rem}");
-    expect(utilityCss()).toContain(".max-w-1\\/2{max-width:50%}");
-    expect(utilityCss()).toContain(".w-2\\/3{width:66.666667%}");
-    expect(utilityCss()).toContain(".-mt-1{margin-top:-0.25rem}");
-    expect(utilityCss()).toContain(".-mx-px{margin-inline:-1px}");
-    expect(utilityCss()).toContain(".aspect-square{aspect-ratio:1 / 1}");
-    expect(utilityCss()).toContain(".object-cover{object-fit:cover}");
-    expect(utilityCss()).toContain(".object-top-left{object-position:top left}");
+    expect(css).toContain(".top-1\\/2{top:50%}");
+    expect(css).toContain(".-left-1{left:-0.25rem}");
+    expect(css).toContain(".max-w-1\\/2{max-width:50%}");
+    expect(css).toContain(".w-2\\/3{width:66.666667%}");
+    expect(css).toContain(".-mt-1{margin-top:-0.25rem}");
+    expect(css).toContain(".-mx-px{margin-inline:-1px}");
+    expect(css).toContain(".aspect-square{aspect-ratio:1 / 1}");
+    expect(css).toContain(".object-cover{object-fit:cover}");
+    expect(css).toContain(".object-top-left{object-position:top left}");
     expect(isUtility("-p-1")).toBe(false);
     expect(isUtility("-top-auto")).toBe(false);
     expect(isUtility("w-1/5")).toBe(false);
   });
 
   it("translates on its own property so translate composes with rotate", () => {
-    div({ class: "translate-x-1/2 -translate-y-1/2 rotate-45 md:-translate-x-4" });
+    const css = compiled("translate-x-1/2 -translate-y-1/2 rotate-45 md:-translate-x-4");
 
-    expect(utilityCss()).toContain(
+    expect(css).toContain(
       "@property --vrui-translate-x{syntax:\"*\";inherits:false}.translate-x-1\\/2{--vrui-translate-x:50%;translate:var(--vrui-translate-x, 0) var(--vrui-translate-y, 0)}",
     );
-    expect(utilityCss()).toContain(".-translate-y-1\\/2{--vrui-translate-y:-50%;");
-    expect(utilityCss()).toContain("@property --vrui-translate-x{syntax:\"*\";inherits:false}@media (min-width:48rem){.md\\:-translate-x-4{--vrui-translate-x:-1rem;");
-    expect(utilityCss()).toContain(".rotate-45{rotate:45deg}");
+    expect(css).toContain(".-translate-y-1\\/2{--vrui-translate-y:-50%;");
+    expect(css).toContain("@property --vrui-translate-x{syntax:\"*\";inherits:false}@media (min-width:48rem){.md\\:-translate-x-4{--vrui-translate-x:-1rem;");
+    expect(css).toContain(".rotate-45{rotate:45deg}");
   });
 
   it("supports type, cursor, ring, blur and accessibility utilities", () => {
-    div({ class: "leading-none tracking-wide cursor-grabbing ring-inset ring-2 backdrop-blur sr-only md:not-sr-only" });
-    div({ class: "leading-6" });
+    const css = compiled(
+      "leading-none tracking-wide cursor-grabbing ring-inset ring-2 backdrop-blur sr-only md:not-sr-only",
+      "leading-6",
+    );
 
-    expect(utilityCss()).toContain(".leading-none{line-height:1}");
-    expect(utilityCss()).toContain(".leading-6{line-height:1.5rem}");
-    expect(utilityCss()).toContain(".tracking-wide{letter-spacing:0.025em}");
-    expect(utilityCss()).toContain(".cursor-grabbing{cursor:grabbing}");
-    expect(utilityCss()).toContain(".ring-inset{--vrui-ring-inset:inset}");
-    expect(utilityCss()).toContain(".ring-2{--vrui-ring-shadow:var(--vrui-ring-inset,) 0 0 0 2px var(--vrui-ring-color, currentColor);");
-    expect(utilityCss()).toContain(".backdrop-blur{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}");
-    expect(utilityCss()).toContain(".sr-only{position:absolute;width:1px;height:1px;");
-    expect(utilityCss()).toContain(".md\\:not-sr-only{position:static;");
+    expect(css).toContain(".leading-none{line-height:1}");
+    expect(css).toContain(".leading-6{line-height:1.5rem}");
+    expect(css).toContain(".tracking-wide{letter-spacing:0.025em}");
+    expect(css).toContain(".cursor-grabbing{cursor:grabbing}");
+    expect(css).toContain(".ring-inset{--vrui-ring-inset:inset}");
+    expect(css).toContain(".ring-2{--vrui-ring-shadow:var(--vrui-ring-inset,) 0 0 0 2px var(--vrui-ring-color, currentColor);");
+    expect(css).toContain(".backdrop-blur{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}");
+    expect(css).toContain(".sr-only{position:absolute;width:1px;height:1px;");
+    expect(css).toContain(".md\\:not-sr-only{position:static;");
   });
 
   it("lets leading override the line height a text size sets", () => {
-    div({ class: "leading-6 text-sm" });
+    div({ class: "leading-6" });
+    div({ class: "text-sm" });
 
-    expect(utilityCss().indexOf(".leading-6{")).toBeGreaterThan(utilityCss().indexOf(".text-sm{"));
+    expect(cascadeOrder(".leading-6", ".text-sm")).toEqual([".text-sm", ".leading-6"]);
   });
 
   it("lets the later of two classes for the same property and variants win", () => {
@@ -178,52 +193,54 @@ describe("runtime utilities", () => {
   });
 
   it("lets a utility for fewer sides win over a wider one", () => {
-    div({ class: "-mt-1 m-2 pt-4 py-2 p-1 bottom-2 inset-x-0 inset-0" });
+    div({ class: "-mt-1 pt-4 bottom-2" });
+    div({ class: "py-2 inset-x-0" });
+    div({ class: "m-2 p-1 inset-0" });
 
-    const css = utilityCss();
-    expect(css.indexOf(".-mt-1{")).toBeGreaterThan(css.indexOf(".m-2{"));
-    expect(css.indexOf(".pt-4{")).toBeGreaterThan(css.indexOf(".py-2{"));
-    expect(css.indexOf(".py-2{")).toBeGreaterThan(css.indexOf(".p-1{"));
-    expect(css.indexOf(".bottom-2{")).toBeGreaterThan(css.indexOf(".inset-x-0{"));
-    expect(css.indexOf(".inset-x-0{")).toBeGreaterThan(css.indexOf(".inset-0{"));
+    expect(cascadeOrder(".-mt-1", ".m-2")).toEqual([".m-2", ".-mt-1"]);
+    expect(cascadeOrder(".pt-4", ".py-2", ".p-1")).toEqual([".p-1", ".py-2", ".pt-4"]);
+    expect(cascadeOrder(".bottom-2", ".inset-x-0", ".inset-0")).toEqual([".inset-0", ".inset-x-0", ".bottom-2"]);
     expect(isUtility("mx-auto")).toBe(true);
     expect(isUtility("-mx-auto")).toBe(false);
     expect(isUtility("px-auto")).toBe(false);
   });
 
   it("fades colors and elements on the step-5 alpha scale", () => {
-    div({ class: "opacity-60 bg-accent-500/20 text-neutral-400/5 border-blue-600/100 ring-black/40" });
-    div({ class: "bg-white/10" });
+    const css = compiled(
+      "opacity-60 bg-accent-500/20 text-neutral-400/5 border-blue-600/100 ring-black/40",
+      "bg-white/10",
+    );
 
-    expect(utilityCss()).toContain(".opacity-60{opacity:0.6}");
-    expect(utilityCss()).toContain(".bg-accent-500\\/20{background-color:color-mix(in srgb, var(--vrui-color-accent-500) 20%, transparent)}");
-    expect(utilityCss()).toContain(".text-neutral-400\\/5{color:color-mix(in srgb, var(--vrui-color-neutral-400) 5%, transparent)}");
-    expect(utilityCss()).toContain(".border-blue-600\\/100{border-color:color-mix(in srgb, #2563eb 100%, transparent)}");
-    expect(utilityCss()).toContain(".bg-white\\/10{background-color:rgb(255 255 255 / 0.1)}");
-    expect(utilityCss()).toContain(".ring-black\\/40{--vrui-ring-color:rgb(0 0 0 / 0.4)}");
+    expect(css).toContain(".opacity-60{opacity:0.6}");
+    expect(css).toContain(".bg-accent-500\\/20{background-color:color-mix(in srgb, var(--vrui-color-accent-500) 20%, transparent)}");
+    expect(css).toContain(".text-neutral-400\\/5{color:color-mix(in srgb, var(--vrui-color-neutral-400) 5%, transparent)}");
+    expect(css).toContain(".border-blue-600\\/100{border-color:color-mix(in srgb, #2563eb 100%, transparent)}");
+    expect(css).toContain(".bg-white\\/10{background-color:rgb(255 255 255 / 0.1)}");
+    expect(css).toContain(".ring-black\\/40{--vrui-ring-color:rgb(0 0 0 / 0.4)}");
     expect(isUtility("opacity-7")).toBe(false);
     expect(isUtility("bg-accent-500/7")).toBe(false);
     expect(isUtility("bg-current/50")).toBe(false);
   });
 
   it("tunes transitions after the transition utility", () => {
-    div({ class: "transition" });
-    div({ class: "transition-transform duration-200 ease-out delay-75" });
+    const css = compiled("transition", "transition-transform duration-200 ease-out delay-75");
+    div({ class: "duration-200" });
+    div({ class: "transition-transform" });
 
-    const css = utilityCss();
     expect(css).toContain(".transition{transition-property:color, background-color, border-color, box-shadow, opacity, transform, translate, rotate;transition-duration:150ms}");
     expect(css).toContain(".transition-transform{transition-property:transform, translate, rotate;transition-duration:150ms}");
     expect(css).toContain(".ease-out{transition-timing-function:cubic-bezier(0, 0, 0.2, 1)}");
     expect(css).toContain(".delay-75{transition-delay:75ms}");
-    expect(css.indexOf(".duration-200{transition-duration:200ms}")).toBeGreaterThan(css.indexOf(".transition-transform{"));
+    expect(css).toContain(".duration-200{transition-duration:200ms}");
+    expect(cascadeOrder(".duration-200", ".transition-transform")).toEqual([".transition-transform", ".duration-200"]);
   });
 
   it("supports group variants", () => {
-    div({ class: "group" }, div({ class: "hidden group-hover:flex group-focus-within:opacity-100 focus-within:ring-2" }));
+    const css = compiled("hidden group-hover:flex group-focus-within:opacity-100 focus-within:ring-2");
 
-    expect(utilityCss()).toContain(".group:hover .group-hover\\:flex{display:flex}");
-    expect(utilityCss()).toContain(".group:focus-within .group-focus-within\\:opacity-100{opacity:1}");
-    expect(utilityCss()).toContain(".focus-within\\:ring-2:focus-within");
+    expect(css).toContain(".group:hover .group-hover\\:flex{display:flex}");
+    expect(css).toContain(".group:focus-within .group-focus-within\\:opacity-100{opacity:1}");
+    expect(css).toContain(".focus-within\\:ring-2:focus-within");
     expect(isUtility("group")).toBe(true);
     expect(isUtility("group-hover:group-focus:flex")).toBe(false);
     expect(isUtility("group-wobble:flex")).toBe(false);
@@ -232,15 +249,16 @@ describe("runtime utilities", () => {
   it("writes the base rules before every utility", () => {
     div({ class: "border" });
 
-    expect(utilityCss().startsWith("*,::before,::after{box-sizing:border-box;margin:0;padding:0;border:0 solid}")).toBe(true);
-    expect(utilityCss()).toContain("[data-vrui-mode=dark]{color-scheme:dark}");
-    expect(utilityCss()).toContain("@media (prefers-reduced-motion:reduce){");
+    const selectors = utilitySelectors();
+    expect(selectors[0]).toBe("*,::before,::after");
+    expect(selectors.indexOf(".border")).toBeGreaterThan(selectors.lastIndexOf("*,::before,::after"));
   });
 
   it("supports aria state variants", () => {
-    div({ class: "group aria-selected:bg-accent-600 aria-expanded:rotate-180 aria-disabled:opacity-50 aria-pressed:font-semibold aria-current:text-accent-400 group-aria-expanded:flex" });
+    const css = compiled(
+      "group aria-selected:bg-accent-600 aria-expanded:rotate-180 aria-disabled:opacity-50 aria-pressed:font-semibold aria-current:text-accent-400 group-aria-expanded:flex",
+    );
 
-    const css = utilityCss();
     expect(css).toContain(".aria-selected\\:bg-accent-600[aria-selected=\"true\"]{");
     expect(css).toContain(".aria-expanded\\:rotate-180[aria-expanded=\"true\"]{rotate:180deg}");
     expect(css).toContain(".aria-disabled\\:opacity-50[aria-disabled=\"true\"]{");
@@ -252,46 +270,49 @@ describe("runtime utilities", () => {
   });
 
   it("applies hover only on devices that can hover", () => {
-    div({ class: "group" }, div({ class: "hover:bg-blue-700 group-hover:flex md:hover:px-6 focus:ring-2" }));
+    const css = compiled("hover:bg-blue-700 group-hover:flex md:hover:px-6 focus:ring-2");
 
-    expect(utilityCss()).toContain("@media (hover:hover){.hover\\:bg-blue-700:hover{");
-    expect(utilityCss()).toContain("@media (hover:hover){.group:hover .group-hover\\:flex{display:flex}}");
-    expect(utilityCss()).toContain("@media (min-width:48rem) and (hover:hover){.md\\:hover\\:px-6:hover{");
-    expect(utilityCss()).toContain(".focus\\:ring-2:focus{");
+    expect(css).toContain("@media (hover:hover){.hover\\:bg-blue-700:hover{");
+    expect(css).toContain("@media (hover:hover){.group:hover .group-hover\\:flex{display:flex}}");
+    expect(css).toContain("@media (min-width:48rem) and (hover:hover){.md\\:hover\\:px-6:hover{");
+    expect(css).toContain(".focus\\:ring-2:focus{");
   });
 
   it("supports touch, motion and keyboard focus variants", () => {
-    div({ class: "group" }, div({ class: "opacity-0 touch:opacity-100 motion-reduce:hidden motion-safe:flex group-focus-visible-within:flex" }));
+    const css = compiled(
+      "opacity-0 touch:opacity-100 motion-reduce:hidden motion-safe:flex group-focus-visible-within:flex",
+    );
+    div({ class: "touch:opacity-100" });
+    div({ class: "opacity-0" });
 
-    const css = utilityCss();
     expect(css).toContain("@media (hover:none){.touch\\:opacity-100{opacity:1}}");
     expect(css).toContain("@media (prefers-reduced-motion:reduce){.motion-reduce\\:hidden{display:none}}");
     expect(css).toContain("@media (prefers-reduced-motion:no-preference){.motion-safe\\:flex{display:flex}}");
     expect(css).toContain(".group:is(:focus-visible, :has(:focus-visible)) .group-focus-visible-within\\:flex{display:flex}");
-    expect(css.indexOf(".touch\\:opacity-100{")).toBeGreaterThan(css.indexOf(".opacity-0{"));
+    expect(cascadeOrder(".touch:opacity-100", ".opacity-0")).toEqual([".opacity-0", ".touch:opacity-100"]);
   });
 
   it("styles pseudo-elements and direct children", () => {
-    div({ class: "placeholder:text-neutral-500 selection:bg-accent-500/40 marker:text-neutral-500 *:animate-fade" });
+    const css = compiled(
+      "placeholder:text-neutral-500 selection:bg-accent-500/40 marker:text-neutral-500 *:animate-fade",
+      "*:first:rounded-t-xl",
+    );
 
-    const css = utilityCss();
     expect(css).toContain(".placeholder\\:text-neutral-500::placeholder{color:var(--vrui-color-neutral-500)}");
     expect(css).toContain(".selection\\:bg-accent-500\\/40::selection,.selection\\:bg-accent-500\\/40 *::selection{");
     expect(css).toContain(".marker\\:text-neutral-500::marker,.marker\\:text-neutral-500 *::marker{");
     expect(css).toContain(".\\*\\:animate-fade > *{animation:vrui-fade 300ms");
-    div({ class: "*:first:rounded-t-xl" });
-    expect(utilityCss()).toContain(".\\*\\:first\\:rounded-t-xl > *:first-child{border-top-left-radius:0.75rem;");
+    expect(css).toContain(".\\*\\:first\\:rounded-t-xl > *:first-child{border-top-left-radius:0.75rem;");
     expect(isUtility("placeholder:selection:flex")).toBe(false);
     expect(isUtility("*:placeholder:flex")).toBe(false);
     expect(isUtility("placeholder:scrollbar-none")).toBe(false);
   });
 
   it("supports entrance, shimmer, table, touch and type utilities", () => {
-    div({
-      class: "animate-rise animate-shimmer ease-spring border-dashed border-collapse align-top flow-root touch-none callout-none antialiased text-box-trim scrollbars-thin",
-    });
+    const css = compiled(
+      "animate-rise animate-shimmer ease-spring border-dashed border-collapse align-top flow-root touch-none callout-none antialiased text-box-trim scrollbars-thin",
+    );
 
-    const css = utilityCss();
     expect(css).toContain("@keyframes vrui-rise{from{opacity:0;transform:translateY(8px)}}.animate-rise{animation:vrui-rise 250ms cubic-bezier(0.32, 0.72, 0, 1)}");
     expect(css).toContain("@keyframes vrui-shimmer{");
     expect(css).toContain(".animate-shimmer{-webkit-text-fill-color:transparent;");
@@ -309,10 +330,11 @@ describe("runtime utilities", () => {
   });
 
   it("supports filter, isolation, scroll anchor, safe area and cap trim utilities", () => {
-    div({ class: "grayscale brightness-75 isolate anchor-none text-box-trim-cap pt-safe px-safe" });
-    div({ class: "grayscale-0 isolation-auto anchor-auto pb-safe" });
+    const css = compiled(
+      "grayscale brightness-75 isolate anchor-none text-box-trim-cap pt-safe px-safe",
+      "grayscale-0 isolation-auto anchor-auto pb-safe",
+    );
 
-    const css = utilityCss();
     expect(css).toContain("@property --vrui-grayscale{syntax:\"*\";inherits:false}.grayscale{--vrui-grayscale:grayscale(100%);filter:var(--vrui-brightness,) var(--vrui-grayscale,)}");
     expect(css).toContain(".brightness-75{--vrui-brightness:brightness(0.75);filter:");
     expect(css).toContain(".grayscale-0{--vrui-grayscale:grayscale(0);");
@@ -332,16 +354,16 @@ describe("runtime utilities", () => {
   });
 
   it("registers utilities introduced by reactive classes", () => {
-    const classes = sig("p-2");
+    const classes = sig("p-5");
     const node = div({ class: classes });
 
-    expect(node.className).toBe("p-2");
-    expect(utilityCss()).toContain(".p-2{padding:0.5rem}");
+    expect(node.className).toBe("p-5");
+    expect(utilitySelectors()).toContain(".p-5");
 
-    classes.set("p-4");
+    classes.set("p-6");
 
-    expect(node.className).toBe("p-4");
-    expect(utilityCss()).toContain(".p-4{padding:1rem}");
+    expect(node.className).toBe("p-6");
+    expect(utilitySelectors()).toContain(".p-6");
   });
 
   it("keeps external classes and rejects arbitrary values", () => {
@@ -355,7 +377,15 @@ describe("runtime utilities", () => {
     div({ class: "flex p-4" });
     div({ class: "flex p-4" });
 
-    expect(utilityCss().match(/\.p-4\{/g)).toHaveLength(1);
+    expect(cascadeOrder(".p-4")).toEqual([".p-4"]);
+  });
+
+  it("brings its rules back when the stylesheet is removed", () => {
+    div({ class: "gap-5" });
+    document.head.querySelector("style[data-vrui-utilities]")?.remove();
+    div({ class: "gap-3" });
+
+    expect(cascadeOrder(".gap-3", ".gap-5")).toEqual([".gap-3", ".gap-5"]);
   });
 });
 
@@ -372,7 +402,7 @@ describe("color themes", () => {
     expect(target.style.getPropertyValue("--vrui-color-accent-600")).toBe("#2563eb");
     expect(target.style.getPropertyValue("--vrui-color-neutral-50")).toBe("#f8fafc");
     expect(target.dataset.vruiMode).toBe("dark");
-    expect(utilityCss()).toContain("background-color:var(--vrui-color-accent-600)");
+    expect(utilitySelectors()).toContain(".bg-accent-600");
 
     stop();
 
@@ -385,7 +415,7 @@ describe("color themes", () => {
     const stop = mount(target, { class: "bg-neutral-900 text-sm page" });
 
     expect(target.className).toBe("page bg-neutral-900 text-sm");
-    expect(utilityCss()).toContain(".bg-neutral-900{");
+    expect(utilitySelectors()).toContain(".bg-neutral-900");
 
     stop();
 

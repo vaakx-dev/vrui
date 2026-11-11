@@ -8,7 +8,7 @@ export type ResolvedUtility = {
   order: number;
   /** Extra rules on the same selector plus a suffix, such as a pseudo-element. */
   nested?: readonly (readonly [suffix: string, declarations: readonly Declaration[]])[];
-  /** Complete at-rules the utility needs, such as `@keyframes` or `@property`. */
+  /** A complete at-rule the utility needs, such as `@keyframes` or `@property`. */
   prelude?: string;
 };
 

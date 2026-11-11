@@ -147,7 +147,7 @@ contract.
 | Window event | `onWindow(owner, event, handler)` |
 | Document event | `onDocument(owner, event, handler)` |
 | Custom, socket, or third-party event | `onTarget` or `listen` |
-| Timer or animation frame | `onTimeout`, `onInterval`, or `onRaf`, with an optional owner node |
+| Timer, animation frame, or idle work | `onTimeout`, `onInterval`, `onRaf`, or `onIdle`, with an optional owner node |
 | Resize or media state | `onResize`, `media`, `onMedia`, or `resizeObserver` |
 | Persisted state or current time | `stored(key, fallback)` or `clock(ms)` |
 | Conditional UI | `show` or `keep`; factories may return `null` |
@@ -282,7 +282,7 @@ left alone. In browser code the check reports:
 | `style.x =`, `style.setProperty` | a reactive `style` prop or a utility |
 | `innerHTML`, `outerHTML`, `textContent`, `innerText` writes | factories and reactive children |
 | `new ResizeObserver`, `new IntersectionObserver`, `new MutationObserver` | `resizeObserver`, `intersectionObserver`, or `onMount` |
-| `setTimeout`, `setInterval`, `requestAnimationFrame`, `queueMicrotask`, and their `clear` calls | `onTimeout`, `onInterval`, `onRaf`, and their disposers |
+| `setTimeout`, `setInterval`, `requestAnimationFrame`, `requestIdleCallback`, `queueMicrotask`, and their `clear` and `cancel` calls | `onTimeout`, `onInterval`, `onRaf`, `onIdle`, and their disposers |
 | `matchMedia` | `media(query)` or `onMedia` |
 | `localStorage`, `sessionStorage` | `stored(key, fallback)` |
 

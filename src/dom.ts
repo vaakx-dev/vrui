@@ -56,17 +56,18 @@ function hasReactivePart(value: unknown): boolean {
   return false;
 }
 
+function writeClass(el: HTMLElement, value: string): void {
+  const className = ensureUtilities(el, value);
+  if (el.className !== className) el.className = className;
+}
+
 function setClass(el: HTMLElement, value: unknown): void {
   if (hasReactivePart(value)) {
-    const dispose = effect(() => {
-      const next = classStr(resolve(value) as ClassValue);
-      el.className = ensureUtilities(el, next);
-    });
+    const dispose = effect(() => writeClass(el, classStr(resolve(value) as ClassValue)));
     autoDispose(el, dispose);
     return;
   }
-  const next = classStr(value as ClassValue);
-  el.className = ensureUtilities(el, next);
+  writeClass(el, classStr(value as ClassValue));
 }
 
 function isWritableSignal(value: unknown): value is WritableSignal<unknown> {

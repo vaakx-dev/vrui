@@ -64,7 +64,7 @@ Choose the VRUI path that matches the application intent:
 | Conditional and repeated UI | `show`, `keep`, `dynamicChild` (factories may return `null`), and keyed `list` |
 | Window or document interaction | `onWindow` and `onDocument` |
 | Target, socket, or custom interaction | `onTarget` and `listen` |
-| Delayed browser work | `onTimeout`, `onInterval`, and `onRaf`, with an owner node inside event handlers |
+| Delayed browser work | `onTimeout`, `onInterval`, `onRaf`, and `onIdle`, with an owner node inside event handlers |
 | Browser observation | `onResize`, `media`, `onMedia`, `resizeObserver`, and `intersectionObserver` |
 | Imperative integration | `ref` or `onMount`, returning cleanup |
 
