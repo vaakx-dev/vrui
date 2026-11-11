@@ -1,8 +1,14 @@
 import { BREAKPOINT } from "./scales";
 import { resolveUtility, type ResolvedUtility } from "./rules";
 
+export type MediaLayer = {
+  media: string;
+  order: string;
+};
+
 export type CompiledUtility = {
   rules: readonly string[];
+  layer: MediaLayer;
   key: string;
   order: string;
   token: string;
@@ -38,6 +44,19 @@ const pseudoElements: Record<string, readonly string[]> = {
   marker: ["::marker", " *::marker"],
   selection: ["::selection", " *::selection"],
 };
+
+function mediaLayer(breakpoint: keyof typeof BREAKPOINT | undefined, conditions: Iterable<string>): MediaLayer {
+  const sorted = [...conditions].sort();
+  const media = [...(breakpoint ? [`(min-width:${BREAKPOINT[breakpoint]})`] : []), ...sorted].join(" and ");
+  const breakpointOrder = breakpoint ? Object.keys(BREAKPOINT).indexOf(breakpoint) + 1 : 0;
+  return { media, order: `${breakpointOrder.toString().padStart(2, "0")}:${sorted.length ? 1 : 0}:${media}` };
+}
+
+const CONDITIONS = [CAN_HOVER, ...Object.values(queries)];
+
+export const MEDIA_LAYERS: readonly MediaLayer[] = [undefined, ...(Object.keys(BREAKPOINT) as (keyof typeof BREAKPOINT)[])]
+  .flatMap((breakpoint) => [[], ...CONDITIONS.map((condition) => [condition])].map((conditions) => mediaLayer(breakpoint, conditions)))
+  .filter((layer) => layer.media);
 
 function escapeClass(token: string): string {
   return token.replace(/[^a-zA-Z0-9_-]/g, (character) => `\\${character}`);
@@ -113,8 +132,8 @@ export function compileUtility(token: string): CompiledUtility | undefined {
     selector += ":where([data-vrui-mode=\"dark\"], [data-vrui-mode=\"dark\"] *)";
   }
   if (group) selector = `${group}${selector}`;
-  const media = [...(breakpoint ? [`(min-width:${BREAKPOINT[breakpoint]})`] : []), ...conditions];
-  const key = `${[...media].sort().join(" and ")}{${selector}${pseudo?.join(",") ?? ""}}${properties(utility)}`;
+  const layer = mediaLayer(breakpoint, conditions);
+  const key = `${layer.media}{${selector}${pseudo?.join(",") ?? ""}}${properties(utility)}`;
   selector = selector.replace("&", () => `.${escapeClass(token)}`);
   const targets = (pseudo ?? [""]).map((suffix) => `${selector}${suffix}`).join(",");
 
@@ -122,15 +141,11 @@ export function compileUtility(token: string): CompiledUtility | undefined {
     `${targets}{${declarations(utility.declarations)}}`,
     ...(utility.nested ?? []).map(([suffix, nested]) => `${selector}${suffix}{${declarations(nested)}}`),
   ];
-  const scoped = media.length ? [`@media ${media.join(" and ")}{${rules.join("")}}`] : rules;
-
-  const breakpointOrder = breakpoint
-    ? Object.keys(BREAKPOINT).indexOf(breakpoint) + 1
-    : 0;
   return {
-    rules: utility.prelude ? [utility.prelude, ...scoped] : scoped,
+    rules,
+    layer,
     key,
-    order: `${breakpointOrder.toString().padStart(2, "0")}:${conditions.size ? 1 : 0}:${utility.order.toString().padStart(4, "0")}:${token}`,
+    order: `${utility.order.toString().padStart(4, "0")}:${token}`,
     token,
   };
 }

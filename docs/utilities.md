@@ -26,6 +26,12 @@ cascade whatever order elements are created in, and leaves the rules already
 there untouched. Reactive class values register new rules before updating the
 element.
 
+The sheet starts with the keyframes and custom properties utilities use and an
+empty media rule for each breakpoint, hover, touch, and motion condition.
+Variant utilities go inside those media rules, so adding a utility never makes
+the browser restyle the whole page. Utilities under the same breakpoint follow
+in condition order, plain ones first.
+
 When two utilities in one class list set the same properties under the same
 variants, the later one wins and VRUI leaves the earlier one off the element.
 `["px-4 bg-accent-600", "px-2"]` renders `bg-accent-600 px-2`, and

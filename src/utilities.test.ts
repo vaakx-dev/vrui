@@ -9,13 +9,21 @@ import { theme, themes } from "./utilities/theme";
 function compiled(...classLists: string[]): string {
   return classLists
     .flatMap((classList) => classList.split(" "))
-    .flatMap((token) => compileUtility(token)?.rules ?? [])
+    .flatMap((token) => {
+      const utility = compileUtility(token);
+      if (!utility) return [];
+      const rules = utility.rules.join("");
+      return utility.layer.media ? `@media ${utility.layer.media}{${rules}}` : rules;
+    })
     .join("");
 }
 
+function sheetRules(): CSSRuleList | [] {
+  return document.head.querySelector<HTMLStyleElement>("style[data-vrui-utilities]")?.sheet?.cssRules ?? [];
+}
+
 function utilitySelectors(): string[] {
-  const rules = [...document.head.querySelector<HTMLStyleElement>("style[data-vrui-utilities]")?.sheet?.cssRules ?? []];
-  return rules
+  return [...sheetRules()]
     .flatMap((rule) => (rule instanceof CSSMediaRule ? [...rule.cssRules] : [rule]))
     .map((rule) => (rule instanceof CSSStyleRule ? rule.selectorText.replaceAll("\\", "") : ""));
 }
@@ -125,7 +133,7 @@ describe("runtime utilities", () => {
     expect(css).toContain(".-rotate-90{rotate:-90deg}");
     expect(css).toContain(".rounded-t-lg{border-top-left-radius:0.5rem;border-top-right-radius:0.5rem}");
     expect(css).toContain(".rounded-b{border-bottom-right-radius:0.375rem;border-bottom-left-radius:0.375rem}");
-    expect(css).toContain("@keyframes vrui-spin{to{transform:rotate(360deg)}}.animate-spin{animation:vrui-spin 1s linear infinite}");
+    expect(css).toContain(".animate-spin{animation:vrui-spin 1s linear infinite}");
     expect(isUtility("rounded-tl")).toBe(false);
     expect(isUtility("line-clamp-7")).toBe(false);
   });
@@ -153,10 +161,10 @@ describe("runtime utilities", () => {
     const css = compiled("translate-x-1/2 -translate-y-1/2 rotate-45 md:-translate-x-4");
 
     expect(css).toContain(
-      "@property --vrui-translate-x{syntax:\"*\";inherits:false}.translate-x-1\\/2{--vrui-translate-x:50%;translate:var(--vrui-translate-x, 0) var(--vrui-translate-y, 0)}",
+      ".translate-x-1\\/2{--vrui-translate-x:50%;translate:var(--vrui-translate-x, 0) var(--vrui-translate-y, 0)}",
     );
     expect(css).toContain(".-translate-y-1\\/2{--vrui-translate-y:-50%;");
-    expect(css).toContain("@property --vrui-translate-x{syntax:\"*\";inherits:false}@media (min-width:48rem){.md\\:-translate-x-4{--vrui-translate-x:-1rem;");
+    expect(css).toContain("@media (min-width:48rem){.md\\:-translate-x-4{--vrui-translate-x:-1rem;");
     expect(css).toContain(".rotate-45{rotate:45deg}");
   });
 
@@ -313,8 +321,7 @@ describe("runtime utilities", () => {
       "animate-rise animate-shimmer ease-spring border-dashed border-collapse align-top flow-root touch-none callout-none antialiased text-box-trim scrollbars-thin",
     );
 
-    expect(css).toContain("@keyframes vrui-rise{from{opacity:0;transform:translateY(8px)}}.animate-rise{animation:vrui-rise 250ms cubic-bezier(0.32, 0.72, 0, 1)}");
-    expect(css).toContain("@keyframes vrui-shimmer{");
+    expect(css).toContain(".animate-rise{animation:vrui-rise 250ms cubic-bezier(0.32, 0.72, 0, 1)}");
     expect(css).toContain(".animate-shimmer{-webkit-text-fill-color:transparent;");
     expect(css).toContain(".ease-spring{transition-timing-function:cubic-bezier(0.32, 0.72, 0, 1)}");
     expect(css).toContain(".border-dashed{border-style:dashed}");
@@ -335,7 +342,7 @@ describe("runtime utilities", () => {
       "grayscale-0 isolation-auto anchor-auto pb-safe",
     );
 
-    expect(css).toContain("@property --vrui-grayscale{syntax:\"*\";inherits:false}.grayscale{--vrui-grayscale:grayscale(100%);filter:var(--vrui-brightness,) var(--vrui-grayscale,)}");
+    expect(css).toContain(".grayscale{--vrui-grayscale:grayscale(100%);filter:var(--vrui-brightness,) var(--vrui-grayscale,)}");
     expect(css).toContain(".brightness-75{--vrui-brightness:brightness(0.75);filter:");
     expect(css).toContain(".grayscale-0{--vrui-grayscale:grayscale(0);");
     expect(css).toContain(".isolate{isolation:isolate}");
@@ -371,6 +378,26 @@ describe("runtime utilities", () => {
     expect(() => div({ class: "w-[13px]" })).toThrow(
       "vrui: arbitrary utility values are not supported: w-[13px]",
     );
+  });
+
+  it("defines shared keyframes once, before every utility", () => {
+    div({ class: "animate-spin" });
+    div({ class: "*:animate-spin" });
+
+    const rules = [...sheetRules()].map((rule) => rule.cssText);
+    const keyframes = rules.filter((rule) => rule.startsWith("@keyframes vrui-spin"));
+    expect(keyframes).toHaveLength(1);
+    expect(rules.indexOf(keyframes[0]!)).toBeLessThan(rules.findIndex((rule) => rule.startsWith(".animate-spin")));
+  });
+
+  it("adds variant utilities inside media rules the sheet already has", () => {
+    div({ class: "border" });
+    const mediaRules = () => [...sheetRules()].filter((rule) => rule instanceof CSSMediaRule).length;
+    const before = mediaRules();
+    div({ class: "md:px-6 hover:bg-blue-700 touch:opacity-100 motion-reduce:hidden" });
+
+    expect(mediaRules()).toBe(before);
+    expect(cascadeOrder(".md:px-6", ".hover:bg-blue-700:hover", ".touch:opacity-100", ".motion-reduce:hidden")).toHaveLength(4);
   });
 
   it("inserts each utility once", () => {

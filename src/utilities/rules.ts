@@ -8,8 +8,6 @@ export type ResolvedUtility = {
   order: number;
   /** Extra rules on the same selector plus a suffix, such as a pseudo-element. */
   nested?: readonly (readonly [suffix: string, declarations: readonly Declaration[]])[];
-  /** A complete at-rule the utility needs, such as `@keyframes` or `@property`. */
-  prelude?: string;
 };
 
 /** Registers a custom property that does not inherit, so a parent's value never leaks into a child. */
@@ -226,7 +224,6 @@ add(700, {
 
 exact["ring-inset"] = {
   declarations: [["--vrui-ring-inset", "inset"]],
-  prelude: local("--vrui-ring-inset"),
   order: 700,
 };
 
@@ -264,7 +261,6 @@ add(840, {
 
 const filter = (name: string, value: string): ResolvedUtility => ({
   declarations: [[`--vrui-${name}`, value], ["filter", "var(--vrui-brightness,) var(--vrui-grayscale,)"]],
-  prelude: local(`--vrui-${name}`),
   order: 840,
 });
 exact.grayscale = filter("grayscale", "grayscale(100%)");
@@ -273,7 +269,6 @@ for (const step of BRIGHTNESS) exact[`brightness-${step}`] = filter("brightness"
 
 exact["animate-spin"] = {
   declarations: [["animation", "vrui-spin 1s linear infinite"]],
-  prelude: "@keyframes vrui-spin{to{transform:rotate(360deg)}}",
   order: 830,
 };
 add(830, { "animate-none": [["animation", "none"]] });
@@ -286,10 +281,9 @@ const ENTRANCES: Record<string, readonly [duration: string, from: string]> = {
   drawer: ["250ms", "transform:translateX(-100%)"],
   tip: ["120ms", "opacity:0;transform:scale(.97)"],
 };
-for (const [name, [duration, from]] of Object.entries(ENTRANCES)) {
+for (const [name, [duration]] of Object.entries(ENTRANCES)) {
   exact[`animate-${name}`] = {
     declarations: [["animation", `vrui-${name} ${duration} ${EASE.spring}`]],
-    prelude: `@keyframes vrui-${name}{from{${from}}}`,
     order: 830,
   };
 }
@@ -302,9 +296,15 @@ exact["animate-shimmer"] = {
     ["background-clip", "text"],
     ["animation", "vrui-shimmer 2.2s steps(30) infinite"],
   ],
-  prelude: "@keyframes vrui-shimmer{to{background-position:calc(100% + 4.5rem) 0, 0 0}}",
   order: 830,
 };
+
+export const PRELUDES: readonly string[] = [
+  ...["--vrui-ring-inset", "--vrui-grayscale", "--vrui-brightness", "--vrui-translate-x", "--vrui-translate-y"].map(local),
+  "@keyframes vrui-spin{to{transform:rotate(360deg)}}",
+  ...Object.entries(ENTRANCES).map(([name, [, from]]) => `@keyframes vrui-${name}{from{${from}}}`),
+  "@keyframes vrui-shimmer{to{background-position:calc(100% + 4.5rem) 0, 0 0}}",
+];
 
 add(610, { "line-clamp-none": [["overflow", "visible"], ["display", "block"], ["-webkit-box-orient", "horizontal"], ["-webkit-line-clamp", "unset"]] });
 for (const lines of ["1", "2", "3", "4", "5", "6"]) {
@@ -410,7 +410,6 @@ function translate(token: string): ResolvedUtility | undefined {
       [variable, minus ? negate(offset) : offset],
       ["translate", "var(--vrui-translate-x, 0) var(--vrui-translate-y, 0)"],
     ],
-    prelude: local(variable),
     order: 820,
   };
 }
