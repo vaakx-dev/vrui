@@ -2,7 +2,7 @@
 // vrui - flow control (list, show)
 // ============================================================
 
-import { batch, Condition, Derive, effect, read, sig, Sig, untrack } from "./core";
+import { batch, Condition, Derive, derive, effect, read, sig, Sig, untrack } from "./core";
 import { autoDispose } from "./lifecycle";
 import { collectScope, disposeAll, type Disposer } from "./scope";
 
@@ -23,6 +23,10 @@ function resolveDynamicChild<T>(value: DynamicChildValue<T>): T {
   return value instanceof Condition ? value.get() as T : read(value);
 }
 
+function drivingSignal<T>(value: DynamicChildValue<T>): Sig<T> {
+  return value instanceof Sig ? value : derive(() => resolveDynamicChild(value));
+}
+
 export function dynamicChild<T>(
   value: DynamicChildValue<T>,
   factory: (value: T) => FlowNode,
@@ -33,9 +37,10 @@ export function dynamicChild<T>(
 
   let child: Node | null = null;
   let childScope: Disposer[] = [];
+  const driver = drivingSignal(value);
 
   const disposeEff = effect(() => {
-    const next = resolveDynamicChild(value);
+    const next = driver.get();
     const created = untrack(() => collectScope(() => factory(next)));
     child = created.value ?? null;
     childScope = created.scope;
@@ -49,7 +54,10 @@ export function dynamicChild<T>(
     };
   });
 
-  autoDispose(node, disposeEff);
+  autoDispose(node, () => {
+    disposeEff();
+    if (driver !== value) driver.dispose();
+  });
 
   return node;
 }
