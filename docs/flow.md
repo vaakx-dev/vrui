@@ -5,7 +5,8 @@ VRUI provides `dynamicChild`, `show`, `keep`, and `list` for dynamic UI.
 ## dynamicChild
 
 `dynamicChild(value, factory)` replaces one child when its driving value
-changes.
+changes. A getter or derive that recomputes to the same value keeps the
+child, so its local state survives unrelated updates.
 
 ```ts
 import { div, dynamicChild, sig } from "@vaakx-dev/vrui";

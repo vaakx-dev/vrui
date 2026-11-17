@@ -33,6 +33,27 @@ describe("dynamicChild", () => {
     expect(root.textContent).toBe("b");
   });
 
+  it("keeps the child when a getter's dependencies change but its value does not", () => {
+    const count = sig(1);
+    let builds = 0;
+    const root = dynamicChild(
+      () => count.get() > 0,
+      (some) => {
+        builds++;
+        return div({ text: some ? "some" : "none" });
+      },
+    );
+    const first = root.children[0];
+
+    count.set(2);
+    expect(root.children[0]).toBe(first);
+    expect(builds).toBe(1);
+
+    count.set(0);
+    expect(root.textContent).toBe("none");
+    expect(builds).toBe(2);
+  });
+
   it("does not replace the child when factory-local state changes", () => {
     const current = sig("a");
     const local = sig("rectangle");
